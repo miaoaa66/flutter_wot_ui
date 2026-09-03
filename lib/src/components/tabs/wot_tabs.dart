@@ -112,6 +112,14 @@ class _WotTabsState extends State<WotTabs> {
     widget.onChange?.call(index);
   }
 
+  Color _textColor(
+      WotScheme scheme, bool isCard, int i, Color activeColor, Color inactiveColor) {
+    if (widget.children[i].disabled) return scheme.textDisabled;
+    if (i != _current) return inactiveColor;
+    // card 高亮底为 primary，选中文字用白色以保证可读。
+    return isCard ? Colors.white : activeColor;
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
@@ -168,9 +176,7 @@ class _WotTabsState extends State<WotTabs> {
                     widget.children[i].title ?? widget.children[i].name ?? 'Tab $i',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: widget.children[i].disabled
-                          ? scheme.textDisabled
-                          : (i == _current ? activeColor : inactiveColor),
+                      color: _textColor(scheme, isCard, i, activeColor, inactiveColor),
                       fontSize: 14,
                       fontWeight: i == _current ? FontWeight.w600 : FontWeight.w400,
                     ),

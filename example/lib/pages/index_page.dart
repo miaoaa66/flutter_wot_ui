@@ -66,12 +66,10 @@ class WotIndexPage extends StatelessWidget {
                 ),
             ],
           ),
-          Row(
-            children: [
-              const Text('Dark'),
-              Switch(value: dark, onChanged: (_) => onToggleDark()),
-              const SizedBox(width: 8),
-            ],
+          IconButton(
+            tooltip: dark ? '切换浅色' : '切换深色',
+            icon: Icon(dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+            onPressed: onToggleDark,
           ),
         ],
       ),
@@ -105,6 +103,7 @@ class WotIndexPage extends StatelessWidget {
                 ),
               ),
           ],
+          const SizedBox(height: 16),
         ],
       ),
     );

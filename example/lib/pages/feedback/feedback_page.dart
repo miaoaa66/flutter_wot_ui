@@ -77,7 +77,14 @@ class _WotFeedbackPageState extends State<WotFeedbackPage> {
           const SizedBox(height: 8),
           WotProgress(modelValue: _progress, textInside: true, showText: true),
           const SizedBox(height: 8),
-          WotCircle(modelValue: _circle),
+          WotCircle(modelValue: _circle, size: 200),
+          Container(
+            height: 300,
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.red, width: 2),
+            ),
+            child: WotCircle(modelValue: _circle,)
+          ),
           const SizedBox(height: 20),
           _section('WotPopup 弹出层 / WotNoticeBar 公告'),
           WotButton(text: '打开弹出层', size: WotButtonSize.small, onClick: () => setState(() => _popup = true)),
@@ -123,9 +130,12 @@ class _WotFeedbackPageState extends State<WotFeedbackPage> {
             ),
             WotDropMenuItem(
               title: '筛选',
-              panel: Padding(
-                padding: const EdgeInsets.all(16),
-                child: const WotText('筛选面板内容'),
+              panel: Container(
+                width: double.infinity,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: const WotText('筛选面板内容'),
+                )
               ),
             ),
           ]),
