@@ -73,16 +73,27 @@ class _WotSortButtonState extends State<WotSortButton> {
           Text(widget.text,
               style: TextStyle(fontSize: 14, color: widget.disabled ? scheme.textDisabled : fg)),
           const SizedBox(width: 4),
+          // 上下箭头：用 Stack 紧凑叠放，避免固定高内 Column(flex) 溢出。
           SizedBox(
             width: 10,
-            height: 12,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            height: 14,
+            child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                Icon(Icons.arrow_drop_up,
-                    size: 12, color: _dir == WotSortDirection.ascending ? fg : (active ? fg.withValues(alpha: 0.4) : scheme.iconDisabled)),
-                Icon(Icons.arrow_drop_down,
-                    size: 12, color: _dir == WotSortDirection.descending ? fg : scheme.iconDisabled),
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: Icon(Icons.arrow_drop_up,
+                      size: 12,
+                      color: _dir == WotSortDirection.ascending
+                          ? fg
+                          : (active ? fg.withValues(alpha: 0.4) : scheme.iconDisabled)),
+                ),
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Icon(Icons.arrow_drop_down,
+                      size: 12,
+                      color: _dir == WotSortDirection.descending ? fg : scheme.iconDisabled),
+                ),
               ],
             ),
           ),

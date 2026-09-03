@@ -112,7 +112,6 @@ class WotAvatarGroup extends StatelessWidget {
         Container(
           width: size,
           height: size,
-          margin: EdgeInsets.only(left: margin < 0 ? 0 : margin),
           decoration: BoxDecoration(
             color: scheme.filledStrong,
             shape: shape == WotAvatarShape.circle ? BoxShape.circle : BoxShape.rectangle,
@@ -125,16 +124,15 @@ class WotAvatarGroup extends StatelessWidget {
       );
     }
 
+    // 用 Transform.translate 实现头像重叠：负 margin 不为 Container 所支持，
+    // 改为视觉平移（不占用布局宽度），offset.dx = margin（默认 -8 → 向左叠加）。
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var i = 0; i < avatars.length; i++)
           Transform.translate(
-            offset: Offset(0, 0),
-            child: Container(
-              margin: EdgeInsets.only(left: i == 0 ? 0 : margin),
-              child: avatars[i],
-            ),
+            offset: Offset(i == 0 ? 0 : margin, 0),
+            child: avatars[i],
           ),
       ],
     );

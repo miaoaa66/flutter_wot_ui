@@ -61,10 +61,9 @@ class WotWatermark extends StatelessWidget {
       return Stack(
         children: [
           child ?? const SizedBox.expand(),
-          IgnorePointer(
-            child: Positioned.fill(
-              child: watermark,
-            ),
+          // Positioned 必须直接挂在 Stack 下，IgnorePointer 应作为其内部子级。
+          Positioned.fill(
+            child: IgnorePointer(child: watermark),
           ),
         ],
       );

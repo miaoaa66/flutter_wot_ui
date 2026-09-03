@@ -11,6 +11,9 @@ enum WotCurtainPosition { center, bottom, top, left, right }
 /// 用于整屏遮挡并展示广告/公告等内容。参数对齐 wot：`modelValue`（是否可见）、
 /// `maskClose`（点击遮罩关闭）、`closeIcon`（关闭图标名）、`closeIconSize`、`closeIconColor`、
 /// `position`（面板位置）、`onOpen`/`onClose`。
+///
+/// 实现：通过 [showGeneralDialog] 挂到**根 Navigator/Overlay**（天然全屏），
+/// 避免就地嵌套 `Overlay` 在无界约束（如 ListView）下无法定尺寸。
 class WotCurtain extends StatefulWidget {
   const WotCurtain({
     super.key,
@@ -45,12 +48,64 @@ class WotCurtain extends StatefulWidget {
 }
 
 class _WotCurtainState extends State<WotCurtain> {
+  bool _opened = false;
+
   @override
-  Widget build(BuildContext context) {
+  void initState() {
+    super.initState();
+    if (widget.modelValue) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _open();
+      });
+    }
+  }
+
+  // 幕布经全屏 Dialog 展示，组件自身仅作占位。
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
+
+  @override
+  void didUpdateWidget(WotCurtain oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.modelValue && !_opened) {
+      _open();
+    } else if (!widget.modelValue && _opened) {
+      _opened = false;
+      if (mounted && Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    }
+  }
+
+  void _open() {
+    if (_opened) return;
+    _opened = true;
+    widget.onOpen?.call();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showGeneralDialog<void>(
+        context: context,
+        barrierDismissible: widget.maskClose,
+        barrierColor: Colors.transparent,
+        barrierLabel: 'curtain',
+        transitionDuration: const Duration(milliseconds: 200),
+        transitionBuilder: (context, animation, _, child) => FadeTransition(
+          opacity: animation,
+          child: child,
+        ),
+        pageBuilder: (ctx, _, _) => _buildCurtain(ctx),
+      ).whenComplete(() {
+        _opened = false;
+        if (mounted) {
+          widget.onModelUpdate?.call(false);
+          widget.onClose?.call();
+        }
+      });
+    });
+  }
+
+  Widget _buildCurtain(BuildContext context) {
     final scheme = context.wotScheme;
-
-    if (!widget.modelValue) return const SizedBox.shrink();
-
     final panel = widget.child ?? const SizedBox.shrink();
 
     Alignment align;
@@ -67,67 +122,60 @@ class _WotCurtainState extends State<WotCurtain> {
         align = Alignment.centerRight;
     }
 
-    return Overlay(
-      initialEntries: [
-        OverlayEntry(
-          builder: (context) => Material(
-            type: MaterialType.transparency,
-            child: Stack(
-              children: [
-                // 遮罩。
-                Positioned.fill(
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: widget.maskClose ? _close : null,
-                    child: Container(color: scheme.opacMainCover),
-                  ),
-                ),
-                // 面板。
-                Align(
-                  alignment: align,
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        panel,
-                        // 关闭按钮。
-                        Positioned(
-                          top: 0,
-                          right: 0,
-                          child: Transform.translate(
-                            offset: const Offset(18, -18),
-                            child: GestureDetector(
-                              onTap: _close,
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.2),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: WotIcon(
-                                  name: widget.closeIcon,
-                                  size: widget.closeIconSize,
-                                  color: widget.closeIconColor ?? Colors.white,
-                                ),
-                              ),
-                            ),
+    return Material(
+      type: MaterialType.transparency,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 遮罩。
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.maskClose ? _close : null,
+            child: Container(color: scheme.opacMainCover),
+          ),
+          // 面板。
+          Align(
+            alignment: align,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  panel,
+                  // 关闭按钮。
+                  Positioned(
+                    top: 0,
+                    right: 0,
+                    child: Transform.translate(
+                      offset: const Offset(18, -18),
+                      child: GestureDetector(
+                        onTap: _close,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: WotIcon(
+                            name: widget.closeIcon,
+                            size: widget.closeIconSize,
+                            color: widget.closeIconColor ?? Colors.white,
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   void _close() {
-    widget.onModelUpdate?.call(false);
-    widget.onClose?.call();
+    final navigator = Navigator.of(context, rootNavigator: true);
+    if (navigator.canPop()) navigator.pop();
   }
 }
