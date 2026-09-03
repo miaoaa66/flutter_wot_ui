@@ -1,0 +1,26 @@
+name: flutter_wot_ui
+description: A Flutter component library recreated from Wot UI, supporting multi-theme semantic tokens and cross-platform (web/android/ios/desktop).
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.11.1
+  flutter: ">=3.41.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # Official Dart team package for locale-aware date/number formatting.
+  intl: ^0.20.2
+  # Pure Dart QR code generation for WotQrCode.
+  qr_flutter: ^4.1.0
+  # Platform plugin for file/image picking in WotUpload / WotImg.
+  file_picker: ^10.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
