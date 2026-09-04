@@ -73,6 +73,8 @@ class WotGrid extends StatelessWidget {
                           padding: EdgeInsets.only(right: c == rows[r].length - 1 ? 0 : gap),
                           child: SizedBox(
                             width: cellWidth,
+                            // 开启 square 时格子的高与宽相等（正方形）。
+                            height: square ? cellWidth : null,
                             child: rows[r][c],
                           ),
                         ),
@@ -103,6 +105,8 @@ class WotGridItem extends StatelessWidget {
     this.border,
     this.dot = false,
     this.badge,
+    this.max = 99,
+    this.iconSize = 26,
     this.onClick,
     this.children,
   });
@@ -131,6 +135,12 @@ class WotGridItem extends StatelessWidget {
   /// 右上角徽标数字。
   final num? badge;
 
+  /// 徽标最大值，超过时显示为 `{max}+`，默认 99。
+  final num max;
+
+  /// 图标尺寸，默认 26。
+  final double iconSize;
+
   /// 点击回调。
   final VoidCallback? onClick;
 
@@ -148,7 +158,7 @@ class WotGridItem extends StatelessWidget {
         if (icon != null)
           icon!
         else if (iconName != null)
-          WotIcon(name: iconName, size: 26, color: iconColor ?? scheme.iconMain),
+          WotIcon(name: iconName, size: iconSize, color: iconColor ?? scheme.iconMain),
         if (text != null) ...[
           const SizedBox(height: 6),
           Text(text!, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: fg)),
@@ -180,7 +190,10 @@ class WotGridItem extends StatelessWidget {
                       color: scheme.dangerMain,
                       borderRadius: BorderRadius.circular(7),
                     ),
-                    child: Text('$badge', style: const TextStyle(fontSize: 9, color: Colors.white, height: 1)),
+                    child: Text(
+                      badge! > max ? '$max+' : '$badge',
+                      style: const TextStyle(fontSize: 9, color: Colors.white, height: 1),
+                    ),
                   ),
           ),
         ],

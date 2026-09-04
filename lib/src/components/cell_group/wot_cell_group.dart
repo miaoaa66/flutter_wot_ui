@@ -32,6 +32,7 @@ class WotCellGroup extends StatelessWidget {
   /// 透传 style（此处为非关键视觉扩展，可选）。
   final BoxDecoration? customStyle;
 
+  /// 分组内展示的单元格列表。
   final List<Widget> children;
 
   @override

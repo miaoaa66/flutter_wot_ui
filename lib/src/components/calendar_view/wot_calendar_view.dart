@@ -20,14 +20,31 @@ class WotCalendarView extends StatefulWidget {
     this.weekdays = const ['一', '二', '三', '四', '五', '六', '日'],
   });
 
+  /// 初始年份，缺省取当前年。
   final int? year;
+
+  /// 初始月份（1-12），缺省取当前月。
   final int? month;
+
+  /// 当前选中日期（v-model）。
   final DateTime? modelValue;
+
+  /// 点击某一天时触发的回调，参数为点击的日期。
   final ValueChanged<DateTime>? onDayClick;
+
+  /// 切换年/月时触发的回调。
   final ValueChanged<DateTime>? onMonthChange;
+
+  /// 可选日期范围的最小日期，早于该日期的日期不可选。
   final DateTime? minDate;
+
+  /// 可选日期范围的最大日期，晚于该日期的日期不可选。
   final DateTime? maxDate;
+
+  /// 主题色，覆盖默认主色。
   final Color? color;
+
+  /// 周首行展示的星期文案，默认「一」~「日」。
   final List<String> weekdays;
 
   @override

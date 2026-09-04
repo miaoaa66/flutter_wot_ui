@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
+import '../../theme/wot_scheme.dart';
 
 /// 分页模式。
 enum WotPaginationMode { multi, button, simple }
@@ -23,6 +24,8 @@ class WotPagination extends StatelessWidget {
 
   /// 当前页（从 1 开始，v-model:value）。
   final num modelValue;
+
+  /// 页码变化时回调，参数为切换后的页码。
   final ValueChanged<int>? onChange;
 
   /// 总条数。
@@ -43,7 +46,7 @@ class WotPagination extends StatelessWidget {
   /// 下一页文字。
   final String? nextText;
 
-  /// 主色。
+  /// 主色（页码按钮高亮色）。
   final Color? color;
 
   /// 仅一页时是否隐藏。
@@ -65,9 +68,9 @@ class WotPagination extends StatelessWidget {
     if (hideIfSinglePage && single) return const SizedBox.shrink();
 
     return switch (mode) {
-      WotPaginationMode.simple => _buildSimple(primary, current, pageCount),
-      WotPaginationMode.button => _buildButtons(primary, current, pageCount),
-      WotPaginationMode.multi => _buildMulti(primary, current, pageCount),
+      WotPaginationMode.simple => _buildSimple(scheme, primary, current, pageCount),
+      WotPaginationMode.button => _buildButtons(scheme, primary, current, pageCount),
+      WotPaginationMode.multi => _buildMulti(scheme, primary, current, pageCount),
     };
   }
 
@@ -78,22 +81,22 @@ class WotPagination extends StatelessWidget {
     onChange?.call(page);
   }
 
-  Widget _nav(IconData data, VoidCallback? onTap) {
+  Widget _nav(IconData data, VoidCallback? onTap, WotScheme scheme) {
     return InkResponse(
       onTap: onTap,
       radius: 18,
       child: Padding(
         padding: const EdgeInsets.all(6),
-        child: Icon(data, size: 16, color: onTap == null ? kIconDisabled : null),
+        child: Icon(data, size: 16, color: onTap == null ? scheme.iconAuxiliary : null),
       ),
     );
   }
 
-  Widget _buildSimple(Color primary, int current, int pageCount) {
+  Widget _buildSimple(WotScheme scheme, Color primary, int current, int pageCount) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _nav(Icons.chevron_left, current > 1 ? () => _change(current - 1) : null),
+        _nav(Icons.chevron_left, current > 1 ? () => _change(current - 1) : null, scheme),
         Text('$current / ${pageCount == 0 ? 0 : pageCount}',
             style: const TextStyle(fontSize: 14)),
         _nav(
@@ -101,27 +104,29 @@ class WotPagination extends StatelessWidget {
           (pageCount > 0 && current < pageCount)
               ? () => _change(current + 1)
               : null,
+          scheme,
         ),
       ],
     );
   }
 
-  Widget _buildButtons(Color primary, int current, int pageCount) {
+  Widget _buildButtons(WotScheme scheme, Color primary, int current, int pageCount) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _button(prevText ?? '上一页', primary, current > 1 ? () => _change(current - 1) : null),
+        _button(prevText ?? '上一页', primary, current > 1 ? () => _change(current - 1) : null, scheme),
         const SizedBox(width: 8),
         _button(
           nextText ?? '下一页',
           primary,
           (pageCount > 0 && current < pageCount) ? () => _change(current + 1) : null,
+          scheme,
         ),
       ],
     );
   }
 
-  Widget _buildMulti(Color primary, int current, int pageCount) {
+  Widget _buildMulti(WotScheme scheme, Color primary, int current, int pageCount) {
     if (pageCount == 0) return const SizedBox.shrink();
 
     final pc = pagerCount.toInt();
@@ -131,12 +136,13 @@ class WotPagination extends StatelessWidget {
     start = (end - pc + 1).clamp(1, pageCount).toInt();
 
     final pages = <Widget>[
-      _nav(Icons.chevron_left, current > 1 ? () => _change(current - 1) : null),
+      _nav(Icons.chevron_left, current > 1 ? () => _change(current - 1) : null, scheme),
       for (var p = start; p <= end; p++)
         _pageNum(p, current, primary),
       _nav(
         Icons.chevron_right,
         current < pageCount ? () => _change(current + 1) : null,
+        scheme,
       ),
     ];
 
@@ -167,21 +173,22 @@ class WotPagination extends StatelessWidget {
     );
   }
 
-  Widget _button(String text, Color primary, VoidCallback? onTap) {
+  Widget _button(String text, Color primary, VoidCallback? onTap, WotScheme scheme) {
     return InkWell(
       borderRadius: BorderRadius.circular(4),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          border: Border.all(color: kIconDisabled.withValues(alpha: 0.4)),
+          // 按钮边框：随明暗用主题描边色
+          border: Border.all(color: scheme.borderMain),
           borderRadius: BorderRadius.circular(4),
         ),
-        child: Text(text, style: TextStyle(fontSize: 13, color: onTap == null ? kIconDisabled : null)),
+        // 禁用态文字：随明暗用主题禁用文字色
+        child: Text(text, style: TextStyle(fontSize: 13, color: onTap == null ? scheme.textDisabled : null)),
       ),
     );
   }
 }
 
-const Color kIconDisabled = Color(0xFFA9ACB8);
 const Color kWhite = Color(0xFFFFFFFF);

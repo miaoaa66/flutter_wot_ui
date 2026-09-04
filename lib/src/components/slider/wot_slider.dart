@@ -8,9 +8,13 @@ class WotSlider extends StatefulWidget {
     super.key,
     this.modelValue = 0,
     this.onChange,
+    this.onChangeEnd,
     this.min = 0,
     this.max = 100,
     this.step = 1,
+    this.range = false,
+    this.valueStart,
+    this.onChangeRange,
     this.disabled = false,
     this.activeColor,
     this.inactiveColor,
@@ -19,16 +23,49 @@ class WotSlider extends StatefulWidget {
     this.name,
   });
 
+  /// 当前值，默认 0。单滑块模式下为选中的值；[range] 模式下作为区间上限值。
   final num modelValue;
+
+  /// 值变化回调（单滑块模式，拖动/点击过程中触发）。
   final ValueChanged<num>? onChange;
+
+  /// 拖动/点击结束回调（单滑块模式），参数为最终值。
+  final ValueChanged<num>? onChangeEnd;
+
+  /// 最小值，默认 0。
   final num min;
+
+  /// 最大值，默认 100。
   final num max;
+
+  /// 步进值，默认 1。
   final num step;
+
+  /// 是否为双向滑块模式，开启后显示两个滑块以选择区间，默认 false。
+  final bool range;
+
+  /// 双向滑块模式下区间的起始值（下限），缺省取 [min]。
+  final num? valueStart;
+
+  /// 双向滑块模式下区间变化回调，参数为 `[低值, 高值]`。
+  final ValueChanged<List<num>>? onChangeRange;
+
+  /// 是否禁用，默认 false。
   final bool disabled;
+
+  /// 已激活段颜色，默认使用主题主色。
   final Color? activeColor;
+
+  /// 未激活轨道颜色，默认使用主题描边浅色。
   final Color? inactiveColor;
+
+  /// 是否显示当前值提示气泡，默认 false。
   final bool showTip;
+
+  /// 提示气泡文本格式化函数，入参为当前值。
   final String Function(num)? tipFormatter;
+
+  /// 表单字段名（用于原生表单提交示例）。
   final String? name;
 
   @override
@@ -37,33 +74,80 @@ class WotSlider extends StatefulWidget {
 
 class _WotSliderState extends State<WotSlider> {
   double _value = 0;
+  double _low = 0;
+  double _high = 0;
+  bool _dragging = false;
+  bool _dragLow = false;
+
+  double get _range => (widget.max - widget.min).toDouble();
 
   @override
   void initState() {
     super.initState();
     _value = widget.modelValue.toDouble();
+    _low = (widget.valueStart ?? widget.min).toDouble();
+    _high = widget.modelValue.toDouble();
   }
 
   @override
   void didUpdateWidget(WotSlider old) {
     super.didUpdateWidget(old);
+    if (_dragging) return;
     if (old.modelValue != widget.modelValue) _value = widget.modelValue.toDouble();
+    if (widget.range) {
+      _low = (widget.valueStart ?? widget.min).toDouble();
+      _high = widget.modelValue.toDouble();
+    }
   }
 
   double _fraction(double v) {
-    if (widget.max <= widget.min) return 0;
-    return ((v - widget.min.toDouble()) / (widget.max - widget.min).toDouble()).clamp(0.0, 1.0);
+    if (_range <= 0) return 0;
+    return ((v - widget.min.toDouble()) / _range).clamp(0.0, 1.0);
   }
 
-  void _set(double fraction) {
-    if (widget.disabled) return;
-    final range = (widget.max - widget.min).toDouble();
-    final v = widget.min.toDouble() + fraction * range;
+  double _fracToValue(double fraction) {
+    if (_range <= 0) return widget.min.toDouble();
+    final v = widget.min.toDouble() + fraction * _range;
     final stepped = (v / widget.step.toDouble()).round() * widget.step.toDouble();
-    final clamped = stepped.clamp(widget.min.toDouble(), widget.max.toDouble()).toDouble();
-    if (clamped == _value) return;
-    setState(() => _value = clamped);
-    widget.onChange?.call(clamped);
+    return stepped.clamp(widget.min.toDouble(), widget.max.toDouble()).toDouble();
+  }
+
+  void _setSingle(double fraction) {
+    final v = _fracToValue(fraction);
+    if (v == _value) return;
+    setState(() => _value = v);
+    widget.onChange?.call(v);
+  }
+
+  void _setRange(double fraction, {required bool low}) {
+    final v = _fracToValue(fraction);
+    if (low) {
+      if (v >= _high) return;
+      setState(() => _low = v);
+    } else {
+      if (v <= _low) return;
+      setState(() => _high = v);
+    }
+    widget.onChangeRange?.call([_low, _high]);
+  }
+
+  /// 根据指针位置决定拖动低值滑块还是高值滑块。
+  void _dragMove(double fraction) {
+    if (widget.range) {
+      final dLow = (fraction - _fraction(_low)).abs();
+      final dHigh = (fraction - _fraction(_high)).abs();
+      final grabLow = dLow <= dHigh;
+      _dragLow = grabLow;
+      _setRange(fraction, low: grabLow);
+    } else {
+      _setSingle(fraction);
+    }
+  }
+
+  void _dragEnd() {
+    if (!_dragging) return;
+    setState(() => _dragging = false);
+    if (!widget.range) widget.onChangeEnd?.call(_value);
   }
 
   @override
@@ -71,52 +155,119 @@ class _WotSliderState extends State<WotSlider> {
     final scheme = context.wotScheme;
     final active = widget.activeColor ?? scheme.primaryOf(6);
     final inactive = widget.inactiveColor ?? scheme.borderLight;
-    final frac = _fraction(_value);
+    final disabled = widget.disabled;
+    final lowFrac = widget.range ? _fraction(_low) : 0.0;
+    final highFrac = _fraction(_value);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: (d) => _set(d.localPosition.dx / width),
-          onHorizontalDragUpdate: (d) => _set(d.localPosition.dx / width),
-          child: SizedBox(
-            height: 32,
-            child: Stack(
-              alignment: Alignment.centerLeft,
+
+        Widget thumb(double frac, {bool isLow = false}) {
+          return Positioned(
+            left: frac * width - 14,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // 轨道。
+                if (widget.showTip && _dragging && (isLow == _dragLow || (!widget.range && isLow)))
+                  _tipBubble(widget.range ? (isLow ? _low : _high) : _value),
                 Container(
-                  height: 3,
-                  decoration: BoxDecoration(color: inactive, borderRadius: BorderRadius.circular(2)),
-                ),
-                // 已激活段。
-                Container(
-                  width: width * frac,
-                  height: 3,
-                  decoration: BoxDecoration(color: active, borderRadius: BorderRadius.circular(2)),
-                ),
-                // 滑块.
-                Positioned(
-                  left: width * frac - 14,
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                      border: Border.all(color: active, width: 2),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4, offset: const Offset(0, 1)),
-                      ],
-                    ),
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    border: Border.all(color: active, width: 2),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4, offset: const Offset(0, 1)),
+                    ],
                   ),
                 ),
+              ],
+            ),
+          );
+        }
+
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTapDown: disabled
+              ? null
+              : (d) {
+                  _dragging = true;
+                  _dragMove(d.localPosition.dx / width);
+                  _dragEnd();
+                },
+          onHorizontalDragStart: disabled
+              ? null
+              : (d) {
+                  setState(() => _dragging = true);
+                  _dragMove(d.localPosition.dx / width);
+                },
+          onHorizontalDragUpdate: disabled ? null : (d) => _dragMove(d.localPosition.dx / width),
+          onHorizontalDragEnd: disabled ? null : (_) => _dragEnd(),
+          onHorizontalDragCancel: disabled ? null : _dragEnd,
+          child: SizedBox(
+            height: 56,
+            width: double.infinity,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned(
+                  top: 27,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    height: 3,
+                    decoration: BoxDecoration(color: inactive, borderRadius: BorderRadius.circular(2)),
+                  ),
+                ),
+                if (widget.range) ...[
+                  Positioned(
+                    top: 27,
+                    left: width * lowFrac,
+                    width: width * (highFrac - lowFrac),
+                    height: 3,
+                    child: Container(
+                      decoration: BoxDecoration(color: active, borderRadius: BorderRadius.circular(2)),
+                    ),
+                  ),
+                  thumb(lowFrac, isLow: true),
+                  thumb(highFrac),
+                ] else ...[
+                  Positioned(
+                    top: 27,
+                    left: 0,
+                    width: width * highFrac,
+                    height: 3,
+                    child: Container(
+                      decoration: BoxDecoration(color: active, borderRadius: BorderRadius.circular(2)),
+                    ),
+                  ),
+                  thumb(highFrac),
+                ],
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  /// 当前值提示气泡。
+  Widget _tipBubble(num value) {
+    final scheme = context.wotScheme;
+    final text = widget.tipFormatter?.call(value) ?? value.toString();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: scheme.textMain,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(color: Colors.white, fontSize: 11),
+      ),
     );
   }
 }

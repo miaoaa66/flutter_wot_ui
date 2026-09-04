@@ -22,6 +22,7 @@ class WotRow extends StatelessWidget {
   /// 水平分布（`justify-content`）。
   final MainAxisAlignment justify;
 
+  /// 子元素列表（[WotCol] 按栅格分配，其他原样放置）。
   final List<Widget> children;
 
   /// 点击回调。
@@ -80,6 +81,7 @@ class WotCol extends StatelessWidget {
   /// 偏移栅格数（0-24）。
   final int offset;
 
+  /// 该列内容。
   final Widget child;
 
   @override

@@ -12,15 +12,11 @@ class WotIndexPage extends StatelessWidget {
   const WotIndexPage({
     super.key,
     required this.dark,
-    required this.variant,
     required this.onToggleDark,
-    required this.onSelectVariant,
   });
 
   final bool dark;
-  final WotThemeVariant variant;
   final VoidCallback onToggleDark;
-  final ValueChanged<WotThemeVariant> onSelectVariant;
 
   @override
   Widget build(BuildContext context) {
@@ -53,19 +49,6 @@ class WotIndexPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Wot UI Flutter'),
         actions: [
-          PopupMenuButton<WotThemeVariant>(
-            icon: const Icon(Icons.palette_outlined),
-            tooltip: '切换主题',
-            initialValue: variant,
-            onSelected: onSelectVariant,
-            itemBuilder: (_) => [
-              for (final v in WotThemeVariant.values)
-                PopupMenuItem(
-                  value: v,
-                  child: Text(v.label),
-                ),
-            ],
-          ),
           IconButton(
             tooltip: dark ? '切换浅色' : '切换深色',
             icon: Icon(dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
@@ -78,12 +61,12 @@ class WotIndexPage extends StatelessWidget {
           for (final g in groups) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-              child: WotText(g.title, size: 14, strong: true, type: WotTextType.secondary),
+              child: WotText(g.title, size: 14, bold: true, type: WotTextType.wotDefault),
             ),
             if (g.entries.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                child: WotText('待实现（后续 Phase 补充）', type: WotTextType.disabled, size: 13),
+                child: WotText('待实现（后续 Phase 补充）', type: WotTextType.error, size: 13),
               )
             else
               Card(

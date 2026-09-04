@@ -15,12 +15,25 @@ class WotSignature extends StatefulWidget {
     this.disabled = false,
   });
 
+  /// 书写状态变化回调，参数表示是否有内容（每次落笔结束后触发）。
   final ValueChanged<bool>? onUpdate;
+
+  /// 清空回调（点击清空按钮时触发）。
   final VoidCallback? onClear;
+
+  /// 画笔颜色，默认使用主题主文本色。
   final Color? penColor;
+
+  /// 笔画粗细，默认 3。
   final double lineWidth;
+
+  /// 背景颜色，默认使用主题填充色。
   final Color? bgColor;
+
+  /// 画板高度，默认 200。
   final double height;
+
+  /// 是否禁用书写，默认 false。
   final bool disabled;
 
   @override

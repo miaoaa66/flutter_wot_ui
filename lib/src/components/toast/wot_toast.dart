@@ -24,13 +24,14 @@ class WotToast {
     BuildContext context, {
     required Widget child,
     Duration duration = const Duration(milliseconds: 2000),
+    String position = 'center',
   }) {
     final overlay = _overlayOf(context);
     if (overlay == null) return;
     _dismiss(overlay);
 
     final entry = OverlayEntry(
-      builder: (context) => _ToastOverlay(child: child),
+      builder: (context) => _ToastOverlay(position: position, child: child),
     );
     _current = entry;
     overlay.insert(entry);
@@ -48,48 +49,88 @@ class WotToast {
     _current = null;
   }
 
-  static void text(BuildContext context, String msg, {Duration? duration}) {
-    _show(context, child: _ToastText(msg: msg), duration: duration ?? const Duration(milliseconds: 2000));
+  static void text(BuildContext context, String msg,
+      {Duration? duration, String position = 'center'}) {
+    _show(
+        context,
+        child: _ToastText(msg: msg),
+        duration: duration ?? const Duration(milliseconds: 2000),
+        position: position);
   }
 
   /// 带图标状态 toast。
+  ///
+  /// 补充参数：[duration] 展示时长；[position] 展示位置，可选 `top`/`center`/`bottom`；
+  /// [icon] 自定义图标（覆盖 [type] 对应默认图标）。
   static void show(
     BuildContext context,
     String msg, {
     WotToastType type = WotToastType.info,
     Duration? duration,
+    String position = 'center',
+    IconData? icon,
   }) {
     _show(
       context,
-      child: _ToastIcon(type: type, msg: msg),
+      child: _ToastIcon(type: type, msg: msg, icon: icon),
       duration: duration ?? const Duration(milliseconds: 2000),
+      position: position,
     );
   }
 
   /// 成功提示。
-  static void success(BuildContext context, String msg, {Duration? duration}) =>
-      show(context, msg, type: WotToastType.success, duration: duration);
+  static void success(BuildContext context, String msg,
+          {Duration? duration, String position = 'center'}) =>
+      show(context, msg,
+          type: WotToastType.success,
+          duration: duration,
+          position: position);
 
   /// 失败提示。
-  static void error(BuildContext context, String msg, {Duration? duration}) =>
-      show(context, msg, type: WotToastType.error, duration: duration);
+  static void error(BuildContext context, String msg,
+          {Duration? duration, String position = 'center'}) =>
+      show(context, msg,
+          type: WotToastType.error,
+          duration: duration,
+          position: position);
+
+  /// 警告提示。
+  static void warning(BuildContext context, String msg,
+          {Duration? duration, String position = 'center'}) =>
+      show(context, msg,
+          type: WotToastType.warning,
+          duration: duration,
+          position: position);
+
+  /// 常规提示（info 语义）。
+  static void info(BuildContext context, String msg,
+          {Duration? duration, String position = 'center'}) =>
+      show(context, msg, duration: duration, position: position);
 
   /// 加载中（不自动关闭）。
-  static void loading(BuildContext context, String msg) {
-    _show(context, child: _ToastIcon(type: WotToastType.loading, msg: msg));
+  static void loading(BuildContext context, String msg,
+      {String position = 'center'}) {
+    _show(
+        context,
+        child: _ToastIcon(type: WotToastType.loading, msg: msg),
+        position: position);
   }
 
-  /// 关闭当前 toast。
-  static void dismiss(BuildContext context) {
+  /// 关闭当前 toast（wot `close` 语义别名）。
+  static void close(BuildContext context) {
     final overlay = _overlayOf(context);
     if (overlay == null) return;
     _dismiss(overlay);
   }
+
+  /// 关闭当前 toast。
+  static void dismiss(BuildContext context) => close(context);
 }
 
 class _ToastOverlay extends StatelessWidget {
-  const _ToastOverlay({required this.child});
+  const _ToastOverlay({required this.child, this.position = 'center'});
   final Widget child;
+  final String position;
 
   @override
   Widget build(BuildContext context) {
@@ -99,9 +140,26 @@ class _ToastOverlay extends StatelessWidget {
       right: 0,
       bottom: 0,
       child: IgnorePointer(
-        child: Center(child: child),
+        child: _positioned(child),
       ),
     );
+  }
+
+  Widget _positioned(Widget child) {
+    switch (position) {
+      case 'top':
+        return Padding(
+          padding: const EdgeInsets.only(top: 80),
+          child: Align(alignment: Alignment.topCenter, child: child),
+        );
+      case 'bottom':
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 100),
+          child: Align(alignment: Alignment.bottomCenter, child: child),
+        );
+      default:
+        return Align(alignment: Alignment.center, child: child);
+    }
   }
 }
 
@@ -124,18 +182,21 @@ class _ToastText extends StatelessWidget {
 }
 
 class _ToastIcon extends StatelessWidget {
-  const _ToastIcon({required this.type, required this.msg});
+  const _ToastIcon({required this.type, required this.msg, this.icon});
   final WotToastType type;
   final String msg;
+
+  /// 自定义图标，覆盖 [type] 对应的默认图标。
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
     final isLoading = type == WotToastType.loading;
     final color = switch (type) {
-      WotToastType.success => const Color(0xFF12B886),
-      WotToastType.warning => const Color(0xFFFF9F0F),
-      WotToastType.error => const Color(0xFFF14646),
+      WotToastType.success => scheme.successMain,
+      WotToastType.warning => scheme.warningMain,
+      WotToastType.error => scheme.dangerMain,
       _ => Colors.white,
     };
 
@@ -152,7 +213,7 @@ class _ToastIcon extends StatelessWidget {
           if (isLoading)
             WotLoading(size: 30, loadingColor: Colors.white)
           else
-            Icon(_iconOf(type), size: 30, color: color),
+            Icon(icon ?? _iconOf(type), size: 30, color: color),
           if (msg.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(

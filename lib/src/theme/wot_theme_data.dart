@@ -262,26 +262,6 @@ class WotTagDefaults {
   }
 }
 
-/// 主题变体，对齐 wot `presets.scss` 的 8 套语义预设。
-enum WotThemeVariant {
-  shadcn,
-  vant,
-  tdesign,
-  cartoon,
-  nutui,
-  illustration;
-
-  /// 人类可读名称（用于演示选择器）。
-  String get label => switch (this) {
-        WotThemeVariant.shadcn => 'Shadcn',
-        WotThemeVariant.vant => 'Vant',
-        WotThemeVariant.tdesign => 'TDesign',
-        WotThemeVariant.cartoon => 'Cartoon',
-        WotThemeVariant.nutui => 'NutUI',
-        WotThemeVariant.illustration => 'Illustration',
-      };
-}
-
 /// 完整主题数据。
 @immutable
 class WotThemeData {
@@ -299,48 +279,7 @@ class WotThemeData {
       WotThemeData(scheme: WotSchemeBuilder.light());
   static final WotThemeData dark = WotThemeData(scheme: WotSchemeBuilder.dark());
 
-  /// 按 [variant] 变体（主色倾向）与明暗模式构造主题。
-  ///
-  /// 各变体仅替换主色区梯度及 feedback-accent，其余语义令牌沿用默认；
-  /// 对齐 `presets.scss` 的"主色换肤"语义，演示多主题切换。
-  factory WotThemeData.ofVariant(WotThemeVariant variant, {bool dark = false}) {
-    final base = dark ? WotThemeData.dark : WotThemeData.light;
-    final primary = _variantPrimary[variant]!(dark);
-    final scheme = base.scheme
-        .copyWithPrimary(primary, accent: primary[5].withValues(alpha: 1));
-    return WotThemeData(scheme: scheme);
-  }
-
-  // 各变体主色中点（用于生成 10 级梯度）。
-  static const Map<WotThemeVariant, Color> _variantSeed = {
-    WotThemeVariant.shadcn: Color(0xFF4480FF),
-    WotThemeVariant.vant: Color(0xFF1989FA),
-    WotThemeVariant.tdesign: Color(0xFF0052D9),
-    WotThemeVariant.cartoon: Color(0xFFFF6B2C),
-    WotThemeVariant.nutui: Color(0xFFFA2C19),
-    WotThemeVariant.illustration: Color(0xFF00C0A1),
-  };
-
-  static List<Color> Function(bool dark) _primaryOf(Color seed) {
-    return (dark) {
-      if (!dark) {
-        // 浅色：from 色 1..10 逐级加深。
-        return [
-          for (var i = 0; i < 10; i++)
-            Color.lerp(Colors.white, seed, 0.12 * (i + 1))!,
-        ];
-      }
-      // 深色：反转，从最深到最浅。
-      return _primaryOf(seed)(false).reversed.toList();
-    };
-  }
-
-  static final Map<WotThemeVariant, List<Color> Function(bool)>
-      _variantPrimary = {
-    for (final v in WotThemeVariant.values) v: _primaryOf(_variantSeed[v]!),
-  };
-
-  /// 浅色并叠加项目自定义组件默认配置。
+  /// 复制并覆盖主题数据，可自定义 [scheme]（含主题色与各色值）、尺寸与组件默认配置。
   WotThemeData copyWith({
     WotScheme? scheme,
     WotMetrics? metrics,

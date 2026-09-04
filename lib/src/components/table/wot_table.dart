@@ -60,14 +60,31 @@ class WotTable extends StatelessWidget {
     this.onRowClick,
   });
 
+  /// 列定义列表。
   final List<WotTableColumn> columns;
+
+  /// 表格行数据，每行为字典 {字段名: 值}。
   final List<Map<String, dynamic>> data;
+
+  /// 是否开启斑马纹背景（隔行异色），默认 false。
   final bool stripe;
+
+  /// 是否显示外边框和所有单元格边框，默认 false。
   final bool border;
+
+  /// 表格最大高度，超过后可滚动。
   final double? maxHeight;
+
+  /// 数据为空时的提示文本，默认「暂无数据」。
   final String emptyText;
+
+  /// 是否显示表头，默认 true。
   final bool showHead;
+
+  /// 表头行高，默认 40。
   final double headerRowHeight;
+
+  /// 数据行高，默认 44。
   final double rowHeight;
 
   /// 行点击回调。

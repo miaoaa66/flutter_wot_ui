@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import '../../theme/wot_theme.dart';
 
 /// 顶部通知类型。
-enum WotNotifyType { success, warning, error, info }
+///
+/// 对齐 wot：`primary`（主色）、`success`（成功）、`warning`（警告）、`error`（危险）。
+/// `info` 为 `primary` 的别名，语义相同。
+enum WotNotifyType { primary, success, warning, error, info }
 
 /// 命令式顶部通知服务，对应 wot `useNotify`。
 class WotNotify {
@@ -14,11 +17,16 @@ class WotNotify {
   static OverlayEntry? _entry;
   static Timer? _timer;
 
+  /// 展示顶部通知。
+  ///
+  /// 补充参数：[type] 通知类型（primary/success/warning/error/info）；[duration] 展示时长；
+  /// [onClose] 关闭（超时自动消失）后的回调。
   static void show(
     BuildContext context, {
     String message = '',
     WotNotifyType type = WotNotifyType.info,
     Duration duration = const Duration(milliseconds: 2500),
+    VoidCallback? onClose,
   }) {
     final overlay = Overlay.of(context, rootOverlay: true);
     _timer?.cancel();
@@ -33,9 +41,13 @@ class WotNotify {
 
     _timer = Timer(duration, () {
       if (entry.mounted) entry.remove();
-      _entry = null;
+      if (_entry == entry) _entry = null;
+      onClose?.call();
     });
   }
+
+  static void primary(BuildContext context, String message) =>
+      show(context, message: message, type: WotNotifyType.primary);
 
   static void success(BuildContext context, String message) =>
       show(context, message: message, type: WotNotifyType.success);
@@ -43,6 +55,16 @@ class WotNotify {
       show(context, message: message, type: WotNotifyType.error);
   static void warning(BuildContext context, String message) =>
       show(context, message: message, type: WotNotifyType.warning);
+
+  /// 立即关闭当前顶部通知（不触发 [WotNotify.show] 的 [onClose]，onClose 仅在超时自动消失时触发）。
+  static void close(BuildContext context) {
+    _timer?.cancel();
+    final e = _entry;
+    if (e != null) {
+      if (e.mounted) e.remove();
+      _entry = null;
+    }
+  }
 }
 
 class _NotifyBar extends StatelessWidget {
@@ -57,13 +79,13 @@ class _NotifyBar extends StatelessWidget {
       WotNotifyType.success => scheme.successMain,
       WotNotifyType.warning => scheme.warningMain,
       WotNotifyType.error => scheme.dangerMain,
-      WotNotifyType.info => scheme.primaryOf(6),
+      WotNotifyType.primary || WotNotifyType.info => scheme.primaryOf(6),
     };
     final icon = switch (type) {
       WotNotifyType.success => Icons.check_circle,
       WotNotifyType.warning => Icons.error_outline,
       WotNotifyType.error => Icons.cancel,
-      WotNotifyType.info => Icons.info_outline,
+      WotNotifyType.primary || WotNotifyType.info => Icons.info_outline,
     };
 
     return Positioned(

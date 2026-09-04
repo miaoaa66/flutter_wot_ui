@@ -16,11 +16,22 @@ class WotCountDown extends StatefulWidget {
     this.textStyle,
   });
 
+  /// 倒计时总时长，单位毫秒（v-model）。
   final num value;
+
+  /// 剩余时间变化时触发的回调，参数为剩余时长。
   final ValueChanged<Duration>? onChange;
+
+  /// 倒计时结束时触发的回调。
   final VoidCallback? onFinish;
+
+  /// 时间展示格式，支持 `HH`/`mm`/`ss`/`SS` 占位符，默认 `HH:mm:ss`。
   final String format;
+
+  /// 是否自动开始倒计时，默认 true。
   final bool autoStart;
+
+  /// 文字样式，缺省使用主题默认文字样式。
   final TextStyle? textStyle;
 
   @override

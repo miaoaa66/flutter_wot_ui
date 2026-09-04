@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
+import '../badge/wot_badge.dart';
+import '../icon/wot_icon.dart';
 
 /// 侧边导航项，对应 wot `wd-sidebar-item`。须作为 [WotSidebar] 的直接子级。
 class WotSidebarItem extends StatelessWidget {
@@ -10,17 +12,35 @@ class WotSidebarItem extends StatelessWidget {
     this.name,
     this.disabled = false,
     this.badge,
+    this.icon,
+    this.value,
+    this.max = 99,
+    this.isDot = false,
   });
 
+  /// 导航项标题文本。
   final String? title;
 
   /// 唯一标识，与 [WotSidebar.modelValue] 匹配。
   final Object? name;
 
+  /// 是否禁用该导航项，默认 false。
   final bool disabled;
 
   /// 角标（数字/文案）。
   final String? badge;
+
+  /// 导航项图标名称（显示在标题左侧，激活时变色）。
+  final String? icon;
+
+  /// 徽标显示值（数字，与 [isDot]/[max] 配合经 [WotBadge] 渲染）。
+  final num? value;
+
+  /// 徽标最大值，超过时显示为 `{max}+`，默认 99。
+  final num max;
+
+  /// 是否显示点状徽标（红点），默认 false。
+  final bool isDot;
 
   @override
   Widget build(BuildContext context) {
@@ -50,29 +70,56 @@ class WotSidebarItem extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
+            if (icon != null) ...[
+              WotIcon(
+                name: icon!,
+                size: 16,
+                color: disabled
+                    ? scheme.textDisabled
+                    : (active ? activeColor : scheme.textMain),
+              ),
+              const SizedBox(width: 6),
+            ],
             Expanded(
-              child: Text(
-                title ?? '',
-                textAlign: TextAlign.left,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                  color: disabled
-                      ? scheme.textDisabled
-                      : (active ? activeColor : scheme.textMain),
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title ?? '',
+                    textAlign: TextAlign.left,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                      color: disabled
+                          ? scheme.textDisabled
+                          : (active ? activeColor : scheme.textMain),
+                    ),
+                  ),
+                  if (badge != null)
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: scheme.dangerMain,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        badge!,
+                        style: const TextStyle(color: Colors.white, fontSize: 9, height: 1),
+                      ),
+                    ),
+                ],
               ),
             ),
-            if (badge != null)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                decoration: BoxDecoration(
-                  color: scheme.dangerMain,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  badge!,
-                  style: const TextStyle(color: Colors.white, fontSize: 9, height: 1),
+            // 数字/点状徽标（经 [WotBadge] 渲染，显示在导航项右侧）。
+            if (value != null || isDot)
+              Padding(
+                padding: const EdgeInsets.only(left: 4),
+                child: WotBadge(
+                  modelValue: value ?? 0,
+                  max: max,
+                  isDot: isDot,
+                  child: const SizedBox.shrink(),
                 ),
               ),
           ],
@@ -94,8 +141,13 @@ class WotSidebar extends StatefulWidget {
     required this.children,
   });
 
+  /// 当前选中项的标识（受控）。
   final Object? modelValue;
+
+  /// 选中项变化回调，参数为选中项的 [WotSidebarItem.name]。
   final ValueChanged<Object?>? onChange;
+
+  /// 激活项颜色（高亮色），默认使用主题主色。
   final Color? activeColor;
 
   /// 未激活项背景色。
@@ -104,6 +156,7 @@ class WotSidebar extends StatefulWidget {
   /// 宽度。
   final double width;
 
+  /// 导航项列表（[WotSidebarItem]）。
   final List<WotSidebarItem> children;
 
   @override
@@ -158,6 +211,10 @@ class _WotSidebarState extends State<WotSidebar> {
                   name: item.name,
                   disabled: item.disabled,
                   badge: item.badge,
+                  icon: item.icon,
+                  value: item.value,
+                  max: item.max,
+                  isDot: item.isDot,
                 ),
             ],
           ),

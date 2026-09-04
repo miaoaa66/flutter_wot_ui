@@ -28,15 +28,34 @@ class WotSwiper extends StatefulWidget {
     this.children = const [],
   });
 
+  /// 是否自动播放，默认 false。
   final bool autoplay;
+
+  /// 自动播放间隔（毫秒），默认 3000。
   final int interval;
+
+  /// 切换动画时长（毫秒），默认 500。
   final int duration;
+
+  /// 是否循环播放，默认 true。
   final bool loop;
+
+  /// 是否显示指示点，默认 true。
   final bool indicator;
+
+  /// 指示点位置：bottom/top/middleLeft/middleCenter/middleRight，默认 bottom。
   final WotSwiperIndicatorPosition indicatorPosition;
+
+  /// 轮播图宽度。
   final double? width;
+
+  /// 轮播图高度。
   final double? height;
+
+  /// 页码变化回调，参数为当前页索引。
   final ValueChanged<int>? onChange;
+
+  /// 子项列表（每项对应一页，可为 [WotSwiperItem]）。
   final List<Widget> children;
 
   @override
@@ -187,6 +206,7 @@ class WotSwiperItem extends StatelessWidget {
     this.child,
   });
 
+  /// 轮播项子内容。
   final Widget? child;
 
   @override

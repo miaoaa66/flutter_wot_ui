@@ -140,6 +140,7 @@ List<WotSwipeActionItem> wotSwipeActions({
 }) {
   return [
     WotSwipeActionItem(text: '收藏'),
-    WotSwipeActionItem(text: delete, bgColor: const Color(0xFFF14646), onClick: onDelete),
+    // 删除按钮不写死红色，交由构建处 `bgColor ?? scheme.dangerMain` 取主题危险色。
+    WotSwipeActionItem(text: delete, onClick: onDelete),
   ];
 }

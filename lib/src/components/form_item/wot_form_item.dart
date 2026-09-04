@@ -31,6 +31,7 @@ class WotFormItem extends StatefulWidget {
   /// 是否必填（显示星号）。
   final bool required;
 
+  /// 标签对齐方式，默认左对齐。
   final Alignment labelAlign;
 
   /// 标签宽度。
@@ -45,7 +46,10 @@ class WotFormItem extends StatefulWidget {
   /// 是否会话底部边框。
   final bool border;
 
+  /// 整体内边距，默认 (16, 10, 16, 10)。
   final EdgeInsets childrenPadding;
+
+  /// 表单项内容（录入控件）。
   final Widget child;
 
   @override

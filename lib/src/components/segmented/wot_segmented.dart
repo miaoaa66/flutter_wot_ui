@@ -11,9 +11,16 @@ class WotSegmentedOption {
     this.icon,
   });
 
+  /// 选项显示文案。
   final String label;
+
+  /// 选项值，用于与选中值（v-model:value）匹配。
   final Object? value;
+
+  /// 是否禁用该选项，默认 false。
   final bool disabled;
+
+  /// 选项图标名。
   final String? icon;
 }
 
@@ -32,8 +39,13 @@ class WotSegmented extends StatelessWidget {
     this.size = 'medium',
   });
 
+  /// 当前选中的值（受控）。
   final Object? modelValue;
+
+  /// 选中值变化回调。
   final ValueChanged<Object?>? onChange;
+
+  /// 分段选项列表。
   final List<WotSegmentedOption> options;
 
   /// 是否占满父容器宽度。

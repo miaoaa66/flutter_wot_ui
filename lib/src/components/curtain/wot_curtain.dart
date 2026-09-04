@@ -29,18 +29,34 @@ class WotCurtain extends StatefulWidget {
     this.child,
   });
 
+  /// 是否显示幕布（v-model）。
   final bool modelValue;
+
+  /// 是否支持点击遮罩关闭，默认 true。
   final bool maskClose;
+
+  /// 关闭按钮图标名，默认 `close`。
   final String closeIcon;
+
+  /// 关闭按钮图标尺寸，默认 24。
   final double closeIconSize;
+
+  /// 关闭按钮图标颜色，缺省为白色。
   final Color? closeIconColor;
+
+  /// 面板展示位置，可选 `center`/`bottom`/`top`/`left`/`right`，默认 `center`。
   final WotCurtainPosition position;
+
+  /// 幕布打开时触发的回调。
   final VoidCallback? onOpen;
+
+  /// 幕布关闭时触发的回调。
   final VoidCallback? onClose;
 
   /// 可见状态变化回调。
   final ValueChanged<bool>? onModelUpdate;
 
+  /// 幕布内容。
   final Widget? child;
 
   @override

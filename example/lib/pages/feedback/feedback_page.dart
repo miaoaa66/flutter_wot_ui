@@ -13,6 +13,39 @@ class _WotFeedbackPageState extends State<WotFeedbackPage> {
   bool _popup = false;
   final int _progress = 60;
   final double _circle = 75;
+  String _sortValue = '综合';
+  String _priceValue = '不限';
+
+  // 引导高亮目标：分别定位到页内的“轻提示/确认框/弹出层”按钮。
+  final GlobalKey _tourKey1 = GlobalKey();
+  final GlobalKey _tourKey2 = GlobalKey();
+  final GlobalKey _tourKey3 = GlobalKey();
+
+  /// 启动新手引导，依次高亮三个目标控件。
+  void _startTour() {
+    WotTour.show(
+      context,
+      steps: [
+        WotTourStep(
+          target: _tourKey1,
+          title: '第一步 · 轻提示',
+          description: '这里使用 WotToast 命令式弹出轻提示，点击文本按钮可触发。',
+        ),
+        WotTourStep(
+          target: _tourKey2,
+          title: '第二步 · 确认框',
+          description: '通过 WotDialog.confirm 弹出删除确认框，返回结果后 Toast 提示。',
+        ),
+        WotTourStep(
+          target: _tourKey3,
+          title: '第三步 · 弹出层',
+          description: '点击该按钮从屏幕底部弹出 WotPopup 面板。',
+        ),
+      ],
+      onFinish: () => _toast('引导完成'),
+      onSkip: () => _toast('已跳过引导'),
+    );
+  }
 
   void _toast(String msg) {
     ScaffoldMessenger.of(context)
@@ -33,28 +66,80 @@ class _WotFeedbackPageState extends State<WotFeedbackPage> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              WotButton(text: '文本', size: WotButtonSize.small, onClick: () => WotToast.text(context, '轻提示')),
+              WotButton(text: '文本', key: _tourKey1, size: WotButtonSize.small, onClick: () => WotToast.text(context, '轻提示')),
               WotButton(text: '成功', size: WotButtonSize.small, type: WotButtonType.success, onClick: () => WotToast.success(context, '操作成功')),
               WotButton(text: '失败', size: WotButtonSize.small, type: WotButtonType.danger, onClick: () => WotToast.error(context, '操作失败')),
               WotButton(text: '加载中', size: WotButtonSize.small, onClick: () => WotToast.loading(context, '加载中')),
             ],
           ),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            WotButton(text: '顶部', size: WotButtonSize.small, onClick: () => WotToast.text(context, '顶部提示', position: 'top')),
+            WotButton(text: '居中', size: WotButtonSize.small, onClick: () => WotToast.text(context, '居中提示', position: 'center')),
+            WotButton(text: '底部', size: WotButtonSize.small, onClick: () => WotToast.text(context, '底部提示', position: 'bottom')),
+            WotButton(text: '自定义图标', size: WotButtonSize.small, type: WotButtonType.primary, onClick: () => WotToast.show(context, '自定义图标', icon: Icons.favorite)),
+          ]),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, children: [
+            WotButton(text: '警告(便捷)', size: WotButtonSize.small, type: WotButtonType.warning, onClick: () => WotToast.warning(context, '警告便捷方法', position: 'bottom')),
+            WotButton(text: '信息(便捷)', size: WotButtonSize.small, type: WotButtonType.info, onClick: () => WotToast.info(context, '信息便捷方法', position: 'top')),
+          ]),
           const SizedBox(height: 20),
           _section('WotNotify 顶部通知'),
-          Wrap(spacing: 8, children: [
+          Wrap(spacing: 8, runSpacing: 8, children: [
             WotButton(text: '通知', size: WotButtonSize.small, onClick: () => WotNotify.success(context, '这是顶部通知')),
             WotButton(text: '警告', size: WotButtonSize.small, type: WotButtonType.warning, onClick: () => WotNotify.warning(context, '请注意')),
             WotButton(text: '错误', size: WotButtonSize.small, type: WotButtonType.danger, onClick: () => WotNotify.error(context, '出错了')),
+            WotButton(text: '自定义type', size: WotButtonSize.small, type: WotButtonType.info, onClick: () => WotNotify.show(context, message: 'primary 类型通知', type: WotNotifyType.primary, onClose: () => _toast('通知已关闭'))),
           ]),
+          const SizedBox(height: 8),
+          WotButton(
+            text: 'onClose 回调查看',
+            size: WotButtonSize.small,
+            type: WotButtonType.warning,
+            onClick: () => WotNotify.show(
+              context,
+              message: '3 秒后自动关闭并触发 onClose',
+              type: WotNotifyType.info,
+              onClose: () => _toast('onClose 已触发'),
+            ),
+          ),
           const SizedBox(height: 20),
           _section('WotDialog 对话框（命令式 confirm / alert）'),
-          Wrap(spacing: 8, children: [
-            WotButton(text: '确认框', size: WotButtonSize.small, onClick: () async {
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            WotButton(text: '确认框', key: _tourKey2, size: WotButtonSize.small, onClick: () async {
               final ok = await WotDialog.confirm(context, message: '确定要删除吗？', title: '提示');
               _toast('结果：$ok');
             }),
             WotButton(text: '提示框', size: WotButtonSize.small, onClick: () {
               WotDialog.alert(context, message: '这是一个提示消息');
+            }),
+            WotButton(text: '显示关闭', size: WotButtonSize.small, onClick: () {
+              WotDialog.alert(
+                context,
+                title: '提示',
+                message: '右上角有关闭按钮',
+                showClose: true,
+                onClose: () => _toast('点击了关闭'),
+              );
+            }),
+            WotButton(text: '隐藏确定', size: WotButtonSize.small, onClick: () async {
+              final ok = await WotDialog.confirm(context, title: '提示', message: '仅保留取消按钮', showConfirmButton: false);
+              _toast('结果：$ok');
+            }),
+            WotButton(text: '自定义按钮文案', size: WotButtonSize.small, onClick: () async {
+              final ok = await WotDialog.confirm(
+                context,
+                title: '提示',
+                message: '自定义确定/取消文案',
+                showClose: true,
+                confirmButtonText: '保存',
+                cancelButtonText: '暂不',
+                onConfirm: () => _toast('点了保存'),
+                onCancel: () => _toast('点了暂不'),
+                onClose: () => _toast('点了关闭'),
+              );
+              _toast('结果：$ok');
             }),
           ]),
           const SizedBox(height: 20),
@@ -69,6 +154,26 @@ class _WotFeedbackPageState extends State<WotFeedbackPage> {
                 WotActionSheetItem(name: '删除', color: Color(0xFFF14646)),
               ], title: '请选择操作');
               if (r != null) _toast('选择：${r.name}');
+            },
+          ),
+          const SizedBox(height: 8),
+          WotButton(
+            text: 'showCancel=false + 回调',
+            size: WotButtonSize.small,
+            type: WotButtonType.primary,
+            onClick: () async {
+              final r = await WotActionSheet.show(
+                context,
+                actions: const [
+                  WotActionSheetItem(name: '拍照'),
+                  WotActionSheetItem(name: '相册'),
+                ],
+                title: '选择图片来源',
+                showCancel: false,
+                onSelect: (item) => _toast('选中：${item.name}'),
+                onCancel: () => _toast('已取消'),
+              );
+              if (r != null) _toast('选择返回：${r.name}');
             },
           ),
           const SizedBox(height: 20),
@@ -87,7 +192,7 @@ class _WotFeedbackPageState extends State<WotFeedbackPage> {
           ),
           const SizedBox(height: 20),
           _section('WotPopup 弹出层 / WotNoticeBar 公告'),
-          WotButton(text: '打开弹出层', size: WotButtonSize.small, onClick: () => setState(() => _popup = true)),
+          WotButton(text: '打开弹出层', key: _tourKey3, size: WotButtonSize.small, onClick: () => setState(() => _popup = true)),
           if (_popup)
             WotPopup(
               visible: _popup,
@@ -102,6 +207,7 @@ class _WotFeedbackPageState extends State<WotFeedbackPage> {
           const SizedBox(height: 8),
           WotCountTo(modelValue: 1234567, prefix: '¥ ', suffix: ' 元'),
           const SizedBox(height: 8),
+          WotSortButton(text: '年龄'),
           WotSortButton(),
           const SizedBox(height: 20),
           _section('WotTooltip / WotPopover 气泡'),
@@ -130,13 +236,38 @@ class _WotFeedbackPageState extends State<WotFeedbackPage> {
             ),
             WotDropMenuItem(
               title: '筛选',
-              panel: Container(
+              panel: SizedBox(
                 width: double.infinity,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: const WotText('筛选面板内容'),
-                )
+                ),
               ),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          _section('WotDropMenu 下拉菜单（options 驱动）'),
+          WotDropMenu(menus: [
+            WotDropMenuItem(
+              modelValue: _sortValue,
+              onChange: (v) => setState(() => _sortValue = v as String),
+              options: const [
+                WotDropMenuOption(label: '综合', value: '综合'),
+                WotDropMenuOption(label: '销量', value: '销量'),
+                WotDropMenuOption(label: '价格', value: '价格'),
+              ],
+            ),
+            WotDropMenuItem(
+              title: '价格',
+              modelValue: _priceValue,
+              closeOnClick: false,
+              onChange: (v) => setState(() => _priceValue = v as String),
+              options: const [
+                WotDropMenuOption(label: '不限', value: '不限'),
+                WotDropMenuOption(label: '10-50元', value: '10-50'),
+                WotDropMenuOption(label: '50-100元', value: '50-100'),
+                WotDropMenuOption(label: '100元以上', value: '100+'),
+              ],
             ),
           ]),
           const SizedBox(height: 20),
@@ -168,6 +299,19 @@ class _WotFeedbackPageState extends State<WotFeedbackPage> {
           const SizedBox(height: 20),
           _section('WotEmpty 空状态'),
           const WotEmpty(description: '暂无数据'),
+          const SizedBox(height: 20),
+          _section('WotTour 新手引导（高亮页内控件）'),
+          WotButton(
+            text: '开始引导',
+            size: WotButtonSize.small,
+            type: WotButtonType.primary,
+            onClick: _startTour,
+          ),
+          const SizedBox(height: 8),
+          WotText(
+            '点击“开始引导”，会依次高亮上方「轻提示」「确认框」「弹出层」三个按钮并展示说明。',
+            type: WotTextType.wotDefault,
+          ),
         ],
       ),
     );
@@ -188,7 +332,7 @@ class _WotFeedbackPageState extends State<WotFeedbackPage> {
   Widget _section(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: WotText(title, type: WotTextType.secondary, strong: true),
+      child: WotText(title, type: WotTextType.wotDefault, bold: true),
     );
   }
 }

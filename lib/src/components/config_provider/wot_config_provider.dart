@@ -47,6 +47,7 @@ class WotConfigProvider extends StatelessWidget {
   /// Tag 组件全局默认，支持 size/variant/round，可与父级级联合并。
   final WotTagDefaults? tag;
 
+  /// 需要应用全局配置的子组件树。
   final Widget child;
 
   @override
@@ -106,11 +107,22 @@ class WotConfigScope {
       this.wotTheme, this.themeMode, this.locale, this.messages,
       [this.themeVars = const {}, this.theme]);
 
+  /// wot 语义主题数据。
   final WotThemeData wotTheme;
+
+  /// 明暗模式。
   final ThemeMode themeMode;
+
+  /// 当前语言（zh_CN / en_US）。
   final String? locale;
+
+  /// 语言包。
   final Map<String, String>? messages;
+
+  /// 自定义主题变量（覆盖语义令牌）。
   final Map<String, Color> themeVars;
+
+  /// Material ThemeData（可选，用于整体观感）。
   final ThemeData? theme;
 }
 

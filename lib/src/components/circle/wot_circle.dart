@@ -14,7 +14,7 @@ class WotCircle extends StatelessWidget {
     this.size = 100,
     this.width,
     this.height,
-    this.strokeWidth = 6,
+    this.strokeWidth = 14,
     this.color,
     this.trackColor,
     this.showText = true,
@@ -22,6 +22,7 @@ class WotCircle extends StatelessWidget {
     this.lineCap,
   });
 
+  /// 当前进度值（0-100，v-model）。
   final num modelValue;
 
   /// 默认边长（当 [width]/[height] 未给出时使用）。
@@ -33,11 +34,22 @@ class WotCircle extends StatelessWidget {
   /// 显式高度，为空时用 [size]。
   final double? height;
 
+  /// 圆环线宽，默认 14。
   final double strokeWidth;
+
+  /// 进度环颜色，缺省取主题主色。
   final Color? color;
+
+  /// 轨道（背景环）颜色，缺省取主题浅色边框。
   final Color? trackColor;
+
+  /// 是否展示中心百分比文字，默认 true。
   final bool showText;
+
+  /// 自定义中心文字格式化函数。
   final String Function(num)? textFormat;
+
+  /// 进度环端头样式，默认圆头。
   final StrokeCap? lineCap;
 
   @override

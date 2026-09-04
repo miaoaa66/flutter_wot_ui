@@ -7,10 +7,11 @@ enum WotLoadmoreState { loading, loadingFailed, noMore, finished }
 
 /// 加载更多，对应 wot `wd-loadmore`。
 ///
-/// 参数对齐 wot：`state`（当前状态）、`loadingText`/`loadingSpinner`（加载中）、
-/// `loadingFailedText`/`loadingFailedIcon`（加载失败状态文案与提示）、
-/// `noMoreText`（没有更多文案）、`finishedText`（完成文案）、`line`（是否显示分割线）、
-/// `onLoadmore`（点击加载更多回调）。
+/// 参数对齐 wot：`state`（当前状态，`loading`/`finished`/`loadingFailed`）、
+/// `loadingText`/`loadMoreText`（加载文案）、`loadingSpinner`（加载中转圈）、
+/// `loadingFailedText`/`failedText`（加载失败状态文案与提示）、
+/// `finishedText`（完成文案）、`noMoreText`（没有更多文案）、`line`（是否显示分割线）、
+/// `loadMore`/`onLoadMore`/`onLoadmore`（加载失败点击重试回调）。
 class WotLoadmore extends StatelessWidget {
   const WotLoadmore({
     super.key,
@@ -23,6 +24,9 @@ class WotLoadmore extends StatelessWidget {
     this.finishedText = '已完成',
     this.line = false,
     this.onLoadmore,
+    this.loadMoreText,
+    this.failedText,
+    this.onLoadMore,
   });
 
   /// 加载状态；为空时用 [loading] 推导（true → loading, false → nomore）。
@@ -31,17 +35,35 @@ class WotLoadmore extends StatelessWidget {
   /// 兼容 wot `loading` 布尔参数。
   final bool? loading;
 
+  /// 加载中状态文案；默认“加载中...”。
   final String loadingText;
+
+  /// 加载中是否显示旋转动画指示器；默认 true。
   final bool loadingSpinner;
+
+  /// 加载失败状态文案；默认“加载失败，重新加载”。
   final String loadingFailedText;
+
+  /// 没有更多状态文案；默认“没有更多了”。
   final String noMoreText;
+
+  /// 加载完成状态文案；默认“已完成”。
   final String finishedText;
 
   /// 是否显示上下分割线。
   final bool line;
 
-  /// 加载失败点击重试回调。
+  /// 加载失败点击重试回调（旧名，保留兼容）。
   final VoidCallback? onLoadmore;
+
+  /// 加载中展示的文案覆盖；为空时使用 [loadingText]。
+  final String? loadMoreText;
+
+  /// 加载失败展示的文案覆盖；为空时使用 [loadingFailedText]。
+  final String? failedText;
+
+  /// 加载失败点击重试回调（对齐 wot `loadMore`/`reload`）。
+  final VoidCallback? onLoadMore;
 
   WotLoadmoreState get _state {
     if (state != null) return state!;
@@ -70,13 +92,18 @@ class WotLoadmore extends StatelessWidget {
                 ),
               ),
             if (loadingSpinner) const SizedBox(width: 6),
-            Text(loadingText, style: TextStyle(fontSize: 12, color: scheme.textAuxiliary)),
+            Text(loadMoreText ?? loadingText,
+                style: TextStyle(fontSize: 12, color: scheme.textAuxiliary)),
           ],
         );
       case WotLoadmoreState.loadingFailed:
         content = GestureDetector(
-          onTap: onLoadmore,
-          child: Text(loadingFailedText, style: TextStyle(fontSize: 12, color: scheme.dangerMain)),
+          onTap: () {
+            onLoadMore?.call();
+            onLoadmore?.call();
+          },
+          child: Text(failedText ?? loadingFailedText,
+              style: TextStyle(fontSize: 12, color: scheme.dangerMain)),
         );
       case WotLoadmoreState.noMore:
         content = Text(noMoreText, style: TextStyle(fontSize: 12, color: scheme.textAuxiliary));

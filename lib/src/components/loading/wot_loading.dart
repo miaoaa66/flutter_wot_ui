@@ -31,11 +31,13 @@ class WotLoading extends StatelessWidget {
   /// 是否继承主题色（未显式传色时）。
   final bool inheritColor;
 
+  /// 伴随文字颜色；不传时用辅助文字色。
   final Color? textColor;
 
   /// 旧参数名：指示器颜色。
   final Color? loadingColor;
 
+  /// 指示器描边宽度；不传时按 `size / 7` 计算。
   final double? strokeWidth;
 
   @override

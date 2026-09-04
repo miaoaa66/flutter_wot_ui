@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/wot_scheme.dart';
 import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
 
@@ -16,6 +17,11 @@ class WotNavbar extends StatelessWidget {
     this.background,
     this.color,
     this.bordered = false,
+    this.capsule = false,
+    this.capsuleText,
+    this.capsuleBackground,
+    this.onCapsuleLeft,
+    this.onCapsuleRight,
     this.onClickLeft,
     this.onClickRight,
   });
@@ -47,7 +53,25 @@ class WotNavbar extends StatelessWidget {
   /// 是否显示底部边框。
   final bool bordered;
 
+  /// 是否开启顶部胶囊（对齐 wot `navbar-capsule`）：标题位渲染一个圆角胶囊，左半图标、右半文字，左右半区可独立点击。
+  final bool capsule;
+
+  /// 胶囊右半区文字（默认「咨询」）。
+  final String? capsuleText;
+
+  /// 胶囊背景色。
+  final Color? capsuleBackground;
+
+  /// 点击胶囊左半区时回调。
+  final VoidCallback? onCapsuleLeft;
+
+  /// 点击胶囊右半区时回调。
+  final VoidCallback? onCapsuleRight;
+
+  /// 点击左侧区域时回调。
   final VoidCallback? onClickLeft;
+
+  /// 点击右侧区域时回调。
   final VoidCallback? onClickRight;
 
   @override
@@ -103,17 +127,19 @@ class WotNavbar extends StatelessWidget {
               left,
               Expanded(
                 child: Center(
-                  child: titleWidget ??
-                      Text(
-                        title ?? '',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: fg,
-                        ),
-                      ),
+                  child: capsule
+                      ? _capsule(scheme, fg)
+                      : (titleWidget ??
+                          Text(
+                            title ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: fg,
+                            ),
+                          )),
                 ),
               ),
               right,
@@ -126,5 +152,41 @@ class WotNavbar extends StatelessWidget {
 
   Widget _clickable(Widget child, VoidCallback? onTap) {
     return GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: child);
+  }
+
+  /// 渲染顶部胶囊（navbar-capsule）：左半图标、右半文字，各自可点。需要传入 [WotScheme]。
+  Widget _capsule(WotScheme scheme, Color fg) {
+    const capW = 180.0;
+    const capH = 34.0;
+    final cb = capsuleBackground ?? scheme.opacLightCover;
+    return Container(
+      width: capW,
+      height: capH,
+      decoration: BoxDecoration(
+        color: cb,
+        borderRadius: BorderRadius.circular(capH / 2),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _clickable(
+              Center(child: Icon(Icons.more_horiz, size: 18, color: fg)),
+              onCapsuleLeft,
+            ),
+          ),
+          Expanded(
+            child: _clickable(
+              Center(
+                child: Text(
+                  capsuleText ?? '咨询',
+                  style: TextStyle(fontSize: 14, color: fg),
+                ),
+              ),
+              onCapsuleRight,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

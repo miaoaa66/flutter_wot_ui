@@ -22,13 +22,29 @@ class WotAvatar extends StatelessWidget {
 
   /// 图片地址。
   final String? src;
+
+  /// 头像尺寸（宽高），单位 px，默认 40。
   final double size;
+
+  /// 头像形状，可选 `circle`（圆形）或 `square`（方形），默认 `circle`。
   final WotAvatarShape shape;
+
+  /// 占位图标（未设置图片时显示，可选）。
   final String? icon;
+
+  /// 点击头像时触发的回调。
   final VoidCallback? onClick;
+
+  /// 背景颜色，默认取主题填充色。
   final Color? bgColor;
+
+  /// 文字/图标颜色，默认取主题次级文字色。
   final Color? color;
+
+  /// 头像显示的文字，有值时优先于图标展示。
   final String? name;
+
+  /// 是否圆角方形，仅在 `square` 形状下生效，默认 false。
   final bool? round;
 
   @override
@@ -91,11 +107,22 @@ class WotAvatarGroup extends StatelessWidget {
     this.max = 5,
   });
 
+  /// 自定义头像 widget 列表。
   final List<Widget> children;
+
+  /// 图片地址列表，将自动据此生成头像。
   final List<String> avatarList;
+
+  /// 头像尺寸（宽高），单位 px，默认 40。
   final double size;
+
+  /// 相邻头像的重叠偏移量，值为负数时向左叠加，默认 -8。
   final double margin;
+
+  /// 头像形状，可选 `circle`（圆形）或 `square`(方形)，默认 `circle`。
   final WotAvatarShape shape;
+
+  /// 最多显示的头像数量，超出部分以 +N 展示，默认 5。
   final int max;
 
   @override

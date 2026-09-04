@@ -19,21 +19,41 @@ class WotSkeleton extends StatefulWidget {
     this.rowWidth = '100%',
     this.rowHeight = 14,
     this.animate = true,
+    this.hideTitles = false,
     this.child,
   });
 
+  /// 是否处于加载中骨架屏状态，默认 true。
   final bool loading;
+
+  /// 是否显示头像占位，默认 false。
   final bool avatar;
+
+  /// 头像占位边长，默认 32。
   final double avatarSize;
+
+  /// 头像占位形状，round（圆形）/square（方形），默认 round。
   final WotSkeletonAvatarShape avatarShape;
+
+  /// 是否显示标题行占位，默认 true。
   final bool title;
+
+  /// 文本行数，0 表示无多行文本，默认 0。
   final int row;
 
   /// 行宽，可为百分比字符串（如 `40%`）或具体像素数。
   final Object rowWidth;
 
+  /// 每行高度，默认 14。
   final double rowHeight;
+
+  /// 是否开启动画（闪烁效果），默认 true。
   final bool animate;
+
+  /// 是否隐藏所有文本占位（标题与行），仅保留头像；默认 false。
+  final bool hideTitles;
+
+  /// 内容组件，加载完成后显示。
   final Widget? child;
 
   @override
@@ -116,8 +136,9 @@ class _WotSkeletonState extends State<WotSkeleton> with SingleTickerProviderStat
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (widget.title) _block(context, _resolveWidth(widget.rowWidth, boxWidth) ?? boxWidth * 0.4, 16),
-                      if (widget.row > 0) ...[
+                      if (widget.title && !widget.hideTitles)
+                        _block(context, _resolveWidth(widget.rowWidth, boxWidth) ?? boxWidth * 0.4, 16),
+                      if (widget.row > 0 && !widget.hideTitles) ...[
                         const SizedBox(height: 10),
                         for (var i = 0; i < widget.row; i++)
                           Padding(
@@ -152,9 +173,16 @@ class WotSkeletonItem extends StatelessWidget {
     this.size = 32,
   });
 
+  /// 元素类型：text/rect/image/circular，默认 text。
   final WotSkeletonItemType type;
+
+  /// 是否开启动画，默认 true。
   final bool animate;
+
+  /// 元素宽度，未设置时按类型取默认宽度。
   final double? width;
+
+  /// 元素高度，未设置时按类型取默认高度。
   final double? height;
 
   /// 图片/圆形占位的边长。

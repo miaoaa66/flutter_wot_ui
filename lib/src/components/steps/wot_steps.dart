@@ -26,41 +26,32 @@ class WotStepData {
   final WotStepDataStatus status;
 }
 
-/// 步骤项，对应 wot `wd-step`。
-class WotStep extends StatelessWidget {
-  const WotStep({
-    super.key,
-    this.index = 0,
-    this.active = 0,
-    required this.data,
+/// 步骤圆点（序号/完成勾 + 状态色），供 [WotStep] 与横向 [WotSteps] 复用。
+class _StepCircle extends StatelessWidget {
+  const _StepCircle({
+    required this.index,
+    required this.active,
     this.activeColor,
     this.inactiveColor,
-    this.onClick,
   });
 
   final int index;
   final int active;
-  final WotStepData data;
   final Color? activeColor;
   final Color? inactiveColor;
-  final VoidCallback? onClick;
 
   bool get _done => index < active;
   bool get _current => index == active;
 
-  Color _color(BuildContext context) {
-    if (index >= active) {
-      return _current ? (activeColor ?? context.wotScheme.primaryOf(6)) : (inactiveColor ?? context.wotScheme.textDisabled);
-    }
-    return activeColor ?? context.wotScheme.successMain;
-  }
-
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
-    final color = _color(context);
-
-    final circle = Container(
+    final color = index >= active
+        ? (_current
+            ? (activeColor ?? scheme.primaryOf(6))
+            : (inactiveColor ?? scheme.textDisabled))
+        : (activeColor ?? scheme.successMain);
+    return Container(
       width: 24,
       height: 24,
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
@@ -74,6 +65,56 @@ class WotStep extends StatelessWidget {
                 color: _current || _done ? Colors.white : scheme.textSecondary,
               ),
             ),
+    );
+  }
+}
+
+/// 步骤项，对应 wot `wd-step`。
+class WotStep extends StatelessWidget {
+  const WotStep({
+    super.key,
+    this.index = 0,
+    this.active = 0,
+    required this.data,
+    this.activeColor,
+    this.inactiveColor,
+    this.onClick,
+  });
+
+  /// 步骤项索引（从 0 开始）。
+  final int index;
+
+  /// 当前激活步骤索引。
+  final int active;
+
+  /// 步骤项数据（标题/描述/状态）。
+  final WotStepData data;
+
+  /// 激活/已完成步骤颜色，默认使用主题主色/成功色。
+  final Color? activeColor;
+
+  /// 未激活步骤颜色，默认使用主题禁用文本色。
+  final Color? inactiveColor;
+
+  /// 点击步骤回调。
+  final VoidCallback? onClick;
+
+  bool get _done => index < active;
+  bool get _current => index == active;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.wotScheme;
+
+    final circle = SizedBox(
+      width: 24,
+      height: 24,
+      child: _StepCircle(
+        index: index,
+        active: active,
+        activeColor: activeColor,
+        inactiveColor: inactiveColor,
+      ),
     );
 
     final label = Column(
@@ -119,46 +160,124 @@ class WotSteps extends StatelessWidget {
     this.children = const [],
   });
 
+  /// 当前激活步骤索引，默认 0。
   final int active;
+
+  /// 排列方向：horizontal（水平）/vertical（垂直），默认 horizontal。
   final WotStepsDirection direction;
+
+  /// 激活/已完成步骤颜色，默认使用主题主色/成功色。
   final Color? activeColor;
+
+  /// 未激活步骤颜色，默认使用主题禁用文本色。
   final Color? inactiveColor;
+
+  /// 点击步骤回调，参数为步骤索引。
   final ValueChanged<int>? onChange;
+
+  /// 步骤项列表（可为 [WotStep] 或普通 [Widget]）。
   final List<Widget> children;
 
-  /// 从水平排列的步骤中构建。
+  /// 将第 [index] 个步骤子项（[WotStep] 或普通 [Widget]）物化为带正确
+  /// 状态参数的 [WotStep]，确保序号/激活色/完成色由 [WotSteps] 统一下发。
+  WotStep _stepFor(int index, Widget child) {
+    final WotStepData data;
+    if (child is WotStep) {
+      data = child.data;
+    } else {
+      data = WotStepData(title: '步骤${index + 1}');
+    }
+    return WotStep(
+      index: index,
+      active: active,
+      activeColor: activeColor,
+      inactiveColor: inactiveColor,
+      data: data,
+    );
+  }
+
+  /// 从水平排列的步骤中构建：每步一个等宽 [Expanded] 列，
+  /// 圆点两侧各一条连接线横向延伸到列边界，相邻列线相接成连续线并与圆点同一水平线。
   List<Widget> _buildHorizontal(BuildContext context) {
     final scheme = context.wotScheme;
+    // 第 idx 段连接线（连接第 idx 与 idx+1 个圆点）的颜色：idx 已激活则用激活色，否则边框色。
+    Color seg(int idx) =>
+        idx < active ? (activeColor ?? scheme.successMain) : scheme.borderMain;
+
     final list = <Widget>[];
     for (var i = 0; i < children.length; i++) {
-      final child = children[i];
-      // 支持直接传 WotStep 或已由外部构造号的步骤。
-      final WotStep step;
-      if (child is WotStep) {
-        step = child;
-      } else {
-        step = WotStep(index: i, active: active, data: WotStepData(title: '步骤${i + 1}'));
-      }
+      final data = children[i] is WotStep
+          ? (children[i] as WotStep).data
+          : WotStepData(title: '步骤${i + 1}');
+      final isDone = i < active;
+      final isCurrent = i == active;
+
+      final column = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // 圆点左段连接线（首步无左侧线，但保留等宽以让圆点水平居中）。
+              Expanded(
+                child: i == 0
+                    ? const SizedBox.shrink()
+                    : Container(height: 2, color: seg(i - 1)),
+              ),
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: _StepCircle(
+                  index: i,
+                  active: active,
+                  activeColor: activeColor,
+                  inactiveColor: inactiveColor,
+                ),
+              ),
+              // 圆点右段连接线（末步无右侧线）。
+              Expanded(
+                child: i == children.length - 1
+                    ? const SizedBox.shrink()
+                    : Container(height: 2, color: seg(i)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  data.title ?? '',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color:
+                        isCurrent || isDone ? scheme.textMain : scheme.textDisabled,
+                  ),
+                ),
+                if (data.description != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    data.description!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 11, color: scheme.textAuxiliary),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      );
+
       list.add(
         Expanded(
           child: onChange == null
-              ? step
-              : GestureDetector(
-                  onTap: () => onChange!(i),
-                  child: step,
-                ),
+              ? column
+              : GestureDetector(onTap: () => onChange!(i), child: column),
         ),
       );
-      if (i < children.length - 1) {
-        list.add(
-          Container(
-            width: 16,
-            height: 2,
-            margin: const EdgeInsets.only(bottom: 16),
-            color: i < active ? (activeColor ?? scheme.successMain) : scheme.borderMain,
-          ),
-        );
-      }
     }
     return list;
   }
@@ -170,10 +289,7 @@ class WotSteps extends StatelessWidget {
     if (direction == WotStepsDirection.vertical) {
       final items = <Widget>[];
       for (var i = 0; i < children.length; i++) {
-        final child = children[i];
-        items.add(child is WotStep
-            ? child
-            : WotStep(index: i, active: active, data: WotStepData(title: '步骤${i + 1}')));
+        items.add(_stepFor(i, children[i]));
         if (i < children.length - 1) {
           items.add(
             Padding(
@@ -190,9 +306,9 @@ class WotSteps extends StatelessWidget {
       );
     }
 
+    // 横向：每个步骤一个等宽 [Expanded] 列平铺，圆点行顶对齐。
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
       children: _buildHorizontal(context),
     );
   }

@@ -19,7 +19,6 @@ export 'segmented/wot_segmented.dart';
 export 'sidebar/wot_sidebar.dart';
 export 'pagination/wot_pagination.dart';
 export 'backtop/wot_backtop.dart';
-export 'sticky/wot_sticky.dart';
 export 'overlay/wot_overlay.dart';
 export 'loading/wot_loading.dart';
 // --- Phase 2 (录入 form) ---
@@ -81,3 +80,8 @@ export 'table/wot_table.dart';
 export 'watermark/wot_watermark.dart';
 export 'qr_code/wot_qr_code.dart';
 export 'curtain/wot_curtain.dart';
+// --- 批次 C（缺失组件） ---
+export 'index_bar/wot_index_bar.dart';
+export 'tour/wot_tour.dart';
+export 'img_cropper/wot_img_cropper.dart';
+export 'video_preview/wot_video_preview.dart';

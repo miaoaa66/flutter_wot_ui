@@ -22,9 +22,7 @@ void main() {
   testWidgets('索引页可渲染分组入口', (tester) async {
     await tester.pumpWidget(wrap(const WotIndexPage(
       dark: false,
-      variant: WotThemeVariant.shadcn,
       onToggleDark: _noop,
-      onSelectVariant: _noopVariant,
     )));
     expect(find.text('Wot UI Flutter'), findsOneWidget);
     expect(find.text('Button'), findsOneWidget);
@@ -32,4 +30,3 @@ void main() {
 }
 
 void _noop() {}
-void _noopVariant(WotThemeVariant _) {}

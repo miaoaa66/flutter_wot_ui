@@ -13,23 +13,52 @@ class WotPicker extends StatefulWidget {
     required this.columns,
     required this.values,
     this.onConfirm,
+    this.onCancel,
     this.onChange,
     this.title,
     this.confirmText = '确定',
     this.cancelText = '取消',
     this.color,
     this.disabled = false,
+    this.loading = false,
+    this.showCancel = true,
   });
 
+  /// 每列的选项列表（二维数组）。
   final List<List<WotColumnOption>> columns;
+
+  /// 当前选中值列表（每列一个值），作为 `modelValue` 做值回显。
   final List<Object?> values;
+
+  /// 点击确定（确认）时回调，参数为选中的各列值。
   final ValueChanged<List<Object?>>? onConfirm;
+
+  /// 点击取消（或蒙层关闭）时回调。
+  final VoidCallback? onCancel;
+
+  /// 滚动出现选中值变化时回调，参数为当前各列值。
   final ValueChanged<List<Object?>>? onChange;
+
+  /// 顶部大标题；不传则不显示标题。
   final String? title;
+
+  /// 右侧确认按钮文案；默认「确定」。
   final String confirmText;
+
+  /// 左侧取消按钮文案；默认「取消」。
   final String cancelText;
+
+  /// 选中高亮/确认按钮颜色；不传时用主题主色。
   final Color? color;
+
+  /// 是否禁用全部滚轮交互。
   final bool disabled;
+
+  /// 是否显示加载中状态（覆盖选项区域并禁用交互）。
+  final bool loading;
+
+  /// 是否显示左侧取消按钮；默认 true。
+  final bool showCancel;
 
   /// 命令式弹出并返回选中值列表；取消返回 null。
   static Future<List<Object?>?> show(
@@ -38,12 +67,25 @@ class WotPicker extends StatefulWidget {
     List<Object?> values = const [],
     String? title,
     Color? color,
+    bool loading = false,
+    bool showCancel = true,
+    ValueChanged<List<Object?>>? onConfirm,
+    VoidCallback? onCancel,
   }) {
     return showModalBottomSheet<List<Object?>>(
       context: context,
       showDragHandle: true,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      builder: (_) => WotPicker(columns: columns, values: values, title: title, color: color),
+      builder: (_) => WotPicker(
+        columns: columns,
+        values: values,
+        title: title,
+        color: color,
+        loading: loading,
+        showCancel: showCancel,
+        onConfirm: onConfirm,
+        onCancel: onCancel,
+      ),
     );
   }
 
@@ -80,6 +122,11 @@ class _WotPickerState extends State<WotPicker> {
     Navigator.of(context).pop(_values);
   }
 
+  void _cancel() {
+    widget.onCancel?.call();
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
@@ -92,11 +139,12 @@ class _WotPickerState extends State<WotPicker> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              InkWell(
-                onTap: () => Navigator.of(context).pop(),
-                child: Text(widget.cancelText,
-                    style: TextStyle(fontSize: 14, color: scheme.textSecondary)),
-              ),
+              if (widget.showCancel)
+                InkWell(
+                  onTap: _cancel,
+                  child: Text(widget.cancelText,
+                      style: TextStyle(fontSize: 14, color: scheme.textSecondary)),
+                ),
               Expanded(
                 child: Center(
                   child: Text(
@@ -120,6 +168,7 @@ class _WotPickerState extends State<WotPicker> {
             values: _values,
             color: primary,
             disabled: widget.disabled,
+            loading: widget.loading,
             onChange: (v) => setState(() => _values = v),
           ),
         ),

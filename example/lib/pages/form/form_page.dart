@@ -20,6 +20,29 @@ class _WotFormPageState extends State<WotFormPage> {
   DateTime? _date;
   DateTime? _datetime;
   String _pw = '';
+  num _qtyStep = 0;
+  List<Object?> _likes = [
+    1
+  ];
+  List<Object?> _hobbies = const [
+    2
+  ];
+  double _sliderStep = 40;
+  num _rangeLow = 20;
+  num _rangeHigh = 80;
+  int _rateHalf = 2;
+  int _rateCustom = 5;
+  bool _switchText = false;
+  bool _switchAsync = false;
+  bool _loading = false;
+  List<DateTime> _calMulti = [];
+  List<DateTime> _calRange = [];
+  DateTime? _datetimeRange;
+
+  String _fmtDay(DateTime d) => d.toIso8601String().split('T').first;
+
+  String _fmtDays(List<DateTime> list) =>
+      list.map(_fmtDay).join(', ');
 
   void _toast(String msg) {
     ScaffoldMessenger.of(context)
@@ -52,16 +75,49 @@ class _WotFormPageState extends State<WotFormPage> {
             ],
           ),
           const SizedBox(height: 20),
+          _section('WotInput / WotTextarea 增强'),
+          WotInput(placeholder: '字数统计（maxlength 60）', maxlength: 60, showWordLimit: true, clearable: true),
+          const SizedBox(height: 8),
+          WotInput(
+            placeholder: '前后缀内容插槽',
+            prefix: const Text('重量'),
+            suffix: const Text('kg'),
+          ),
+          const SizedBox(height: 8),
+          WotInput(placeholder: '聚焦/失焦回调', onFocus: () => _toast('输入框聚焦'), onBlur: () => _toast('输入框失焦')),
+          const SizedBox(height: 8),
+          WotTextarea(
+            placeholder: '多行文本（autosize 随内容自动增高）',
+            rows: 2,
+            autosize: true,
+            maxlength: 100,
+            showWordLimit: true,
+          ),
+          const SizedBox(height: 20),
           _section('WotInputNumber / WotSearch'),
           WotInputNumber(
             modelValue: _qty,
             onChange: (v) => setState(() => _qty = v),
           ),
           const SizedBox(height: 12),
+          WotInputNumber(
+            modelValue: _qtyStep,
+            min: 0,
+            max: 10,
+            step: 0.1,
+            precision: 2,
+            onChange: (v) => setState(() => _qtyStep = v),
+          ),
+          const SizedBox(height: 4),
+          const Text('步长 0.1，范围 0~10，保留 2 位小数', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 12),
           WotSearch(
             modelValue: '搜索示例',
             showAction: true,
             onSearch: () => _toast('搜索'),
+            onFocus: () => _toast('搜索框聚焦'),
+            onBlur: () => _toast('搜索框失焦'),
+            onClear: () => _toast('已清空'),
           ),
           const SizedBox(height: 20),
           _section('WotCheckbox / Group + WotRadio + WotSwitch'),
@@ -77,6 +133,40 @@ class _WotFormPageState extends State<WotFormPage> {
             ],
           ),
           const SizedBox(height: 8),
+          WotCheckboxGroup(
+            modelValue: _hobbies,
+            shape: 'circle',
+            onChange: (v) => setState(() => _hobbies = v),
+            options: const [
+              WotCheckboxOption(label: '圆形一', value: 1),
+              WotCheckboxOption(label: '圆形二', value: 2),
+              WotCheckboxOption(label: '圆形三', value: 3),
+            ],
+          ),
+          const SizedBox(height: 8),
+          WotCheckboxGroup(
+            modelValue: _likes,
+            min: 1,
+            max: 2,
+            onChange: (v) => setState(() => _likes = v),
+            options: const [
+              WotCheckboxOption(label: '最多选 2', value: 1),
+              WotCheckboxOption(label: '最少选 1', value: 2),
+              WotCheckboxOption(label: '三', value: 3),
+            ],
+          ),
+          const SizedBox(height: 8),
+          WotRadioGroup(
+            modelValue: _radio,
+            shape: 'square',
+            disabled: true,
+            onChange: (v) => setState(() => _radio = v),
+            options: const [
+              WotRadioOption(label: '方形整组禁用', value: 1),
+              WotRadioOption(label: '二', value: 2),
+            ],
+          ),
+          const SizedBox(height: 8),
           Row(
             children: [
               const Text('开关', style: TextStyle(fontSize: 14)),
@@ -84,11 +174,90 @@ class _WotFormPageState extends State<WotFormPage> {
               WotSwitch(modelValue: _switchOn, onChange: (v) => setState(() => _switchOn = v)),
             ],
           ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Text('文字开关', style: TextStyle(fontSize: 14)),
+              const Spacer(),
+              WotSwitch(
+                modelValue: _switchText,
+                activeText: '开',
+                inactiveText: '关',
+                onChange: (v) => setState(() => _switchText = v),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Text('加载中开关', style: TextStyle(fontSize: 14)),
+              const Spacer(),
+              WotSwitch(
+                modelValue: _switchAsync,
+                loading: _loading,
+                activeText: '开',
+                inactiveText: '关',
+                onChange: (v) {
+                  setState(() => _loading = true);
+                  Future.delayed(const Duration(milliseconds: 1200), () {
+                    if (!mounted) return;
+                    setState(() {
+                      _switchAsync = v;
+                      _loading = false;
+                    });
+                  });
+                },
+              ),
+            ],
+          ),
           const SizedBox(height: 20),
           _section('WotRate / WotSlider'),
           WotRate(modelValue: _rate, onChange: (v) => setState(() => _rate = v)),
           const SizedBox(height: 8),
+          WotRate(
+            modelValue: _rateHalf,
+            allowHalf: true,
+            onChange: (v) => setState(() => _rateHalf = v),
+          ),
+          const SizedBox(height: 4),
+          const Text('半星评分（allowHalf）', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 8),
+          WotRate(
+            modelValue: _rateCustom,
+            count: 6,
+            activeIcon: Icons.favorite,
+            icon: Icons.favorite_border,
+            onChange: (v) => setState(() => _rateCustom = v),
+          ),
+          const SizedBox(height: 4),
+          const Text('自定义图标 + 数量 6', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 8),
           WotSlider(modelValue: _slider, onChange: (v) => setState(() => _slider = v.toDouble())),
+          const SizedBox(height: 8),
+          WotSlider(
+            modelValue: _sliderStep,
+            min: 0,
+            max: 100,
+            step: 10,
+            showTip: true,
+            onChange: (v) => setState(() => _sliderStep = v.toDouble()),
+          ),
+          const SizedBox(height: 4),
+          const Text('步长 10 + 值气泡（showTip）', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 8),
+          WotSlider(
+            modelValue: _rangeHigh,
+            range: true,
+            valueStart: _rangeLow,
+            step: 5,
+            showTip: true,
+            onChangeRange: (v) => setState(() {
+              _rangeLow = v.first;
+              _rangeHigh = v.last;
+            }),
+          ),
+          const SizedBox(height: 4),
+          const Text('区间选择（range）', style: TextStyle(fontSize: 12, color: Colors.grey)),
           const SizedBox(height: 20),
           _section('WotSelectPicker / WotCascader / 日历 / 日期时间'),
           WotSelectPicker(
@@ -128,6 +297,63 @@ class _WotFormPageState extends State<WotFormPage> {
               if (d != null) setState(() => _datetime = d);
             },
           ),
+          const SizedBox(height: 8),
+          WotButton(
+            text: _datetimeRange == null ? '选择受限日期' : '受限：${_datetimeRange!.toIso8601String().split('T').first}',
+            size: WotButtonSize.small,
+            onClick: () async {
+              final now = DateTime.now();
+              final d = await WotDatetimePicker.show(
+                context,
+                type: WotDatetimePickerType.date,
+                minDate: DateTime(now.year, 1, 1),
+                maxDate: DateTime(now.year, 12, 31),
+              );
+              if (d != null && mounted) setState(() => _datetimeRange = d);
+            },
+          ),
+          const SizedBox(height: 8),
+          WotButton(
+            text: _calMulti.isEmpty ? '多选日期' : '多选：${_fmtDays(_calMulti)}',
+            size: WotButtonSize.small,
+            onClick: () async {
+              final r = await showModalBottomSheet<Object>(
+                context: context,
+                showDragHandle: true,
+                isScrollControlled: true,
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                builder: (_) => WotCalendar(
+                  type: WotCalendarType.multiple,
+                  title: '多选日期',
+                  onConfirm: (v) => _toast('多选结果：${_fmtDays((v as List).cast<DateTime>())}'),
+                ),
+              );
+              if (r != null && mounted) {
+                setState(() => _calMulti = (r as List).cast<DateTime>());
+              }
+            },
+          ),
+          const SizedBox(height: 8),
+          WotButton(
+            text: _calRange.isEmpty ? '区间日期' : '区间：${_fmtDays(_calRange)}',
+            size: WotButtonSize.small,
+            onClick: () async {
+              final r = await showModalBottomSheet<Object>(
+                context: context,
+                showDragHandle: true,
+                isScrollControlled: true,
+                backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+                builder: (_) => WotCalendar(
+                  type: WotCalendarType.range,
+                  title: '区间日期',
+                  onConfirm: (v) => _toast('区间结果：${_fmtDays((v as List).cast<DateTime>())}'),
+                ),
+              );
+              if (r != null && mounted) {
+                setState(() => _calRange = (r as List).cast<DateTime>());
+              }
+            },
+          ),
           const SizedBox(height: 20),
           _section('WotPasswordInput / WotSlideVerify'),
           WotPasswordInput(modelValue: _pw, onChange: (v) => setState(() => _pw = v)),
@@ -159,7 +385,7 @@ class _WotFormPageState extends State<WotFormPage> {
   Widget _section(String title) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: WotText(title, type: WotTextType.secondary, strong: true),
+      child: WotText(title, type: WotTextType.wotDefault, bold: true),
     );
   }
 }

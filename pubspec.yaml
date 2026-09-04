@@ -16,6 +16,7 @@ dependencies:
   qr_flutter: ^4.1.0
   # Platform plugin for file/image picking in WotUpload / WotImg.
   file_picker: ^10.2.0
+  video_player: ^2.11.1
 
 dev_dependencies:
   flutter_test:

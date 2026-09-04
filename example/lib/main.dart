@@ -17,11 +17,10 @@ class WotExampleApp extends StatefulWidget {
 
 class _WotExampleAppState extends State<WotExampleApp> {
   bool _dark = false;
-  WotThemeVariant _variant = WotThemeVariant.shadcn;
 
   @override
   Widget build(BuildContext context) {
-    final themed = WotThemeData.ofVariant(_variant, dark: _dark);
+    final themed = _dark ? WotThemeData.dark : WotThemeData.light;
 
     return WotConfigProvider(
       // 演示组件级默认配置级联：Button 全局默认小号 + 主色
@@ -40,10 +39,22 @@ class _WotExampleAppState extends State<WotExampleApp> {
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
+          scaffoldBackgroundColor: themed.scheme.filledBottom,
+          appBarTheme: AppBarTheme(
+            backgroundColor: themed.scheme.filledOppo,
+            foregroundColor: themed.scheme.textMain,
+            elevation: 0,
+          ),
           colorScheme: ColorScheme.fromSeed(seedColor: themed.scheme.primaryOf(6)),
         ),
         darkTheme: ThemeData(
           useMaterial3: true,
+          scaffoldBackgroundColor: themed.scheme.filledBottom,
+          appBarTheme: AppBarTheme(
+            backgroundColor: themed.scheme.filledOppo,
+            foregroundColor: themed.scheme.textMain,
+            elevation: 0,
+          ),
           colorScheme: ColorScheme.fromSeed(
             seedColor: themed.scheme.primaryOf(6),
             brightness: Brightness.dark,
@@ -52,9 +63,7 @@ class _WotExampleAppState extends State<WotExampleApp> {
         themeMode: _dark ? ThemeMode.dark : ThemeMode.light,
         home: WotIndexPage(
           dark: _dark,
-          variant: _variant,
           onToggleDark: () => setState(() => _dark = !_dark),
-          onSelectVariant: (v) => setState(() => _variant = v),
         ),
       ),
     );

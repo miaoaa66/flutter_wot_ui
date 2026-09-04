@@ -23,16 +23,32 @@ class WotBadge extends StatelessWidget {
 
   /// 徽标值。
   final num modelValue;
+
+  /// 徽标值上限，超过该值显示为 `max+`，默认 99。
   final num max;
 
   /// 自定义徽标内容。
   final Widget? slot;
+
+  /// 徽标显示位置，默认 `topRight`。
   final WotBadgePosition badgePosition;
+
+  /// 背景颜色，默认取主题危险色。
   final Color? bgColor;
+
+  /// 徽标文字颜色，默认白色。
   final Color color;
+
+  /// 是否隐藏徽标，默认 false。
   final bool hidden;
+
+  /// 是否以小圆点形式显示，默认 false。
   final bool isDot;
+
+  /// 是否显示小圆点，默认 false。
   final bool showDot;
+
+  /// 承载徽标的子组件。
   final Widget child;
 
   @override

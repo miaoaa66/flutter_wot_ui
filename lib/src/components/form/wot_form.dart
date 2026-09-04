@@ -103,6 +103,7 @@ class WotForm extends StatefulWidget {
   /// 提交按钮点击（校验通过后回调）。
   final ValueChanged<WotFormControl>? onSubmit;
 
+  /// 子组件列表。
   final List<Widget> children;
 
   @override

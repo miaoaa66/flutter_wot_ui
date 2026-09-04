@@ -18,15 +18,34 @@ class WotCountTo extends StatefulWidget {
     this.textStyle,
   });
 
+  /// 目标数值（0 到该值动画，v-model）。
   final num modelValue;
+
+  /// 数值变化时触发的回调。
   final ValueChanged<num>? onChange;
+
+  /// 动画时长，默认 2000 毫秒。
   final Duration duration;
+
+  /// 保留的小数位数，默认 0。
   final int decimals;
+
+  /// 动画速度（每秒递增的数值），指定后覆盖 [duration]。
   final num? speed;
+
+  /// 是否自动播放动画，默认 true。
   final bool autoplay;
+
+  /// 数字前缀。
   final String prefix;
+
+  /// 数字后缀。
   final String suffix;
+
+  /// 是否启用千分位分隔，默认 true。
   final bool thousands;
+
+  /// 文字样式，缺省使用主题默认文字样式。
   final TextStyle? textStyle;
 
   @override

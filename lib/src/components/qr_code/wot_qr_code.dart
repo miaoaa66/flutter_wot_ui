@@ -23,12 +23,25 @@ class WotQrCode extends StatelessWidget {
     this.borderColor,
   });
 
+  /// 二维码内容（文本/链接等）。
   final String value;
+
+  /// 二维码边长（逻辑像素），默认 160。
   final double size;
+
+  /// 纠错级别：l/m/q/h（L/M/Q/H），默认 m。级别越高容错越强但图案越密。
   final WotQrCodeErrorLevel errorLevel;
+
+  /// 前景色（二维码色块），默认主题主色。
   final Color? color;
+
+  /// 背景色，默认主题填充色。
   final Color? backgroundColor;
+
+  /// 边框宽度，0 表示无边框，默认 0。
   final double border;
+
+  /// 边框颜色，默认主题描边色。
   final Color? borderColor;
 
   @override

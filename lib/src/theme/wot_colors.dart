@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
-/// 转 HEX ARGB（8位, `#RRGGBBAA`）字符串为 [Color]。
-/// wot-ui 的 SCSS 色值统一为 8 位十六进制（含透明度）。
+/// 转 HEX 字符串（8位 `#RRGGBBAA`）为 [Color]。
+/// wot-ui 的 SCSS 色值统一为 8 位十六进制，前 6 位为 RGB、末 2 位为 Alpha。
 Color wotHex(String argbHex) {
-  return Color(int.parse(argbHex.substring(1), radix: 16));
+  // 例：'#1C64FDFF' → RGB=0x1C64FD, Alpha=0xFF。
+  final rgb = int.parse(argbHex.substring(1, 7), radix: 16);
+  final alpha = int.parse(argbHex.substring(7, 9), radix: 16);
+  return Color((alpha << 24) | rgb);
 }
 
 // 便捷常量别名，供 `WotPalette` 字段初始化使用（`wotHex` 非 const，故字段为 final）。

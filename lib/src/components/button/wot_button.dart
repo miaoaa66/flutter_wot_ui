@@ -72,22 +72,56 @@ class WotButton extends StatelessWidget {
 
   /// 按钮类型（字符串亦兼容全局配置）。
   final WotButtonType? type;
+
+  /// 按钮尺寸，可选 `mini`/`small`/`medium`/`large`，默认 `medium`。
   final WotButtonSize? size;
+
+  /// 按钮样式变体，可选 `base`/`plain`/`dashed`/`soft`/`subtle`/`text`，默认 `base`。
   final WotButtonVariant? variant;
+
+  /// 是否为圆角胶囊按钮（椭圆），默认 false。
   final bool? round;
+
+  /// 是否禁用，禁用后不可点击且样式置灰，默认 false。
   final bool disabled;
+
+  /// 是否启用细边框（0.5px），默认 false。
   final bool hairline;
+
+  /// 是否为通栏按钮（撑满父容器宽度），默认 false。
   final bool block;
+
+  /// 是否显示加载状态，加载中不可点击，默认 false。
   final bool loading;
+
+  /// 前缀图标名称。
   final String? icon;
+
+  /// 自定义主色，覆盖默认类型配色。
   final Color? color;
+
+  /// 文字颜色。
   final Color? textColor;
+
+  /// 加载图标颜色。
   final Color? loadingColor;
+
+  /// 图标样式类前缀，默认 `wd-icon`。
   final String classPrefix;
+
+  /// 点击按钮时触发的回调。
   final VoidCallback? onClick;
+
+  /// 点击回调（与 [onClick] 等价，指定后优先于 [onClick]）。
   final VoidCallback? onTap;
+
+  /// 自定义边框样式。
   final Border? border;
+
+  /// 自定义内边距，覆盖按尺寸计算的内边距。
   final EdgeInsetsGeometry? padding;
+
+  /// 按钮外边距。
   final EdgeInsetsGeometry? margin;
 
   EdgeInsetsGeometry paddingOf(WotButtonSize s) {

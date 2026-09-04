@@ -17,15 +17,23 @@ class WotFloatingPanel extends StatefulWidget {
     required this.child,
   });
 
+  /// 初始锚点比例（面板高度占可用高度的比例），默认 0.8。
   final double anchor;
+
+  /// 最小高度比例（面板最小时占可用高度的比例），默认 0.1。
   final double min;
+
+  /// 最大高度比例（面板最大时占可用高度的比例），默认 0.95。
   final double max;
 
   /// 面板最小高度（逻辑像素）。拖拽下限与最终高度都会钳制到不小于它，
   /// 防止把手 + 头部超过面板可容纳高度而溢出。
   final double minHeight;
 
+  /// 头部内容（位于拖动把手下方）。
   final Widget? header;
+
+  /// 面板内容区域。
   final Widget child;
 
   @override

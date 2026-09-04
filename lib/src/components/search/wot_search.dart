@@ -9,6 +9,10 @@ class WotSearch extends StatefulWidget {
     super.key,
     this.modelValue,
     this.onChange,
+    this.onInput,
+    this.onFocus,
+    this.onBlur,
+    this.onClear,
     this.placeholder = '搜索',
     this.disabled = false,
     this.readonly = false,
@@ -23,19 +27,58 @@ class WotSearch extends StatefulWidget {
     this.searchIconColor,
   });
 
+  /// 输入框内容（受控）。
   final String? modelValue;
+
+  /// 输入内容变化回调（与 [onInput] 一并触发）。
   final ValueChanged<String>? onChange;
+
+  /// 输入内容变化回调（每次输入即触发，与 [onChange] 一并触发）。
+  final ValueChanged<String>? onInput;
+
+  /// 输入框获得焦点时触发的回调。
+  final VoidCallback? onFocus;
+
+  /// 输入框失去焦点时触发的回调。
+  final VoidCallback? onBlur;
+
+  /// 点击清除按钮时触发的回调。
+  final VoidCallback? onClear;
+
+  /// 输入框占位符，默认「搜索」。
   final String placeholder;
+
+  /// 是否禁用，默认 false。
   final bool disabled;
+
+  /// 是否只读，默认 false。
   final bool readonly;
+
+  /// 是否显示清除按钮，默认 true。
   final bool clearable;
+
+  /// 形状：round（胶囊/圆角）/square，默认 round。
   final String shape;
+
+  /// 背景颜色，默认使用主题填充色。
   final Color? background;
+
+  /// 是否显示右侧操作按钮，默认 false。
   final bool showAction;
+
+  /// 右侧操作按钮文案，默认「搜索」。
   final String actionText;
+
+  /// 搜索回调（提交或有搜索动作时触发）。
   final VoidCallback? onSearch;
+
+  /// 点击右侧操作按钮回调。
   final VoidCallback? onClickAction;
+
+  /// 点击输入框回调。
   final VoidCallback? onClickInput;
+
+  /// 搜索图标颜色，默认使用主题辅助图标色。
   final Color? searchIconColor;
 
   @override
@@ -44,11 +87,13 @@ class WotSearch extends StatefulWidget {
 
 class _WotSearchState extends State<WotSearch> {
   late final TextEditingController _c;
+  final FocusNode _focus = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _c = TextEditingController(text: widget.modelValue ?? '');
+    _focus.addListener(_onFocusChange);
   }
 
   @override
@@ -61,8 +106,19 @@ class _WotSearchState extends State<WotSearch> {
 
   @override
   void dispose() {
+    _focus.removeListener(_onFocusChange);
+    _focus.dispose();
     _c.dispose();
     super.dispose();
+  }
+
+  void _onFocusChange() {
+    setState(() {});
+    if (_focus.hasFocus) {
+      widget.onFocus?.call();
+    } else {
+      widget.onBlur?.call();
+    }
   }
 
   void _search() {
@@ -80,9 +136,13 @@ class _WotSearchState extends State<WotSearch> {
 
     final field = TextField(
       controller: _c,
+      focusNode: _focus,
       enabled: !widget.disabled,
       readOnly: widget.readonly,
-      onChanged: widget.onChange,
+      onChanged: (v) {
+        widget.onChange?.call(v);
+        widget.onInput?.call(v);
+      },
       textInputAction: TextInputAction.search,
       onSubmitted: (_) => _search(),
       onTapOutside: (_) => FocusScope.of(context).unfocus(),
@@ -114,6 +174,8 @@ class _WotSearchState extends State<WotSearch> {
               onTap: () {
                 _c.clear();
                 widget.onChange?.call('');
+                widget.onInput?.call('');
+                widget.onClear?.call();
                 setState(() {});
               },
               child: WotIcon(name: 'close-circle', size: 14, color: scheme.iconAuxiliary),

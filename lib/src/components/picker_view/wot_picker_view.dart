@@ -139,6 +139,7 @@ class WotPickerViewColumn extends StatelessWidget {
     this.color,
     this.height = 200,
     this.disabled = false,
+    this.loading = false,
   });
 
   final List<WotColumnOption> options;
@@ -148,19 +149,45 @@ class WotPickerViewColumn extends StatelessWidget {
   final double height;
   final bool disabled;
 
+  /// 是否显示加载中状态（禁用交互并覆盖加载动画）。
+  final bool loading;
+
   @override
   Widget build(BuildContext context) {
     final idx = options.indexWhere((o) => o.value == value);
     final start = idx >= 0 ? idx : 0;
-    return WotPickerColumn(
-      options: options,
-      selectedIndex: start,
-      height: height,
-      color: color,
-      disabled: disabled,
-      onChange: (i) {
-        if (i >= 0 && i < options.length) onChange(options[i].value!);
-      },
+    return UnconstrainedBox(
+      child: SizedBox(
+        width: double.infinity,
+        height: height,
+        child: Stack(
+          children: [
+            WotPickerColumn(
+              options: options,
+              selectedIndex: start,
+              height: height,
+              color: color,
+              disabled: disabled || loading,
+              onChange: (i) {
+                if (i >= 0 && i < options.length) onChange(options[i].value!);
+              },
+            ),
+            if (loading)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: context.wotScheme.filledBottom.withValues(alpha: 0.5),
+                  child: const Center(
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -175,15 +202,29 @@ class WotPickerView extends StatelessWidget {
     this.color,
     this.height = 200,
     this.disabled = false,
+    this.loading = false,
   });
 
-  /// 每列的选项列表。
+  /// 每列的选项列表（二维数组，按列顺序展示各列滚轮）。
   final List<List<WotColumnOption>> columns;
+
+  /// 当前选中值列表（每列一个值），作为 `modelValue` 受控。
   final List<Object?> values;
+
+  /// 选中值变化回调（滚动联动时用整列值列表回调）。
   final ValueChanged<List<Object?>> onChange;
+
+  /// 选中高亮/箭头主题色；不传时用主题主色。
   final Color? color;
+
+  /// 滚轮可视高度。
   final double height;
+
+  /// 是否禁用全部滚轮交互。
   final bool disabled;
+
+  /// 是否显示加载中状态（覆盖加载动画并禁用交互）。
+  final bool loading;
 
   @override
   Widget build(BuildContext context) {
@@ -197,6 +238,7 @@ class WotPickerView extends StatelessWidget {
               color: color,
               height: height,
               disabled: disabled,
+              loading: loading,
               onChange: (v) {
                 final next = [...values];
                 while (next.length <= c) {
