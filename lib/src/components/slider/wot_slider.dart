@@ -20,6 +20,8 @@ class WotSlider extends StatefulWidget {
     this.inactiveColor,
     this.showTip = false,
     this.tipFormatter,
+    this.showMinMax = false,
+    this.showValueInThumb = false,
     this.name,
   });
 
@@ -64,6 +66,12 @@ class WotSlider extends StatefulWidget {
 
   /// 提示气泡文本格式化函数，入参为当前值。
   final String Function(num)? tipFormatter;
+
+  /// 是否在滑动条下方两端显示最小值和最大值，默认 false。
+  final bool showMinMax;
+
+  /// 是否在当前值圆点内显示当前数值，默认 false。
+  final bool showValueInThumb;
 
   /// 表单字段名（用于原生表单提交示例）。
   final String? name;
@@ -131,14 +139,17 @@ class _WotSliderState extends State<WotSlider> {
     widget.onChangeRange?.call([_low, _high]);
   }
 
-  /// 根据指针位置决定拖动低值滑块还是高值滑块。
+  /// 在拖拽开始时按指针与两端滑块的远近决定抓取哪一端；拖拽过程中保持不变。
+  void _beginDrag(double fraction) {
+    if (!widget.range) return;
+    _dragLow = (fraction - _fraction(_low)).abs() <=
+        (fraction - _fraction(_high)).abs();
+  }
+
+  /// 根据指针位置移动当前锁定的端点。
   void _dragMove(double fraction) {
     if (widget.range) {
-      final dLow = (fraction - _fraction(_low)).abs();
-      final dHigh = (fraction - _fraction(_high)).abs();
-      final grabLow = dLow <= dHigh;
-      _dragLow = grabLow;
-      _setRange(fraction, low: grabLow);
+      _setRange(fraction, low: _dragLow);
     } else {
       _setSingle(fraction);
     }
@@ -157,33 +168,63 @@ class _WotSliderState extends State<WotSlider> {
     final inactive = widget.inactiveColor ?? scheme.borderLight;
     final disabled = widget.disabled;
     final lowFrac = widget.range ? _fraction(_low) : 0.0;
-    final highFrac = _fraction(_value);
+    // 区间模式渲染高值圆点要用 _high（区间逻辑只更新 _high）；单滑块才用 _value。
+    final highFrac = _fraction(widget.range ? _high : _value);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
 
-        Widget thumb(double frac, {bool isLow = false}) {
+        Widget thumb(double frac, {bool isLow = false, num? value}) {
           return Positioned(
+            // 轨道线中心 y ≈ 27 + 1.5 = 28.5；圆点高 28，故 top=14.5 使其竖直居中于轨道。
             left: frac * width - 14,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (widget.showTip && _dragging && (isLow == _dragLow || (!widget.range && isLow)))
-                  _tipBubble(widget.range ? (isLow ? _low : _high) : _value),
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                    border: Border.all(color: active, width: 2),
-                    boxShadow: [
-                      BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4, offset: const Offset(0, 1)),
-                    ],
-                  ),
+            top: 14.5,
+            child: SizedBox(
+              width: 28,
+              height: 28,
+              child: Container(
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  border: Border.all(color: active, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1)),
+                  ],
                 ),
-              ],
+                child: (widget.showValueInThumb && value != null)
+                    ? Text(
+                        _label(value),
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: active,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      )
+                    : null,
+              ),
+            ),
+          );
+        }
+
+        /// 值提示气泡：悬浮在圆点正上方，借助整条宽度 Align 定位，不限制文字宽度避免折行。
+        Widget tip(num value, double frac) {
+          return Positioned(
+            left: 0,
+            right: 0,
+            top: 0,
+            child: IgnorePointer(
+              child: Align(
+                alignment: Alignment(((frac * 2 - 1).clamp(-1.0, 1.0)), -1),
+                child: _tipBubble(value),
+              ),
             ),
           );
         }
@@ -193,15 +234,19 @@ class _WotSliderState extends State<WotSlider> {
           onTapDown: disabled
               ? null
               : (d) {
+                  final f = d.localPosition.dx / width;
                   _dragging = true;
-                  _dragMove(d.localPosition.dx / width);
+                  _beginDrag(f);
+                  _dragMove(f);
                   _dragEnd();
                 },
           onHorizontalDragStart: disabled
               ? null
               : (d) {
+                  final f = d.localPosition.dx / width;
+                  _beginDrag(f);
                   setState(() => _dragging = true);
-                  _dragMove(d.localPosition.dx / width);
+                  _dragMove(f);
                 },
           onHorizontalDragUpdate: disabled ? null : (d) => _dragMove(d.localPosition.dx / width),
           onHorizontalDragEnd: disabled ? null : (_) => _dragEnd(),
@@ -231,8 +276,12 @@ class _WotSliderState extends State<WotSlider> {
                       decoration: BoxDecoration(color: active, borderRadius: BorderRadius.circular(2)),
                     ),
                   ),
-                  thumb(lowFrac, isLow: true),
-                  thumb(highFrac),
+                  thumb(lowFrac, isLow: true, value: _low),
+                  thumb(highFrac, value: _high),
+                  if (widget.showTip && _dragging && _dragLow)
+                    tip(_low, lowFrac),
+                  if (widget.showTip && _dragging && !_dragLow)
+                    tip(_high, highFrac),
                 ] else ...[
                   Positioned(
                     top: 27,
@@ -243,8 +292,25 @@ class _WotSliderState extends State<WotSlider> {
                       decoration: BoxDecoration(color: active, borderRadius: BorderRadius.circular(2)),
                     ),
                   ),
-                  thumb(highFrac),
+                  thumb(highFrac, value: _value),
+                  if (widget.showTip && _dragging) tip(_value, highFrac),
                 ],
+                if (widget.showMinMax)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 1),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _scaleLabel(widget.min),
+                          _scaleLabel(widget.max),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -256,9 +322,8 @@ class _WotSliderState extends State<WotSlider> {
   /// 当前值提示气泡。
   Widget _tipBubble(num value) {
     final scheme = context.wotScheme;
-    final text = widget.tipFormatter?.call(value) ?? value.toString();
+    final text = widget.tipFormatter?.call(value) ?? _label(value);
     return Container(
-      margin: const EdgeInsets.only(bottom: 6),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: scheme.textMain,
@@ -268,6 +333,21 @@ class _WotSliderState extends State<WotSlider> {
         text,
         style: TextStyle(color: Colors.white, fontSize: 11),
       ),
+    );
+  }
+
+  /// 把数值格式化为简洁文案：整数显示为整数，小数保留小数。
+  String _label(num value) {
+    final v = value.toDouble();
+    return v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toString();
+  }
+
+  /// 滑动条下方两端的刻度标签（最小值 / 最大值）。
+  Widget _scaleLabel(num value) {
+    final scheme = context.wotScheme;
+    return Text(
+      _label(value),
+      style: TextStyle(fontSize: 10, color: scheme.textSecondary),
     );
   }
 }

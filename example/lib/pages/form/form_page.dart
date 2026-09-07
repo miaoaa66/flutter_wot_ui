@@ -262,10 +262,11 @@ class _WotFormPageState extends State<WotFormPage> {
             max: 100,
             step: 10,
             showTip: true,
+            showValueInThumb: true,
             onChange: (v) => setState(() => _sliderStep = v.toDouble()),
           ),
           const SizedBox(height: 4),
-          const Text('步长 10 + 值气泡（showTip）', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const Text('步长 10 + 值气泡（showTip） + 圆点内显示数值', style: TextStyle(fontSize: 12, color: Colors.grey)),
           const SizedBox(height: 8),
           WotSlider(
             modelValue: _rangeHigh,
@@ -273,13 +274,15 @@ class _WotFormPageState extends State<WotFormPage> {
             valueStart: _rangeLow,
             step: 5,
             showTip: true,
+            showMinMax: true,
+            showValueInThumb: true,
             onChangeRange: (v) => setState(() {
               _rangeLow = v.first;
               _rangeHigh = v.last;
             }),
           ),
           const SizedBox(height: 4),
-          const Text('区间选择（range）', style: TextStyle(fontSize: 12, color: Colors.grey)),
+          const Text('区间选择（range）+ 两端值 + 圆点内显示数值', style: TextStyle(fontSize: 12, color: Colors.grey)),
           const SizedBox(height: 20),
           _section('WotSelectPicker / WotCascader / 日历 / 日期时间'),
           WotSelectPicker(
