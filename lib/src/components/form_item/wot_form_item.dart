@@ -64,17 +64,24 @@ class _WotFormItemState extends State<WotFormItem> {
     super.didChangeDependencies();
     final c = WotFormScope.of(context);
     if (c != _control) {
+      _control?.removeListener(_onControlChanged);
       _control?.unregister(widget.name);
       _control = c;
       if (c != null) {
+        // 订阅控制器：值/校验结果变化时重建以实时显示错误。
+        c.addListener(_onControlChanged);
         c.register(widget.name, widget.label ?? widget.name);
-        // 延迟一帧避免在 build 中同步触发通知。
       }
     }
   }
 
+  void _onControlChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    _control?.removeListener(_onControlChanged);
     _control?.unregister(widget.name);
     super.dispose();
   }

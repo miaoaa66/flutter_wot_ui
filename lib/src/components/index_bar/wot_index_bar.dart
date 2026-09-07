@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../theme/wot_scheme.dart';
@@ -149,6 +151,8 @@ class WotIndexBar extends StatefulWidget {
     this.itemSize = 20,
     this.onSelect,
     this.child,
+    this.persistentHighlight = false,
+    this.highlightDuration,
   });
 
   /// 索引字符数组，决定右侧字母条显示哪些字母，默认 [kWotIndexBarDefaultList]
@@ -170,6 +174,16 @@ class WotIndexBar extends StatefulWidget {
   /// 使内部的 [WotIndexBarAnchor] 能读取当前激活索引做「联动」高亮。
   final Widget? child;
 
+  /// 是否让激活高亮一直保持（默认 false）。
+  ///
+  /// 默认（false）时，点击定位或拖拽结束会在一小段延时后自动清除高亮，
+  /// 锚点标题与右侧字母不常驻选中色；若要高亮常驻，设为 true。
+  final bool persistentHighlight;
+
+  /// 点击/拖拽结束后自动清除高亮前的延时，用于配合定位/滚动动画时长。
+  /// 默认约 260ms。仅当 [persistentHighlight] 为 false 时生效。
+  final Duration? highlightDuration;
+
   @override
   State<WotIndexBar> createState() => _WotIndexBarState();
 }
@@ -187,6 +201,28 @@ class _WotIndexBarState extends State<WotIndexBar> {
   /// 生效的索引列表（过滤空串后的只读视图）。
   List<String> get _indexList =>
       widget.indexList.where((e) => e.isNotEmpty).toList(growable: false);
+
+  /// 高亮自动清除定时器（非持久高亮时使用）。
+  Timer? _highlightTimer;
+
+  @override
+  void dispose() {
+    _highlightTimer?.cancel();
+    super.dispose();
+  }
+
+  /// 在 [widget.persistentHighlight] 为 false 时，安排一小段延时后清除激活高亮，
+  /// 使锚点/字母条不常驻选中色。延时可配置以匹配定位/滚动动画时长。
+  void _scheduleClearHighlight() {
+    if (widget.persistentHighlight) return;
+    _highlightTimer?.cancel();
+    _highlightTimer = Timer(
+      widget.highlightDuration ?? const Duration(milliseconds: 260),
+      () {
+        if (mounted && _active != null) setState(() => _active = null);
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -209,11 +245,18 @@ class _WotIndexBarState extends State<WotIndexBar> {
       child: GestureDetector(
         key: _barKey,
         behavior: HitTestBehavior.opaque,
-        // 点击即选中。
-        onTapDown: (d) => _selectFromGlobal(d.globalPosition),
-        // 支持手指/鼠标拖拽连续高亮并回调。
+        // 点击：即使命中已激活字母也触发 onSelect，便于重复定位到当前分组。
+        onTapDown: (d) {
+          _selectFromGlobal(d.globalPosition, force: true);
+          _scheduleClearHighlight();
+        },
+        // 支持手指/鼠标拖拽连续高亮并回调（拖拽过程中对相同字母去重，避免重复回调）。
         onVerticalDragStart: (d) => _selectFromGlobal(d.globalPosition),
         onVerticalDragUpdate: (d) => _selectFromGlobal(d.globalPosition),
+        // 拖拽结束：安排清除高亮（非持久）；
+        // 取消拖拽时不改激活，仍由延时清除兜底。
+        onVerticalDragEnd: (_) => _scheduleClearHighlight(),
+        onVerticalDragCancel: () => _scheduleClearHighlight(),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 4),
           decoration: BoxDecoration(
@@ -281,14 +324,17 @@ class _WotIndexBarState extends State<WotIndexBar> {
   }
 
   /// 根据屏幕坐标命中字母索引并更新激活态。
-  void _selectFromGlobal(Offset global) {
+  ///
+  /// [force] 为 true 时即使命中的字母已是当前激活项也会回调 [onSelect]
+  /// （用于「点击」场景，支持重复定位到当前分组）；拖拽场景传 false 以去重。
+  void _selectFromGlobal(Offset global, {bool force = false}) {
     final box = _barKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) return;
     final local = box.globalToLocal(global);
     final idx = (local.dy / widget.itemSize).floor();
     if (idx < 0 || idx >= _indexList.length) return;
     final letter = _indexList[idx];
-    if (letter == _active) return;
+    if (!force && letter == _active) return;
     setState(() => _active = letter);
     widget.onSelect?.call(letter);
   }

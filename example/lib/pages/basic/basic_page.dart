@@ -118,8 +118,8 @@ class WotBasicPage extends StatelessWidget {
           const SizedBox(height: 20),
           _section('WotTextarea 文本域（字数限制）'),
           const WotTextarea(
-            placeholder: '请输入备注，最多 50 字',
-            maxlength: 50,
+            placeholder: '请输入备注',
+            maxlength: 500,
             rows: 3,
             showWordLimit: true,
           ),

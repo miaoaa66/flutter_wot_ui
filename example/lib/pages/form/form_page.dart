@@ -39,6 +39,16 @@ class _WotFormPageState extends State<WotFormPage> {
   List<DateTime> _calRange = [];
   DateTime? _datetimeRange;
 
+  // 动态表单：可增删的地址列表字段名与自增序号。
+  final List<String> _addrKeys = ['addr_0'];
+  int _addrSeq = 1;
+
+  /// 新增一个动态地址字段。
+  void _addAddr() => setState(() => _addrKeys.add('addr_${_addrSeq++}'));
+
+  /// 移除指定动态地址字段。
+  void _removeAddr(String key) => setState(() => _addrKeys.remove(key));
+
   String _fmtDay(DateTime d) => d.toIso8601String().split('T').first;
 
   String _fmtDays(List<DateTime> list) =>
@@ -66,12 +76,24 @@ class _WotFormPageState extends State<WotFormPage> {
             },
             submitButtonText: '提交',
             showSubmitButton: true,
-            onSubmit: (_) => _toast('表单校验通过'),
+            onSubmit: (ctl) {
+              // 动态字段的值也随表单一起被登记，这里按 key 读取展示。
+              final addrVals = _addrKeys
+                  .map((k) => ctl.valueOf(k)?.isNotEmpty == true ? ctl.valueOf(k)! : '（空）')
+                  .join('、');
+              _toast('表单校验通过，地址：$addrVals');
+            },
             children: [
               WotFormItem(label: '用户名', name: 'username', required: true, child: WotInput(name: 'username', placeholder: '请输入用户名', clearable: true)),
               WotFormItem(label: '邮箱', name: 'email', required: true, child: WotInput(name: 'email', placeholder: '请输入邮箱', suffixIcon: 'message')),
               WotFormItem(label: '密码', name: 'password', child: WotInput(name: 'password', password: true, placeholder: '请输入密码')),
               WotFormItem(label: '多行', name: 'desc', child: WotTextarea(name: 'desc', placeholder: '请输入描述')),
+              // 动态表单：可任意增删地址行，均登记在同名 name 下参与取值/校验。
+              _DynamicFields(
+                keys: _addrKeys,
+                onAdd: _addAddr,
+                onRemove: _removeAddr,
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -386,6 +408,66 @@ class _WotFormPageState extends State<WotFormPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: WotText(title, type: WotTextType.wotDefault, bold: true),
+    );
+  }
+}
+
+/// 动态表单字段块：按 [keys] 渲染若干「地址」表单项，可增删。
+/// 每个字段以 `name` 登记到所在 [WotForm] 作用域，参与取值与校验。
+class _DynamicFields extends StatelessWidget {
+  const _DynamicFields({
+    required this.keys,
+    required this.onAdd,
+    required this.onRemove,
+  });
+
+  /// 当前字段名列表。
+  final List<String> keys;
+
+  /// 点击「添加」回调。
+  final VoidCallback onAdd;
+
+  /// 点击某一行「删除」回调（参数为字段名）。
+  final ValueChanged<String> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.wotScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final key in keys)
+          WotFormItem(
+            // 以字段名为 key，保证增删时对应 item 正确挂载/卸载（卸载会自动 unregister）。
+            key: ValueKey(key),
+            label: '地址',
+            name: key,
+            required: true,
+            child: Row(
+              children: [
+                Expanded(
+                  child: WotInput(name: key, placeholder: '请输入地址', clearable: true),
+                ),
+                IconButton(
+                  visualDensity: VisualDensity.compact,
+                  tooltip: '删除该地址',
+                  icon: Icon(Icons.remove_circle_outline,
+                      size: 20, color: scheme.textDisabled),
+                  onPressed: () => onRemove(key),
+                ),
+              ],
+            ),
+          ),
+        TextButton.icon(
+          onPressed: onAdd,
+          icon: Icon(Icons.add_circle_outline, size: 20, color: scheme.primaryOf(6)),
+          style: TextButton.styleFrom(
+            foregroundColor: scheme.primaryOf(6),
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+          ),
+          label: const Text('添加地址'),
+        ),
+      ],
     );
   }
 }

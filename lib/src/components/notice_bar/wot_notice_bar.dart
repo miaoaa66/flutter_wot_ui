@@ -99,6 +99,9 @@ class _WotNoticeBarState extends State<WotNoticeBar>
   late final AnimationController _ctrl;
   bool _closing = false;
 
+  /// closeable 关闭后是否已彻底移除（为 true 时不再占位，build 返回空）。
+  bool _closed = false;
+
   // 横向跑马灯状态
   bool _scrolling = false;
   double _marqueeTotal = 0;
@@ -294,12 +297,17 @@ class _WotNoticeBarState extends State<WotNoticeBar>
   void _handleClose() {
     setState(() => _closing = true);
     Future.delayed(const Duration(milliseconds: 200), () {
-      if (mounted) widget.onClose?.call();
+      if (!mounted) return;
+      setState(() => _closed = true);
+      widget.onClose?.call();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // 已关闭：彻底移除，不再占位（onClose 已在上方回调）。
+    if (_closed) return const SizedBox.shrink();
+
     final scheme = context.wotScheme;
     final fg = widget.color ?? scheme.primaryOf(6);
     final bg = widget.bgColor ?? fg.withValues(alpha: 0.1);

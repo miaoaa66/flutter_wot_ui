@@ -19,10 +19,22 @@ class _WotFeedbackPageState extends State<WotFeedbackPage> {
   // 引导高亮目标：分别定位到页内的“轻提示/确认框/弹出层”按钮。
   final GlobalKey _tourKey1 = GlobalKey();
   final GlobalKey _tourKey2 = GlobalKey();
-  final GlobalKey _tourKey3 = GlobalKey();
 
-  /// 启动新手引导，依次高亮三个目标控件。
+  /// 弹出层内部元素的 key，作为第三步引导目标（onEnter 打开弹框后备其定位角色）。
+  final GlobalKey _tourPopupKey = GlobalKey();
+
+  /// 页面滚动控制器，用于引导时把被回收的列表目标滚回挂载并圈住。
+  final ScrollController _listCtl = ScrollController();
+
+  @override
+  void dispose() {
+    _listCtl.dispose();
+    super.dispose();
+  }
+
+  /// 启动新手引导，依次高亮目标；演示 onEnter/onLeave 与自动滚动到目标。
   void _startTour() {
+    setState(() => _popup = false);
     WotTour.show(
       context,
       steps: [
@@ -30,20 +42,26 @@ class _WotFeedbackPageState extends State<WotFeedbackPage> {
           target: _tourKey1,
           title: '第一步 · 轻提示',
           description: '这里使用 WotToast 命令式弹出轻提示，点击文本按钮可触发。',
+          scrollController: _listCtl,
         ),
         WotTourStep(
           target: _tourKey2,
           title: '第二步 · 确认框',
           description: '通过 WotDialog.confirm 弹出删除确认框，返回结果后 Toast 提示。',
+          scrollController: _listCtl,
         ),
+        // 第三步：进入前用 onEnter 打开弹出层，蓝框自动圈住弹出层里的目标。
         WotTourStep(
-          target: _tourKey3,
+          target: _tourPopupKey,
           title: '第三步 · 弹出层',
-          description: '点击该按钮从屏幕底部弹出 WotPopup 面板。',
+          description: '在 onEnter 里打开 WotPopup，蓝框将滚动定位到弹出层中的目标元素。',
+          onEnter: () => setState(() => _popup = true),
+          onLeave: () => setState(() => _popup = false),
         ),
       ],
       onFinish: () => _toast('引导完成'),
       onSkip: () => _toast('已跳过引导'),
+      onClose: () => setState(() => _popup = false),
     );
   }
 
@@ -58,9 +76,14 @@ class _WotFeedbackPageState extends State<WotFeedbackPage> {
     final scheme = context.wotScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('反馈组件')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      // WotPopup 是全屏弹层（内部 Stack expand），不能放在列表项内布局，
+      // 需作为全屏覆盖层，用 Stack + Positioned.fill 提供有界约束。
+      body: Stack(
         children: [
+          ListView(
+            controller: _listCtl,
+            padding: const EdgeInsets.all(16),
+            children: [
           _section('WotToast 轻提示（命令式，Overlay+队列）'),
           Wrap(
             spacing: 8,
@@ -183,22 +206,9 @@ class _WotFeedbackPageState extends State<WotFeedbackPage> {
           WotProgress(modelValue: _progress, textInside: true, showText: true),
           const SizedBox(height: 8),
           WotCircle(modelValue: _circle, size: 200),
-          Container(
-            height: 300,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.red, width: 2),
-            ),
-            child: WotCircle(modelValue: _circle,)
-          ),
           const SizedBox(height: 20),
           _section('WotPopup 弹出层 / WotNoticeBar 公告'),
-          WotButton(text: '打开弹出层', key: _tourKey3, size: WotButtonSize.small, onClick: () => setState(() => _popup = true)),
-          if (_popup)
-            WotPopup(
-              visible: _popup,
-              onClose: () => setState(() => _popup = false),
-              child: SizedBox(height: 200, width: double.infinity, child: Center(child: WotText('弹出内容'))),
-            ),
+          WotButton(text: '打开弹出层', size: WotButtonSize.small, onClick: () => setState(() => _popup = true)),
           const SizedBox(height: 12),
           WotNoticeBar(text: '这是一条公告消息，用于提示用户重要信息。', closeable: true),
           const SizedBox(height: 20),
@@ -285,14 +295,47 @@ class _WotFeedbackPageState extends State<WotFeedbackPage> {
             ),
           ),
           const SizedBox(height: 20),
-          _section('WotSwipeAction 左滑操作（左滑内容）'),
+          _section('WotSwipeAction 左滑操作（在调用处声明配置）'),
           WotSwipeAction(
-            actions: wotSwipeActions(onDelete: () => _toast('已删除')),
+            actions: [
+              WotSwipeActionItem(text: '收藏', bgColor: scheme.primaryOf(6), onClick: () => _toast('收藏')),
+              WotSwipeActionItem(text: '隐藏', bgColor: scheme.warningMain, shouldShow: false, onClick: () => _toast('不可见')),
+              WotSwipeActionItem(text: '禁用', bgColor: scheme.filledContent, color: scheme.textSecondary, disabled: true),
+              WotSwipeActionItem(text: '删除', bgColor: scheme.dangerMain, onClick: () => _toast('已删除')),
+            ],
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               color: scheme.filledOppo,
               child: const Row(
-                children: [WotIcon(name: 'user', size: 16), SizedBox(width: 8), WotText('左滑显示操作')],
+                children: [WotIcon(name: 'user', size: 16), SizedBox(width: 8), WotText('左滑显示右侧操作')],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _section('WotSwipeAction 右滑操作 + 禁止滑动'),
+          WotSwipeAction(
+            side: WotSwipeActionSide.left,
+            actions: [
+              WotSwipeActionItem(text: '标记', bgColor: scheme.successMain, onClick: () => _toast('已标记')),
+              WotSwipeActionItem(text: '已读', bgColor: scheme.primaryOf(6), onClick: () => _toast('标为已读')),
+            ],
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              color: scheme.filledOppo,
+              child: const Row(
+                children: [WotIcon(name: 'star', size: 16), SizedBox(width: 8), WotText('右滑显示左侧操作')],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          WotSwipeAction(
+            disabled: true,
+            actions: const [WotSwipeActionItem(text: '禁用滑动', bgColor: Color(0xFFC9CBD4), color: Color(0xFFFFFFFF), disabled: true)],
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              color: scheme.filledOppo,
+              child: const Row(
+                children: [WotIcon(name: 'lock', size: 16), SizedBox(width: 8), WotText('该条禁止滑动')],
               ),
             ),
           ),
@@ -312,6 +355,22 @@ class _WotFeedbackPageState extends State<WotFeedbackPage> {
             '点击“开始引导”，会依次高亮上方「轻提示」「确认框」「弹出层」三个按钮并展示说明。',
             type: WotTextType.wotDefault,
           ),
+          ],
+          ),
+          // 全屏弹层：作为覆盖层叠在 ListView 之上，提供有界约束避免 Stack expand 崩溃。
+          if (_popup)
+            Positioned.fill(
+              child: WotPopup(
+                visible: _popup,
+                onClose: () => setState(() => _popup = false),
+                child: SizedBox(
+                  key: _tourPopupKey,
+                  height: 200,
+                  width: double.infinity,
+                  child: const Center(child: WotText('弹出内容')),
+                ),
+              ),
+            ),
         ],
       ),
     );

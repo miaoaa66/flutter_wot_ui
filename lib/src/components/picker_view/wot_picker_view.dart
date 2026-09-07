@@ -156,11 +156,12 @@ class WotPickerViewColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     final idx = options.indexWhere((o) => o.value == value);
     final start = idx >= 0 ? idx : 0;
-    return UnconstrainedBox(
-      child: SizedBox(
-        width: double.infinity,
-        height: height,
-        child: Stack(
+    // 列通常被放在 Row/Expanded 内（已有界宽），直接尺寸填满即可；
+    // 不要用 UnconstrainedBox，否则 SizedBox(width: Infinity) 会触发 infinite width。
+    return SizedBox(
+      width: double.infinity,
+      height: height,
+      child: Stack(
           children: [
             WotPickerColumn(
               options: options,
@@ -187,7 +188,6 @@ class WotPickerViewColumn extends StatelessWidget {
               ),
           ],
         ),
-      ),
     );
   }
 }

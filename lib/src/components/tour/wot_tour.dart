@@ -31,6 +31,11 @@ class WotTourStep {
     this.maskPadding,
     this.nextButtonText,
     this.prevButtonText,
+    this.onEnter,
+    this.onLeave,
+    this.autoScroll = true,
+    this.scrollController,
+    this.targetScrollOffset = 0,
   });
 
   /// 高亮目标，需用 [GlobalKey] 标记已渲染的 widget。
@@ -56,6 +61,22 @@ class WotTourStep {
 
   /// 本步“上一步”按钮文案，覆盖全局 [prevButtonText]。
   final String? prevButtonText;
+
+  /// 进入本步时回调（可在此准备/挂载目标，例如打开含目标元素的弹框）。
+  final VoidCallback? onEnter;
+
+  /// 离开本步时回调（常用于清理本步引入的状态，如关闭弹框）。
+  final VoidCallback? onLeave;
+
+  /// 是否自动滚动到目标并保证蓝框圈住，默认 true。
+  final bool autoScroll;
+
+  /// 目标所在的滚动容器；当目标被惰性回收（拿不到定位）时，先滚动到
+  /// [targetScrollOffset] 使目标重新挂载，再定位并圈住。用于引导页内的列表元素。
+  final ScrollController? scrollController;
+
+  /// 配合 [scrollController] 使用的期望滚动偏移；目标在列表顶部时用 0（默认）。
+  final double targetScrollOffset;
 }
 
 /// 引导控制器，由 [WotTour.show] 返回，用于控制导航与关闭。
@@ -251,6 +272,74 @@ class _WotTourViewState extends State<_WotTourView> {
     super.initState();
     _stepIndex = widget.initialIndex.clamp(0, widget.steps.length - 1);
     widget.controller._attach(this);
+    // 首帧后触发首步的进入回调与自动滚动，确保目标已布局。
+    WidgetsBinding.instance.addPostFrameCallback((_) => _enterStep());
+  }
+
+  /// 触发当前步的 [WotTourStep.onEnter] 并自动滚动到目标。
+  void _enterStep() {
+    final step = widget.steps[_stepIndex.clamp(0, widget.steps.length - 1)];
+    step.onEnter?.call();
+    if (mounted && step.autoScroll) _scrollToTarget(step);
+    if (mounted) setState(() {});
+  }
+
+  /// 离开当前步（触发 [WotTourStep.onLeave]）。
+  void _leaveStep() {
+    widget.steps[_stepIndex.clamp(0, widget.steps.length - 1)].onLeave?.call();
+  }
+
+  /// 自动滚动到目标使其进入视口并重算高亮矩形（让“蓝框”圈住目标）。
+  ///
+  /// 目标可能由 [WotTourStep.onEnter]（如打开弹框）引入而尚未挂载，或属于
+  /// 可滚动列表中被惰性回收的项（拿不到定位）。此时若有 [WotTourStep.scrollController]，
+  /// 先滚动到 [WotTourStep.targetScrollOffset] 使目标重新挂载，再定位圈住。
+  void _scrollToTarget(WotTourStep step) {
+    final ctx = step.target?.currentContext;
+    if (ctx == null) {
+      final sc = step.scrollController;
+      if (sc != null && sc.hasClients) {
+        final target = step.targetScrollOffset.clamp(
+                0.0, sc.position.maxScrollExtent)
+            .toDouble();
+        sc.animateTo(target,
+            duration: const Duration(milliseconds: 320), curve: Curves.easeOut).then((_) {
+          if (!mounted) return;
+          final retry = step.target?.currentContext;
+          if (retry != null) {
+            // ignore: use_build_context_synchronously (已用 mounted 守卫，GlobalKey 定位重试)
+            Scrollable.ensureVisible(retry,
+                    duration: const Duration(milliseconds: 320), alignment: 0.5)
+                .then((_) {
+              if (mounted) setState(() {});
+            });
+          } else {
+            setState(() {});
+          }
+        });
+      } else {
+        // 无滚动容器则下一帧重试一次；仍不可得时用居中的兜底气泡保证可退出。
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final retry = step.target?.currentContext;
+          if (retry != null) {
+            Scrollable.ensureVisible(retry,
+                    duration: const Duration(milliseconds: 320), alignment: 0.5)
+                .then((_) {
+              if (mounted) setState(() {});
+            });
+          } else {
+            setState(() {});
+          }
+        });
+      }
+      return;
+    }
+    Scrollable.ensureVisible(ctx,
+            duration: const Duration(milliseconds: 320), alignment: 0.5)
+        .then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   /// 计算目标在全局（浮层）坐标系中的矩形。
@@ -267,22 +356,27 @@ class _WotTourViewState extends State<_WotTourView> {
   }
 
   void prev() {
+    _leaveStep();
     if (_stepIndex == 0) return;
     final prevIndex = _stepIndex - 1;
     setState(() => _stepIndex = prevIndex);
     widget.onPrev?.call(prevIndex);
     widget.onChange?.call(prevIndex);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _enterStep());
   }
 
   void next() {
     if (_isLast) {
+      _leaveStep();
       finish();
       return;
     }
+    _leaveStep();
     final nextIndex = _stepIndex + 1;
     setState(() => _stepIndex = nextIndex);
     widget.onNext?.call(nextIndex);
     widget.onChange?.call(nextIndex);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _enterStep());
   }
 
   void finish() {
@@ -325,9 +419,15 @@ class _WotTourViewState extends State<_WotTourView> {
 
     final step = _step;
     final rect = _targetRect(step.target);
-    final highlight = rect?.inflate(
-      step.maskPadding ?? widget.maskPadding,
-    );
+    // 目标拿不到定位（如该项被懒加载回收）时，用屏幕中央的小区域兜底，
+    // 保证气泡（含“跳过/完成”按钮）始终渲染，用户永远可以退出引导。
+    final base = rect ??
+        Rect.fromCenter(
+          center: Offset(size.width / 2, size.height / 2),
+          width: 24,
+          height: 24,
+        );
+    final highlight = base.inflate(step.maskPadding ?? widget.maskPadding);
 
     return Positioned.fill(
       child: Material(
@@ -349,30 +449,29 @@ class _WotTourViewState extends State<_WotTourView> {
                   ),
                 ),
               ),
-            if (highlight != null)
-              Positioned.fill(
-                child: _TourBubble(
-                  placement: _resolvePlacement(step, highlight, size, safeArea),
-                  highlight: highlight,
-                  offset: widget.offset,
-                  size: size,
-                  safeArea: safeArea,
-                  maxWidth: widget.maxWidth,
-                  scheme: scheme,
-                  index: _stepIndex,
-                  total: widget.steps.length,
-                  step: step,
-                  nextButtonText: step.nextButtonText ?? widget.nextButtonText,
-                  prevButtonText: step.prevButtonText ?? widget.prevButtonText,
-                  skipButtonText: widget.skipButtonText,
-                  finishButtonText: widget.finishButtonText,
-                  showPrev: _stepIndex > 0,
-                  isLast: _isLast,
-                  onPrev: prev,
-                  onNext: next,
-                  onSkip: skip,
-                ),
+            Positioned.fill(
+              child: _TourBubble(
+                placement: _resolvePlacement(step, highlight, size, safeArea),
+                highlight: highlight,
+                offset: widget.offset,
+                size: size,
+                safeArea: safeArea,
+                maxWidth: widget.maxWidth,
+                scheme: scheme,
+                index: _stepIndex,
+                total: widget.steps.length,
+                step: step,
+                nextButtonText: step.nextButtonText ?? widget.nextButtonText,
+                prevButtonText: step.prevButtonText ?? widget.prevButtonText,
+                skipButtonText: widget.skipButtonText,
+                finishButtonText: widget.finishButtonText,
+                showPrev: _stepIndex > 0,
+                isLast: _isLast,
+                onPrev: prev,
+                onNext: next,
+                onSkip: skip,
               ),
+            ),
           ],
         ),
       ),

@@ -56,21 +56,23 @@ class WotFormControl extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// 校验全部字段；返回首个失败信息，无则 null。
+  /// 校验全部字段：为每个失败字段设置错误信息；返回首个失败信息，无则 null。
+  /// 注意：会遍历所有字段，因此多个字段全部失败时，它们的错误都会同步展示。
   String? validate() {
+    String? first;
     for (final e in _fields.values) {
       final rule = rules[e.name];
       if (rule == null) continue;
       if (!rule(_values[e.name])) {
         final msg = '${e.label}校验未通过';
         _errors[e.name] = msg;
-        notifyListeners();
-        return msg;
+        first ??= msg;
+      } else {
+        _errors.remove(e.name);
       }
-      _errors.remove(e.name);
     }
     notifyListeners();
-    return null;
+    return first;
   }
 
   String? errorOf(String name) => _errors[name];

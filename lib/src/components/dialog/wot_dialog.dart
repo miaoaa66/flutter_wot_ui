@@ -191,12 +191,20 @@ class WotDialogView extends StatelessWidget {
           child: SizedBox(
             height: 40,
             child: TextButton(
+              // 与确认按钮保持一致的圆角；用浅灰实心底，使其与弹窗白底区分开来。
+              style: TextButton.styleFrom(
+                backgroundColor: scheme.filledContent,
+                foregroundColor: scheme.textMain,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
               onPressed: () {
                 onCancel?.call();
                 Navigator.of(context).pop(false);
               },
               child: Text(cancelLabel,
-                  style: TextStyle(color: scheme.textSecondary)),
+                  style: TextStyle(color: scheme.textMain)),
             ),
           ),
         ),

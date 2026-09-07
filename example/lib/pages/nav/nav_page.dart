@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_wot_ui/flutter_wot_ui.dart';
 
 /// 导航 + 交互组件演示页（Navbar/Tabs/Tabbar/Segmented/Sidebar/Pagination/Sticky/Backtop）。
@@ -170,7 +170,7 @@ class _WotNavPageState extends State<WotNavPage> {
           // 回到顶部按钮（滚动超过阈值后出现）。
           WotBacktop(
             show: _showBack,
-            tip: '回到顶部',
+            tip: '回顶部',
             bottom: 80,
             right: 16,
             onClick: () {
@@ -352,9 +352,8 @@ class _TabsDemo extends StatelessWidget {
             modelValue: index,
             onChange: onChange,
             swipeable: true,
-            activeColor: const Color(0xFF12B886),
             children: [
-              for (var i = 0; i < 4; i++)
+              for (var i = 0; i < 5; i++)
                 WotTab(title: '页${i + 1}', child: _panel(context, '滑动内容 ${i + 1}')),
             ],
           ),
@@ -496,6 +495,9 @@ class _IndexBarDemoState extends State<_IndexBarDemo> {
         onSelect: _jump,
         child: ListView(
           controller: _controller,
+          // 索引条需要读取每个锚点的 RenderObject 来计算滚动偏移，
+          // 用足够大的缓存区让全部锚点常驻（避免滚出视口后被惰性销毁导致点击不跳）。
+          cacheExtent: 2000,
           children: [
             for (final entry in _cities.entries)
               WotIndexBarAnchor(

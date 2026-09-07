@@ -95,7 +95,11 @@ class WotTabbarItem extends StatelessWidget {
           children: [
             iconWidget,
             Positioned(
-              right: -6,
+              // * icon上
+              // right: -6,
+              // top: -4,
+              // * icon右上角
+              right: -14,
               top: -4,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
