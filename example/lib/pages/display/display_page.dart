@@ -18,6 +18,7 @@ class _WotDisplayPageState extends State<WotDisplayPage> {
   int _swiperIndex = 0;
   bool _badgeHidden = false;
   final Set<String> _closedTags = {};
+  final String _videoUrl = "https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4";
 
   /// 图片裁剪组件控制器，用于命令式调用 `crop()` 导出裁剪结果。
   final GlobalKey<WotImgCropperState> _cropKey = GlobalKey();
@@ -257,7 +258,7 @@ class _WotDisplayPageState extends State<WotDisplayPage> {
           const SizedBox(height: 20),
           _section('WotGrid 宫格（点击图标）'),
           WotGrid(
-            columnNum: 4,
+            columnNum: 3,
             children: [
               for (final (name, label) in [
                 ('home', '首页'),
@@ -288,7 +289,7 @@ class _WotDisplayPageState extends State<WotDisplayPage> {
           const SizedBox(height: 16),
           _section('WotCollapse 折叠面板 - 多选 / 自定义内容'),
           WotCollapse(
-            modelValue: ['m1'],
+            // 非受控：由组件内部维护多选展开状态（受控需在 onChange 同步传回 modelValue）。
             accordion: false,
             onChange: (v) => setState(() => _multiCollapsed = v.length),
             children: [
@@ -503,8 +504,8 @@ class _WotDisplayPageState extends State<WotDisplayPage> {
             type: WotButtonType.primary,
             onClick: () => WotVideoPreview.show(
               context,
-              'https://www.w3teach.cn/test-video/GetStartedWIthFlutterDevelopment.mp4',
-              title: 'Flutter 官方示例视频',
+              _videoUrl,
+              title: '示例视频',
             ),
           ),
           const SizedBox(height: 12),
@@ -515,7 +516,7 @@ class _WotDisplayPageState extends State<WotDisplayPage> {
               width: double.infinity,
               height: 200,
               child: WotVideoPreview(
-                src: 'https://www.w3teach.cn/test-video/GetStartedWIthFlutterDevelopment.mp4',
+                src: _videoUrl,
                 title: '内嵌视频示例',
               ),
             ),

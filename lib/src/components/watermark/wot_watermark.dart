@@ -165,17 +165,21 @@ class _WotWatermarkState extends State<WotWatermark> {
 
     final watermark = CustomPaint(
       painter: painter,
-      size: Size.infinite,
       child: const SizedBox.expand(),
     );
 
     final overlay = Positioned.fill(
       child: RepaintBoundary(
-        child: IgnorePointer(child: watermark),
+        child: IgnorePointer(
+          child: ClipRect(
+            child: watermark,
+          ),
+        ),
       ),
     );
 
     return Stack(
+      clipBehavior: Clip.hardEdge,
       children: [
         widget.child ?? const SizedBox.expand(),
         overlay,
@@ -216,6 +220,10 @@ class _WatermarkPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (image == null && content.isEmpty) return;
+
+    // 单口裁剪：水印仅在容器区域内绘制，旋转/平铺探出的部分一并被裁掉，
+    // 避免水印内容跑到容器外面。
+    canvas.clipRect(Offset.zero & size);
 
     double halfW = gap / 2;
     double halfH = gap / 2;

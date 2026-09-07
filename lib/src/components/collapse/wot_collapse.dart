@@ -64,6 +64,7 @@ class WotCollapse extends StatefulWidget {
 
 class _WotCollapseState extends State<WotCollapse> {
   late Set<String> _active;
+  int _version = 0;
 
   @override
   void initState() {
@@ -74,7 +75,10 @@ class _WotCollapseState extends State<WotCollapse> {
   @override
   void didUpdateWidget(WotCollapse oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.modelValue != null) _active = widget.modelValue!.toSet();
+    if (widget.modelValue != null) {
+      _active = widget.modelValue!.toSet();
+      _version++;
+    }
   }
 
   bool isActive(String name) => _active.contains(name);
@@ -82,6 +86,7 @@ class _WotCollapseState extends State<WotCollapse> {
   void toggle(String name, bool disabled) {
     if (disabled) return;
     setState(() {
+      _version++;
       final wasActive = _active.contains(name);
       if (widget.accordion) {
         _active.clear();
@@ -96,6 +101,8 @@ class _WotCollapseState extends State<WotCollapse> {
   @override
   Widget build(BuildContext context) {
     return _CollapseScope(
+      activeNames: _active,
+      version: _version,
       isActive: isActive,
       toggle: toggle,
       showArrow: widget.showArrow,
@@ -109,12 +116,16 @@ class _WotCollapseState extends State<WotCollapse> {
 
 class _CollapseScope extends InheritedWidget {
   const _CollapseScope({
+    required this.activeNames,
+    required this.version,
     required this.isActive,
     required this.toggle,
     required this.showArrow,
     required super.child,
   });
 
+  final Set<String> activeNames;
+  final int version;
   final bool Function(String name) isActive;
   final void Function(String name, bool disabled) toggle;
   final bool showArrow;
@@ -125,7 +136,9 @@ class _CollapseScope extends InheritedWidget {
 
   @override
   bool updateShouldNotify(_CollapseScope oldWidget) {
-    return oldWidget.showArrow != showArrow;
+    // isActive/toggle 是同一 State 方法的 tear-off，身份不随 build 变化；
+    // 用每次 toggle 递增的 version 判断展开态是否改变，变化时通知子项重建。
+    return oldWidget.version != version || oldWidget.showArrow != showArrow;
   }
 }
 

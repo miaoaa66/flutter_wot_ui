@@ -110,6 +110,15 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
   /// 是否处于加载失败状态（初始化抛错或 [VideoPlayerValue.hasError] 为 true）。
   bool _failed = false;
 
+  /// 是否已触发关闭回调，防止按钮点击与 [dispose] 重复触发一次以上。
+  bool _closed = false;
+
+  /// 可选倍速档位（线性递增），用于循环切换。
+  static const List<double> _rates = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+
+  /// 记住取消静音前的音量，便于一键恢复。
+  double _savedVolume = 1.0;
+
   @override
   void initState() {
     super.initState();
@@ -150,7 +159,8 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
   void dispose() {
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
-    widget.onClose?.call();
+    // 仅触发一次关闭回调，避免与按钮路径重复 pop / 在树 finalization 阶段做祖先查找。
+    _notifyClose();
     super.dispose();
   }
 
@@ -174,6 +184,44 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
     } else {
       await _controller.play();
     }
+  }
+
+  /// 循环切换倍速档位（0.5x → 2x）。
+  Future<void> nextSpeed() async {
+    if (!_controller.value.isInitialized) return;
+    var i = _rates.indexWhere(
+        (r) => (r - _controller.value.playbackSpeed).abs() < 0.001);
+    if (i < 0) i = _rates.indexOf(1.0);
+    await _controller.setPlaybackSpeed(_rates[(i + 1) % _rates.length]);
+  }
+
+  /// 切换是否循环播放。
+  Future<void> toggleLoop() async {
+    if (!_controller.value.isInitialized) return;
+    await _controller.setLooping(!_controller.value.isLooping);
+  }
+
+  /// 切换静音 / 恢复音量。
+  Future<void> toggleMute() async {
+    if (!_controller.value.isInitialized) return;
+    final v = _controller.value.volume;
+    await _controller.setVolume(v == 0 ? (_savedVolume > 0 ? _savedVolume : 1.0) : 0.0);
+    if (v > 0) _savedVolume = v;
+  }
+
+  /// 相对当前位置快退 / 快进 [seconds] 秒。
+  Future<void> seekRelative(int seconds) async {
+    final durMs = _controller.value.duration.inMilliseconds;
+    if (durMs <= 0) return;
+    final ms = (_controller.value.position.inMilliseconds + seconds * 1000)
+        .clamp(0, durMs);
+    await _controller.seekTo(Duration(milliseconds: ms));
+  }
+
+  /// 将播放倍率格式化为简短文本，如 `1x`、`1.25x`。
+  String _speedLabel(double s) {
+    if (s == s.roundToDouble()) return '${s.toStringAsFixed(0)}x';
+    return '${s.toStringAsFixed(2)}x';
   }
 
   /// 重试加载视频（本地重建控制器后重新 [initState] 中初始化流程）。
@@ -200,13 +248,32 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
 
   /// 关闭处理：触发 [widget.onClose]（命令式下由调用方负责 pop）。
   void _handleClose() {
+    _notifyClose();
+  }
+
+  /// 内嵌模式：以全屏命令式方式打开当前视频预览。
+  void _openFullscreen() {
+    WotVideoPreview.show(
+      context,
+      widget.src,
+      title: widget.title,
+      poster: widget.poster,
+      loop: widget.loop,
+      closePosition: widget.closePosition,
+    );
+  }
+
+  /// 触发一次且仅一次的关闭回调。
+  void _notifyClose() {
+    if (_closed) return;
+    _closed = true;
     widget.onClose?.call();
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
-    return Container(
+    return Material(
       color: Colors.black,
       child: SafeArea(
         child: ValueListenableBuilder<VideoPlayerValue>(
@@ -250,8 +317,10 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
                               ? Alignment.centerLeft
                               : Alignment.centerRight,
                           child: _CloseButton(
+                            label: widget.onClose == null ? '全屏' : '关闭',
                             background: scheme.opacLightCover,
-                            onPressed: _handleClose,
+                            onPressed:
+                                widget.onClose == null ? _openFullscreen : _handleClose,
                           ),
                         ),
                       ],
@@ -325,6 +394,58 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
                                   '${_format(value.position)} / ${_format(value.duration)}',
                                   style: const TextStyle(color: Colors.white, fontSize: 12),
                                 ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              _PlayerControl(
+                                label: '-15s',
+                                onTap: () => seekRelative(-15),
+                              ),
+                              _PlayerControl(
+                                label: _speedLabel(value.playbackSpeed),
+                                onTap: nextSpeed,
+                              ),
+                              _PlayerControl(
+                                icon: Icons.repeat,
+                                active: value.isLooping,
+                                onTap: toggleLoop,
+                              ),
+                              _PlayerControl(
+                                icon: value.volume > 0
+                                    ? Icons.volume_up
+                                    : Icons.volume_off,
+                                onTap: toggleMute,
+                              ),
+                              Expanded(
+                                child: SliderTheme(
+                                  data: SliderThemeData(
+                                    trackHeight: 2,
+                                    activeTrackColor: scheme.primaryOf(6),
+                                    inactiveTrackColor: Colors.white24,
+                                    thumbColor: Colors.white,
+                                    thumbShape: const RoundSliderThumbShape(
+                                      enabledThumbRadius: 5,
+                                    ),
+                                    overlayShape:
+                                        const RoundSliderOverlayShape(overlayRadius: 12),
+                                    overlayColor: Colors.white24,
+                                  ),
+                                  child: Slider(
+                                    min: 0,
+                                    max: 1,
+                                    value: value.volume.clamp(0, 1),
+                                    onChanged: value.isInitialized
+                                        ? (v) => _controller.setVolume(v)
+                                        : null,
+                                  ),
+                                ),
+                              ),
+                              _PlayerControl(
+                                label: '+15s',
+                                onTap: () => seekRelative(15),
                               ),
                             ],
                           ),
@@ -402,30 +523,77 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
   }
 }
 
-/// 顶部的方形关闭按钮（底色取自主题语义色，图标用白色）。
+/// 顶部方形按钮（底色取自主题语义色，文字/图标用白色）。
 class _CloseButton extends StatelessWidget {
-  const _CloseButton({required this.background, required this.onPressed});
+  const _CloseButton({required this.label, required this.background, required this.onPressed});
+
+  /// 按钮文案（内嵌为「全屏」，全屏预览为「关闭」）。
+  final String label;
 
   /// 背景颜色（来自 [BuildContext.wotScheme] 语义令牌）。
   final Color background;
 
-  /// 点击关闭回调。
+  /// 点击回调。
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    // 用 GestureDetector 而不是 InkWell，避免依赖上方有 Material（全屏预览可能是独立 overlay）。
+    return GestureDetector(
       onTap: onPressed,
-      borderRadius: BorderRadius.circular(6),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: background,
           borderRadius: BorderRadius.circular(6),
         ),
-        child: const Text(
-          '完成',
-          style: TextStyle(color: Colors.white, fontSize: 14),
+        child: Text(
+          label,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+        ),
+      ),
+    );
+  }
+}
+
+/// 底栏的单个媒体控制（图标或文字）；激活态使用主题主色。
+class _PlayerControl extends StatelessWidget {
+  const _PlayerControl({
+    required this.onTap,
+    this.icon,
+    this.label,
+    this.active = false,
+  });
+
+  /// 点击回调。
+  final VoidCallback onTap;
+
+  /// 图标（与 [label] 二选一，优先图标）。
+  final IconData? icon;
+
+  /// 文字（如倍速 `1x`、跳转 `-15s`）。
+  final String? label;
+
+  /// 是否处于激活态（如已开启循环），激活时文字/图标用主题主色。
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.wotScheme;
+    final color = active ? scheme.primaryOf(6) : Colors.white;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: SizedBox(
+        width: 40,
+        height: 36,
+        child: Center(
+          child: icon != null
+              ? Icon(icon, color: color, size: 24)
+              : Text(
+                  label ?? '',
+                  style: TextStyle(color: color, fontSize: 14),
+                ),
         ),
       ),
     );
