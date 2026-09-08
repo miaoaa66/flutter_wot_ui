@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/wot_scheme.dart';
 import '../../theme/wot_theme.dart';
+import '../picker_view/wot_picker_view.dart';
 
 /// 日历选择类型，对应 wot `wd-calendar` 的 type。
 enum WotCalendarType {
@@ -364,6 +365,46 @@ class _MonthGridState extends State<_MonthGrid> {
     });
   }
 
+  /// 点击「X 年 Y 月」弹出年份/月份选择，用于快速跳转。
+  Future<void> _openYearMonthPicker(BuildContext context) async {
+    final yMin = widget.minDate?.year ?? (_year - 20);
+    final yMax = widget.maxDate?.year ?? (_year + 20);
+    final years = <WotColumnOption>[
+      for (var y = yMin; y <= yMax; y++) WotColumnOption(text: '$y', value: y),
+    ];
+    final months = <WotColumnOption>[
+      for (var m = 1; m <= 12; m++) WotColumnOption(text: '$m 月', value: m),
+    ];
+    final res = await showModalBottomSheet<List<Object?>>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      builder: (_) => _YearMonthPicker(
+        year: _year,
+        month: _month,
+        years: years,
+        months: months,
+        color: widget.color,
+      ),
+    );
+    if (res == null || res.length < 2 || !mounted) return;
+    final picked = DateTime((res[0] as num).toInt(), (res[1] as num).toInt(), 1);
+    // 若结果超出 min/max 范围，夹取到一个合法月。
+    var year = picked.year, month = picked.month;
+    if (widget.minDate != null && picked.isBefore(widget.minDate!)) {
+      year = widget.minDate!.year;
+      month = widget.minDate!.month;
+    }
+    if (widget.maxDate != null && picked.isAfter(widget.maxDate!)) {
+      year = widget.maxDate!.year;
+      month = widget.maxDate!.month;
+    }
+    setState(() {
+      _year = year;
+      _month = month;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
@@ -380,9 +421,12 @@ class _MonthGridState extends State<_MonthGrid> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             InkWell(onTap: () => _shift(-1), child: const Text('‹', style: TextStyle(fontSize: 20))),
-            Text('$_year 年 $_month 月',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16, color: scheme.textMain, fontWeight: FontWeight.w600)),
+            InkWell(
+              onTap: () => _openYearMonthPicker(context),
+              child: Text('$_year 年 $_month 月',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: scheme.textMain, fontWeight: FontWeight.w600)),
+            ),
             InkWell(onTap: () => _shift(1), child: const Text('›', style: TextStyle(fontSize: 20))),
           ],
         ),
@@ -462,6 +506,83 @@ class _MonthGridState extends State<_MonthGrid> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// 年份/月份双列滚轮选择弹层，用于日历快速跳转。
+class _YearMonthPicker extends StatefulWidget {
+  const _YearMonthPicker({
+    required this.year,
+    required this.month,
+    required this.years,
+    required this.months,
+    this.color,
+  });
+
+  final int year;
+  final int month;
+  final List<WotColumnOption> years;
+  final List<WotColumnOption> months;
+  final Color? color;
+
+  @override
+  State<_YearMonthPicker> createState() => _YearMonthPickerState();
+}
+
+class _YearMonthPickerState extends State<_YearMonthPicker> {
+  late List<Object?> _values;
+  late List<List<WotColumnOption>> _columns;
+
+  @override
+  void initState() {
+    super.initState();
+    _values = [widget.year, widget.month];
+    _columns = [widget.years, widget.months];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = context.wotScheme;
+    final primary = widget.color ?? scheme.primaryOf(6);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              InkWell(
+                onTap: () => Navigator.of(context).pop(),
+                child: Text('取消',
+                    style: TextStyle(fontSize: 14, color: scheme.textSecondary)),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text('选择年月',
+                      style: TextStyle(fontSize: 16, color: scheme.textMain, fontWeight: FontWeight.w600)),
+                ),
+              ),
+              InkWell(
+                onTap: () => Navigator.of(context).pop(_values),
+                child: Text('确定',
+                    style: TextStyle(fontSize: 14, color: primary, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 200,
+          child: WotPickerView(
+            columns: _columns,
+            values: _values,
+            color: primary,
+            onChange: (v) => setState(() => _values = [...v]),
+          ),
+        ),
+        SizedBox(height: MediaQuery.of(context).padding.bottom),
+      ],
     );
   }
 }

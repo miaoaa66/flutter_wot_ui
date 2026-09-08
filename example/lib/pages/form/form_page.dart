@@ -38,6 +38,8 @@ class _WotFormPageState extends State<WotFormPage> {
   List<DateTime> _calMulti = [];
   List<DateTime> _calRange = [];
   DateTime? _datetimeRange;
+  List<Object?> _city = ['广州'];
+  List<Object?> _region = ['gd', 'gz'];
 
   // 动态表单：可增删的地址列表字段名与自增序号。
   final List<String> _addrKeys = ['addr_0'];
@@ -287,8 +289,8 @@ class _WotFormPageState extends State<WotFormPage> {
           _section('WotSelectPicker / WotCascader / 日历 / 日期时间'),
           WotSelectPicker(
             columns: wotSingleColumn(['北京', '广州', '上海']),
-            modelValue: ['广州'],
-            onChange: (v) => _toast('选择：$v'),
+            modelValue: _city,
+            onChange: (v) => setState(() => _city = v),
           ),
           const SizedBox(height: 12),
           WotCascader(
@@ -302,14 +304,15 @@ class _WotFormPageState extends State<WotFormPage> {
                 WotCascadeOption(text: '深圳', value: 'sz'),
               ]),
             ],
-            onChange: (v) => _toast('级联选择：$v'),
+            modelValue: _region,
+            onChange: (v) => setState(() => _region = v),
           ),
           const SizedBox(height: 12),
           WotButton(
             text: _date == null ? '选择日期' : '日期：${_date!.toIso8601String().split('T').first}',
             size: WotButtonSize.small,
             onClick: () async {
-              final d = await WotCalendar.show(context);
+              final d = await WotCalendar.show(context, modelValue: _date);
               if (d != null) setState(() => _date = d);
             },
           ),
@@ -318,7 +321,11 @@ class _WotFormPageState extends State<WotFormPage> {
             text: _datetime == null ? '选择日期时间' : '日期时间：${_datetime!.toIso8601String().substring(0, 16)}',
             size: WotButtonSize.small,
             onClick: () async {
-              final d = await WotDatetimePicker.show(context, type: WotDatetimePickerType.datetime);
+              final d = await WotDatetimePicker.show(
+                context,
+                type: WotDatetimePickerType.datetime,
+                modelValue: _datetime,
+              );
               if (d != null) setState(() => _datetime = d);
             },
           ),
@@ -331,6 +338,7 @@ class _WotFormPageState extends State<WotFormPage> {
               final d = await WotDatetimePicker.show(
                 context,
                 type: WotDatetimePickerType.date,
+                modelValue: _datetimeRange,
                 minDate: DateTime(now.year, 1, 1),
                 maxDate: DateTime(now.year, 12, 31),
               );
@@ -380,11 +388,6 @@ class _WotFormPageState extends State<WotFormPage> {
             },
           ),
           const SizedBox(height: 20),
-          _section('WotPasswordInput / WotSlideVerify'),
-          WotPasswordInput(modelValue: _pw, onChange: (v) => setState(() => _pw = v)),
-          const SizedBox(height: 12),
-          WotSlideVerify(onChange: (v) => _toast(v ? '验证通过' : '未到终点')),
-          const SizedBox(height: 20),
           _section('WotSignature 手写签名'),
           WotSignature(height: 160),
           const SizedBox(height: 20),
@@ -393,6 +396,11 @@ class _WotFormPageState extends State<WotFormPage> {
             maxCount: 3,
             onChange: (_) => _toast('已更新文件列表'),
           ),
+          const SizedBox(height: 20),
+          _section('WotPasswordInput / WotSlideVerify'),
+          WotPasswordInput(modelValue: _pw, onChange: (v) => setState(() => _pw = v)),
+          const SizedBox(height: 12),
+          WotSlideVerify(onChange: (v) => _toast(v ? '验证通过' : '未到终点')),
           const SizedBox(height: 20),
           _section('WotKeyboard 数字键盘（联动密码输入）'),
           WotKeyboard(
