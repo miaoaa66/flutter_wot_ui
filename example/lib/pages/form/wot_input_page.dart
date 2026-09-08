@@ -1,0 +1,78 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_wot_ui/flutter_wot_ui.dart';
+
+import '../../common/demo_scaffold.dart';
+
+/// WotInput / WotTextarea 示例页（尽量展示各属性）。
+class WotInputPage extends StatefulWidget {
+  const WotInputPage({super.key});
+
+  @override
+  State<WotInputPage> createState() => _WotInputPageState();
+}
+
+class _WotInputPageState extends State<WotInputPage> {
+  String _v1 = '';
+  String _v2 = '预设值';
+  bool _disabled = false;
+  bool _readonly = false;
+  String? _taText;
+
+  @override
+  Widget build(BuildContext context) {
+    return WotDemoScaffold(
+      title: 'WotInput 输入框',
+      children: [
+        demoSection('基础用法（value / placeholder / onChange）'),
+        demoBlock('受控 value + placeholder',
+            WotInput(value: _v1, placeholder: '请输入', onChange: (v) => setState(() => _v1 = v))),
+        demoBlock('预设 value', WotInput(value: _v2, onChange: (v) => setState(() => _v2 = v))),
+        demoBlock('number 数字键盘（支持小数）',
+            WotInput(placeholder: '请输入数字', number: true)),
+        demoBlock('type 透传类型 + maxLines 多行',
+            WotInput(placeholder: '多行输入', type: 'textarea', maxLines: 3)),
+        demoSection('前后缀（prefixIcon / suffixIcon / prefix / suffix 插槽）'),
+        demoBlock('图标前后缀',
+            WotInput(value: _v2, prefixIcon: 'search', suffixIcon: 'close', onChange: (v) => setState(() => _v2 = v))),
+        demoBlock('Widget 插槽前后缀',
+            WotInput(placeholder: '重量', prefix: const Text('重量：'), suffix: const Text('kg'))),
+        demoSection('清除 / 字数 / 密码'),
+        demoBlock(
+            'clearable（可清除，触发 onClear）',
+            WotInput(
+              value: _v2,
+              clearable: true,
+              onClear: () => demoToast(context, '已清除'),
+              onChange: (v) => setState(() => _v2 = v),
+            )),
+        demoBlock('showWordLimit + maxlength',
+            WotInput(value: _v1, clearable: true, maxlength: 10, showWordLimit: true, onChange: (v) => setState(() => _v1 = v))),
+        demoBlock('password 密码输入', WotInput(placeholder: '输入密码', password: true)),
+        demoSection('状态（disabled / readonly）'),
+        Row(children: [
+          Flexible(child: FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled'))),
+          const SizedBox(width: 8),
+          Flexible(child: FilledButton.tonal(onPressed: () => setState(() => _readonly = !_readonly), child: Text('readonly: $_readonly'))),
+        ]),
+        const SizedBox(height: 8),
+        demoBlock('disabled（禁用）', WotInput(placeholder: '禁用', disabled: _disabled)),
+        demoBlock('readonly（只读）', WotInput(placeholder: '只读', readonly: _readonly)),
+        demoSection('事件回调（onFocus / onBlur）'),
+        demoBlock('聚焦 / 失焦',
+            WotInput(placeholder: '点击聚焦', onFocus: () => demoToast(context, '聚焦'), onBlur: () => demoToast(context, '失焦'))),
+        demoSection('WotTextarea 多行文本域'),
+        demoBlock(
+            '基础（rows / placeholder）',
+            WotTextarea(
+              value: _taText,
+              placeholder: '请输入备注',
+              rows: 3,
+              onChange: (v) => setState(() => _taText = v),
+            )),
+        demoBlock('autosize 随内容增高 + 字数限制',
+            WotTextarea(placeholder: '自动增高', autosize: true, maxlength: 100, showWordLimit: true)),
+        demoBlock('disabled 禁用', const WotTextarea(placeholder: '禁用', disabled: true)),
+      ],
+    );
+  }
+}

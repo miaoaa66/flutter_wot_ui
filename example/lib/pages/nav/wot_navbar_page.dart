@@ -1,0 +1,65 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_wot_ui/flutter_wot_ui.dart';
+
+import '../../common/demo_scaffold.dart';
+
+/// WotNavbar 顶部导航栏示例页。
+class WotNavbarPage extends StatelessWidget {
+  const WotNavbarPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return WotDemoScaffold(
+      title: 'WotNavbar 顶部导航栏',
+      children: [
+        demoSection('基础用法'),
+        demoBlock('默认箭头 + 标题 + 右侧文字',
+            WotNavbar(
+              title: '导航栏标题',
+              rightText: '分享',
+              onClickLeft: () => demoToast(context, '返回'),
+              onClickRight: () => demoToast(context, '右侧'),
+            )),
+        demoSection('自定义标题（titleWidget）'),
+        demoBlock('图标 + 文字自定义标题',
+            WotNavbar(
+              titleWidget: const Row(mainAxisSize: MainAxisSize.min, children: [
+                WotIcon(name: 'search', size: 16),
+                SizedBox(width: 6),
+                Text('搜索'),
+              ]),
+              background: context.wotScheme.primaryOf(6),
+              color: Colors.white,
+              bordered: true,
+            )),
+        demoSection('左右文字区 + 事件'),
+        demoBlock('leftText + rightText',
+            WotNavbar(
+              title: '左右区演示',
+              leftText: '取消',
+              rightText: '分享',
+              leftArrow: false,
+              background: const Color(0xFF36A3F7),
+              color: Colors.white,
+              bordered: true,
+              onClickLeft: () => demoToast(context, '左侧'),
+              onClickRight: () => demoToast(context, '右侧'),
+            )),
+        demoSection('胶囊（capsule / capsuleText）'),
+        demoBlock('胶囊导航（左右半区可独立点击）',
+            WotNavbar(
+              title: '胶囊导航',
+              capsule: true,
+              capsuleText: '咨询',
+              background: context.wotScheme.primaryOf(6),
+              color: Colors.white,
+              onCapsuleLeft: () => demoToast(context, '胶囊左侧'),
+              onCapsuleRight: () => demoToast(context, '胶囊右侧'),
+              onClickLeft: () => demoToast(context, '返回'),
+            )),
+        demoSection('样式（background / color / bordered）'),
+        demoBlock('无边框默认', const WotNavbar(title: '默认样式', leftArrow: false)),
+      ],
+    );
+  }
+}

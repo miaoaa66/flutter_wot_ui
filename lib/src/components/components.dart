@@ -79,6 +79,7 @@ export 'swiper/wot_swiper.dart';
 export 'table/wot_table.dart';
 export 'watermark/wot_watermark.dart';
 export 'qr_code/wot_qr_code.dart';
+export 'barcode/wot_barcode.dart';
 export 'curtain/wot_curtain.dart';
 // --- 批次 C（缺失组件） ---
 export 'index_bar/wot_index_bar.dart';

@@ -14,6 +14,8 @@ dependencies:
   intl: ^0.20.2
   # Pure Dart QR code generation for WotQrCode.
   qr_flutter: ^4.1.0
+  # Pure Dart barcode generation for WotBarcode.
+  barcode: ^2.2.4
   # Platform plugin for file/image picking in WotUpload / WotImg.
   file_picker: ^10.2.0
   video_player: ^2.11.1

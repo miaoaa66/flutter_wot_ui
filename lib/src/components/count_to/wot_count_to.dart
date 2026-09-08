@@ -60,11 +60,17 @@ class _WotCountToState extends State<WotCountTo> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    _current = widget.modelValue.toDouble();
+    // autoplay 时从 0 开始滚动到 modelValue；否则直接显示目标值。
+    _current = widget.autoplay ? 0 : widget.modelValue.toDouble();
     _controller = AnimationController(vsync: this, duration: widget.duration);
-    _anim = Tween<double>(begin: 0, end: widget.modelValue.toDouble())
+    _anim = Tween<double>(begin: _current, end: widget.modelValue.toDouble())
         .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-    if (widget.autoplay) _play();
+    // 只在初始挂载时加一次监听，避免重复累加导致多次 setState/onChange。
+    _controller.addListener(() {
+      setState(() => _current = _anim.value);
+      widget.onChange?.call(_current);
+    });
+    if (widget.autoplay) _controller.forward(from: 0);
   }
 
   void _play() {
@@ -73,10 +79,6 @@ class _WotCountToState extends State<WotCountTo> with SingleTickerProviderStateM
     _controller
       ..duration = widget.duration
       ..forward(from: 0);
-    _controller.addListener(() {
-      setState(() => _current = _anim.value);
-      widget.onChange?.call(_current);
-    });
   }
 
   @override

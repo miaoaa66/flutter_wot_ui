@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:flutter_wot_ui/flutter_wot_ui.dart';
-import 'package:flutter_wot_ui_example/pages/basic/basic_page.dart';
+import 'package:flutter_wot_ui_example/pages/basic/wot_button_page.dart';
 import 'package:flutter_wot_ui_example/pages/index_page.dart';
 
 Widget wrap(Widget child) =>
@@ -13,9 +13,8 @@ Widget wrap(Widget child) =>
     );
 
 void main() {
-  testWidgets('基础组件演示页可渲染 Button/Icon/Text', (tester) async {
-    await tester.pumpWidget(wrap(const WotBasicPage()));
-    expect(find.text('基础组件'), findsOneWidget);
+  testWidgets('Button 示例页可渲染', (tester) async {
+    await tester.pumpWidget(wrap(const WotButtonPage()));
     expect(find.text('主要'), findsOneWidget);
   });
 

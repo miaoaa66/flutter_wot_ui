@@ -79,8 +79,6 @@ class WotBadge extends StatelessWidget {
       );
     }
 
-    if (badge == null) return child;
-
     final offset = switch (badgePosition) {
       WotBadgePosition.topRight => const Offset(6, -6),
       WotBadgePosition.topLeft => const Offset(-6, -6),
@@ -88,17 +86,20 @@ class WotBadge extends StatelessWidget {
       WotBadgePosition.bottomLeft => const Offset(-6, 6),
     };
 
+    // 无论是否显示徽标都统一用 Stack 包裹 child：保证 hidden / shown 两种状态下
+    // 给子元素相同的宽松约束，避免隐藏徽标时裸 child 在 stretch 布局里被拉满宽度。
     return Stack(
       clipBehavior: Clip.none,
       children: [
         child,
-        Positioned(
-          right: badgePosition == WotBadgePosition.topRight || badgePosition == WotBadgePosition.bottomRight ? 0 : null,
-          left: badgePosition == WotBadgePosition.topLeft || badgePosition == WotBadgePosition.bottomLeft ? 0 : null,
-          top: badgePosition == WotBadgePosition.topRight || badgePosition == WotBadgePosition.topLeft ? 0 : null,
-          bottom: badgePosition == WotBadgePosition.bottomRight || badgePosition == WotBadgePosition.bottomLeft ? 0 : null,
-          child: Transform.translate(offset: offset, child: badge),
-        ),
+        if (badge != null)
+          Positioned(
+            right: badgePosition == WotBadgePosition.topRight || badgePosition == WotBadgePosition.bottomRight ? 0 : null,
+            left: badgePosition == WotBadgePosition.topLeft || badgePosition == WotBadgePosition.bottomLeft ? 0 : null,
+            top: badgePosition == WotBadgePosition.topRight || badgePosition == WotBadgePosition.topLeft ? 0 : null,
+            bottom: badgePosition == WotBadgePosition.bottomRight || badgePosition == WotBadgePosition.bottomLeft ? 0 : null,
+            child: Transform.translate(offset: offset, child: badge),
+          ),
       ],
     );
   }

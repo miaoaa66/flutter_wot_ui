@@ -394,7 +394,11 @@ class _WotTabsState extends State<WotTabs> {
         decoration: isCard
             ? BoxDecoration(
                 color: i == _current ? primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(4),
+                // 上面两个角圆角，下面两个角不圆角
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(4),
+                  topRight: Radius.circular(4),
+                ),
                 border: Border.all(
                   color: i == _current ? primary : scheme.borderLight,
                 ),

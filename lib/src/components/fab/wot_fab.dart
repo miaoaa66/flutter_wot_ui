@@ -244,29 +244,34 @@ class _WotFabState extends State<WotFab> {
 
   /// 主按钮本体（含状态红点）。
   Widget _buildMainButton(WotScheme scheme, Color color) {
+    final hasText = widget.text != null;
     Widget button = Material(
       color: color,
-      shape: const CircleBorder(),
+      // 带文字时改为胶囊（自适应宽度），否则为圆形，避免内容溢出 48px。
+      shape: hasText ? const StadiumBorder() : const CircleBorder(),
       elevation: 4,
       child: InkWell(
-        customBorder: const CircleBorder(),
+        // 圆角统一用 StadiumBorder，保证点击水波与形状一致。
+        customBorder: hasText ? const StadiumBorder() : const CircleBorder(),
         onTap: _toggle,
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                WotIcon(name: widget.icon, size: 22, color: widget.iconColor),
-                if (widget.text != null) ...[
-                  const SizedBox(width: 4),
-                  Text(
-                    widget.text!,
-                    style: const TextStyle(color: Colors.white, fontSize: 14),
-                  ),
+        child: ConstrainedBox(
+          constraints: hasText ? const BoxConstraints(minHeight: 48) : const BoxConstraints(minWidth: 48, minHeight: 48),
+          child: Padding(
+            padding: hasText ? const EdgeInsets.symmetric(horizontal: 16, vertical: 12) : EdgeInsets.zero,
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  WotIcon(name: widget.icon, size: 22, color: widget.iconColor),
+                  if (widget.text != null) ...[
+                    const SizedBox(width: 4),
+                    Text(
+                      widget.text!,
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
