@@ -70,6 +70,8 @@ import 'package:flutter_wot_ui_example/pages/form/wot_input_number_page.dart';
 import 'package:flutter_wot_ui_example/pages/form/wot_input_page.dart';
 import 'package:flutter_wot_ui_example/pages/form/wot_keyboard_page.dart';
 import 'package:flutter_wot_ui_example/pages/form/wot_password_input_page.dart';
+import 'package:flutter_wot_ui_example/pages/form/wot_picker_page.dart';
+import 'package:flutter_wot_ui_example/pages/form/wot_picker_view_page.dart';
 import 'package:flutter_wot_ui_example/pages/form/wot_radio_page.dart';
 import 'package:flutter_wot_ui_example/pages/form/wot_rate_page.dart';
 import 'package:flutter_wot_ui_example/pages/form/wot_search_page.dart';
@@ -218,6 +220,8 @@ void main() {
     ('rate', () => const WotRatePage()),
     ('slider', () => const WotSliderPage()),
     ('select_picker', () => const WotSelectPickerPage()),
+    ('picker', () => const WotPickerPage()),
+    ('picker_view', () => const WotPickerViewPage()),
     ('cascader', () => const WotCascaderPage()),
     ('calendar', () => const WotCalendarPage()),
     ('datetime_picker', () => const WotDatetimePickerPage()),

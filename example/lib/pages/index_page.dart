@@ -66,6 +66,8 @@ import 'form/wot_input_number_page.dart';
 import 'form/wot_input_page.dart';
 import 'form/wot_keyboard_page.dart';
 import 'form/wot_password_input_page.dart';
+import 'form/wot_picker_page.dart';
+import 'form/wot_picker_view_page.dart';
 import 'form/wot_radio_page.dart';
 import 'form/wot_rate_page.dart';
 import 'form/wot_search_page.dart';
@@ -125,6 +127,8 @@ class WotIndexPage extends StatelessWidget {
         _Entry('Rate', '评分', () => _push(context, const WotRatePage())),
         _Entry('Slider', '滑块', () => _push(context, const WotSliderPage())),
         _Entry('SelectPicker', '选择器', () => _push(context, const WotSelectPickerPage())),
+        _Entry('Picker', '滚轮选择', () => _push(context, const WotPickerPage())),
+        _Entry('PickerView', '滚轮视图', () => _push(context, const WotPickerViewPage())),
         _Entry('Cascader', '级联选择', () => _push(context, const WotCascaderPage())),
         _Entry('Calendar', '日历', () => _push(context, const WotCalendarPage())),
         _Entry('DatetimePicker', '日期时间', () => _push(context, const WotDatetimePickerPage())),

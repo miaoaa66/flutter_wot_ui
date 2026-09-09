@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/wot_scheme.dart';
 import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
-import '../picker_view/wot_picker_view.dart';
 
 /// 级联选项节点。
 class WotCascadeOption {
@@ -20,8 +20,9 @@ class WotCascadeOption {
 
 /// 级联选择器，对应 wot `wd-cascader`。
 ///
-/// 输入一棵层次树，点击后弹出底部级联滚轮；每列切换会实时刷新后续列为
-/// 当前选中节点的子级，并在叶子提前时自动收敛列数。
+/// 输入一棵层次树，点击后弹出底部「Tabs + 列表」逐级选择器（对齐 wot 形态）：
+/// 顶部一排 tab 对应每级已选路径，点 tab 可回看该级；主体为当前级选项的列表，
+/// 点选非叶节点自动下钻到下一级，点选叶节点即确认关闭。右上角「确定」提交当前路径。
 class WotCascader extends StatelessWidget {
   const WotCascader({
     super.key,
@@ -127,15 +128,14 @@ class _CascaderSheet extends StatefulWidget {
 }
 
 class _CascaderSheetState extends State<_CascaderSheet> {
-  late List<Object?> _values;
-  late List<List<WotColumnOption>> _levels;
+  /// 各层级节点集合（自动下钻到叶节点后收敛）。
+  late List<List<WotCascadeOption>> _levels;
 
-  @override
-  void initState() {
-    super.initState();
-    _values = [...widget.values];
-    _resolveAll();
-  }
+  /// 每级当前选中值。
+  late List<Object?> _path;
+
+  /// 当前激活的层级 tab（展示哪一级的列表）。
+  late int _active;
 
   WotCascadeOption? _find(List<WotCascadeOption> nodes, Object? value) {
     for (final n in nodes) {
@@ -144,136 +144,187 @@ class _CascaderSheetState extends State<_CascaderSheet> {
     return null;
   }
 
-  /// 依据当前 [widget.options] 与 [widget.values] 解析出各层级列与合法选中值。
-  void _resolveAll() {
+  @override
+  void initState() {
+    super.initState();
+    _path = [];
     _levels = [];
+    _active = 0;
+    if (widget.options.isEmpty) return;
+    if (widget.values.isEmpty) {
+      // 空值：从顶层开始，不预选。
+      _levels = [widget.options];
+      return;
+    }
+    // 有回显值：尽量恢复选中路径（非法值回退到该层首项）。
     var nodes = widget.options;
     var i = 0;
-    while (nodes.isNotEmpty) {
-      _levels.add([for (final n in nodes) WotColumnOption(text: n.text, value: n.value)]);
-      if (i >= _values.length) {
-        // 缺省：回退到当前层首项并下钻。
-        while (_values.length <= i) {
-          _values.add(null);
-        }
-        _values[i] = nodes.first.value;
-        nodes = nodes.first.children;
-      } else {
-        final n = _find(nodes, _values[i]);
-        if (n == null) {
-          _values[i] = nodes.first.value;
-          nodes = nodes.first.children;
-        } else {
-          nodes = n.children;
-        }
-      }
+    while (true) {
+      _levels.add(nodes);
+      final n = _find(nodes, widget.values[i]) ?? nodes.first;
+      _path.add(n.value);
       i++;
+      if (n.children.isEmpty || i >= widget.values.length) break;
+      nodes = n.children;
     }
-    if (_values.length > _levels.length) {
-      _values = _values.sublist(0, _levels.length);
-    }
+    _active = _path.length - 1;
   }
 
-  /// 第 [c] 列选中 [v] 后，联动刷新第 c 层及之后所有层。
-  void _onColumnChange(int c, Object? v) {
+  /// 点选第 [d] 级选项 [v]；若为非叶节点则下钻到下一级，返回是否为叶节点。
+  bool _onSelect(int d, Object? v) {
+    final node = _find(_levels[d], v);
+    final isLeaf = node == null || node.children.isEmpty;
     setState(() {
-      _values[c] = v;
-      // 从 c 指向的节点重新向下钻取，重建后续列。
-      var childNodes = _columnNodes(c, v);
-      var k = 0;
-      while (childNodes.isNotEmpty) {
-        final target = c + 1 + k;
-        if (target >= _levels.length) {
-          _levels.add([]);
-        }
-        _levels[target] = [
-          for (final n in childNodes) WotColumnOption(text: n.text, value: n.value),
-        ];
-        while (_values.length <= target) {
-          _values.add(null);
-        }
-        _values[target] = childNodes.first.value;
-        childNodes = childNodes.first.children;
-        k++;
+      while (_path.length <= d) {
+        _path.add(null);
       }
-      // 叶子提前时，收敛多余的列与值。
-      if (c + 1 < _levels.length) {
-        _levels = _levels.sublist(0, c + 1 + k);
+      _path[d] = v;
+      while (_path.length > d + 1) {
+        _path.removeLast();
       }
-      if (_values.length > _levels.length) {
-        _values = _values.sublist(0, _levels.length);
+      if (isLeaf) {
+        if (_levels.length > d + 1) _levels = _levels.sublist(0, d + 1);
+        _active = d;
+      } else {
+        final nxt = d + 1;
+        while (_levels.length <= nxt) {
+          _levels.add(<WotCascadeOption>[]);
+        }
+        _levels[nxt] = node.children;
+        while (_path.length <= nxt) {
+          _path.add(null);
+        }
+        _active = nxt;
       }
     });
+    return isLeaf;
   }
 
-  /// 第 [c] 层的节点列表。
-  List<WotCascadeOption> _columnNodes(int c, Object? value) {
-    if (c == 0) return _find(widget.options, value)?.children ?? const [];
-    var nodes = widget.options;
-    for (var i = 0; i < c; i++) {
-      if (nodes.isEmpty) return const [];
-      final cur = _find(nodes, _values[i]) ?? nodes.first;
-      nodes = cur.children;
-    }
-    if (nodes.isEmpty) return const [];
-    final cur = _find(nodes, value) ?? nodes.first;
-    return cur.children;
-  }
+  void _confirm() => Navigator.of(context).pop([..._path]);
+
+  void _cancel() => Navigator.of(context).pop();
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
     final primary = scheme.primaryOf(6);
+    final current = _levels.isEmpty ? const <WotCascadeOption>[] : _levels[_active];
     return Column(
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
           height: 44,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              InkWell(
-                onTap: () => Navigator.of(context).pop(),
-                child: Text('取消',
-                    style: TextStyle(fontSize: 14, color: scheme.textSecondary)),
-              ),
+              InkWell(onTap: _cancel, child: Text('取消', style: TextStyle(fontSize: 14, color: scheme.textSecondary))),
               Expanded(
                 child: Center(
                   child: Text('选择地区',
                       style: TextStyle(fontSize: 16, color: scheme.textMain, fontWeight: FontWeight.w600)),
                 ),
               ),
-              InkWell(
-                onTap: () => Navigator.of(context).pop(_values),
-                child: Text('确定',
-                    style: TextStyle(fontSize: 14, color: primary, fontWeight: FontWeight.w600)),
-              ),
+              InkWell(onTap: _confirm, child: Text('确定', style: TextStyle(fontSize: 14, color: primary, fontWeight: FontWeight.w600))),
             ],
           ),
         ),
-        SizedBox(
-          height: 220,
-          child: WotPickerView(
-            columns: _levels,
-            values: _values,
-            color: primary,
-            onChange: (v) {
-              // _values 由底层按列序给出；据此联动。
-              var changed = false;
-              for (var i = 0; i < _levels.length; i++) {
-                final nv = i < v.length ? v[i] : null;
-                if (nv != _values[i]) {
-                  _onColumnChange(i, nv);
-                  changed = true;
-                  break;
-                }
-              }
-              if (!changed) setState(() {});
-            },
-          ),
+        _buildTabs(scheme, primary),
+        Container(height: 1, color: scheme.dividerLight),
+        Expanded(
+          child: _levels.isEmpty
+              ? Center(child: Text('暂无数据', style: TextStyle(color: scheme.textAuxiliary)))
+              : ListView.separated(
+                  padding: EdgeInsets.zero,
+                  itemCount: current.length,
+                  separatorBuilder: (_, i) => Container(height: 1, color: scheme.dividerLight),
+                  itemBuilder: (_, i) => _buildRow(scheme, primary, current[i]),
+                ),
         ),
         SizedBox(height: MediaQuery.of(context).padding.bottom),
       ],
+    );
+  }
+
+  Widget _buildTabs(WotScheme scheme, Color primary) {
+    return SizedBox(
+      height: 40,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        children: [
+          for (var i = 0; i < _levels.length; i++)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: InkWell(
+                onTap: () => setState(() => _active = i),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _labelOf(i),
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: i == _active ? primary : scheme.textSecondary,
+                        fontWeight: i == _active ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      height: 2,
+                      width: 24,
+                      decoration: BoxDecoration(
+                        color: i == _active ? primary : Colors.transparent,
+                        borderRadius: BorderRadius.circular(1),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _labelOf(int i) {
+    if (i >= _path.length) return '请选择';
+    final opt = _find(_levels[i], _path[i]);
+    return opt?.text ?? '请选择';
+  }
+
+  Widget _buildRow(WotScheme scheme, Color primary, WotCascadeOption node) {
+    final selected = _active < _path.length && _path[_active] == node.value;
+    return InkWell(
+      onTap: () {
+        final isLeaf = _onSelect(_active, node.value);
+        if (isLeaf) _confirm();
+      },
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        color: selected ? scheme.filledContent : Colors.transparent,
+        alignment: Alignment.centerLeft,
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                node.text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: selected ? primary : scheme.textMain,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
+            ),
+            if (node.children.isNotEmpty)
+              Icon(Icons.chevron_right, size: 16, color: scheme.iconAuxiliary),
+          ],
+        ),
+      ),
     );
   }
 }
