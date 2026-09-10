@@ -119,4 +119,4 @@ cd example && flutter run -d chrome   # 运行示例
 
 ## 许可证
 
-待定。
+本项目基于 **MIT License** 开源，版权所有 © 2026 miaoaa66，详见 [LICENSE](LICENSE)。
