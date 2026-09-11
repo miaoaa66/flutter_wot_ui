@@ -14,9 +14,9 @@
 
 ## 须知
 
-此组件库仅测试和构建了web端和android端，其他平台未测试。
-组件库也没有进行所有组件所有属性的完整测试。
-flutter新项目引入组件库参考：<https://gitee.com/miaoaa66/flutter_wot_ui_demo>
+此组件库仅测试和构建了web端和android端，其他平台未测试。   
+组件库也没有进行所有组件所有属性的完整测试。   
+flutter新项目引入组件库参考：<https://gitee.com/miaoaa66/flutter_wot_ui_demo>   
 
 ## 组件清单
 
