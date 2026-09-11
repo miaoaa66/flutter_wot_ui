@@ -11,6 +11,13 @@
 
 ---
 
+
+## 须知
+
+此组件库仅测试和构建了web端和android端，其他平台未测试。
+组件库也没有进行所有组件所有属性的完整测试。
+flutter新项目引入参考：<https://gitee.com/miaoaa66/flutter_wot_ui_demo>
+
 ## 组件清单
 
 按分类（与 wot 文档结构一致）：
@@ -48,8 +55,7 @@ dependencies:
   flutter_wot_ui:
     git:
       url: https://gitee.com/miaoaa66/flutter_wot_ui.git
-      ref: main
-      path: flutter_wot_ui   # 仓库内组件包所在目录；按仓库实际结构调整
+      ref: master
 ```
 
 然后执行 `flutter pub get`。
@@ -76,25 +82,73 @@ class MyApp extends StatelessWidget {
   }
 }
 ```
+> 完整接入能力见下节「页面里使用组件」与「常见问题 FAQ」。
 
-页面内直接使用组件：
+## 页面里使用组件
 
 ```dart
-WotButton(
-  text: '主按钮',
-  type: WotButtonType.primary,
-  onClick: () => WotToast.success(context, '点击了按钮'),
-);
+import 'package:flutter/material.dart';
+import 'package:flutter_wot_ui/flutter_wot_ui.dart';
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  int _count = 1;
+  bool _sw = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Demo')),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          WotButton(
+            text: '主按钮',
+            type: WotButtonType.primary,
+            onClick: () => WotToast.success(context, '点击了按钮'),
+          ),
+          const SizedBox(height: 16),
+          WotInputNumber(modelValue: _count, onChange: (v) => setState(() => _count = v)),
+          WotSwitch(modelValue: _sw, onChange: (v) => setState(() => _sw = v)),
+        ],
+      ),
+    );
+  }
+}
 ```
 
-命令式组件（不占 widget 树）：
+## 命令式组件（不占 widget 树）
+
+Toast / Dialog / ActionSheet / Notify 等通过静态方法触发，需要传入 `BuildContext`：
 
 ```dart
+import 'package:flutter_wot_ui/flutter_wot_ui.dart';
+
+// 轻提示
 WotToast.success(context, '操作成功');
-final ok = await WotDialog.confirm(context, message: '确认删除吗？');
+WotToast.loading(context, '加载中…');
+
+// 确认对话框
+final ok = await WotDialog.confirm(context, title: '提示', message: '确认删除吗？');
+if (ok == true) {
+  // ...
+}
 ```
 
-> 更完整的接入步骤、FAQ（主题/图标/插件权限/深色换肤）见 [example/README.md](example/README.md)。
+## 常见问题 FAQ
+
+| 问题 | 说明 |
+| --- | --- |
+| **忘记包 `WotConfigProvider`** | 组件仍会渲染但颜色回退浅色默认，主题不生效；务必在根部包裹。 |
+| **图标形态** | 组件库默认用 Flutter 内置 Material 图标映射渲染 `WotIcon`，开箱即用无需资产。若想获得与 wot 一致的官方字形，可按 `kWotIconFontFamily` 说明，自行打包 wot 的 `iconfont.ttf` 并注册字体族。 |
+| **文件/图片选择、视频播放** | 依赖 `file_picker` `video_player` 等插件，接入方需按对应插件要求配置对应平台权限。 |
+| **深色模式** | 切换 `WotConfigProvider` 的 `wotTheme` 为 `WotThemeData.dark`，或传 `themeMode: ThemeMode.dark`。 |
+| **自定义主题色** | 通过 `WotScheme.copyWithPrimary(...)` 一键换肤，再配合 `copyWith(...)` 逐项覆盖其它语义令牌；用 `WotThemeData.copyWith(scheme: myScheme)` 组装后传入 `WotConfigProvider`。 |
 
 ## 三方依赖
 
@@ -114,7 +168,7 @@ final ok = await WotDialog.confirm(context, message: '确认删除吗？');
 flutter pub get
 flutter analyze        # 应为零告警
 flutter test           # 全量单测
-cd example && flutter run -d chrome   # 运行示例
+cd example && flutter run -d chrome   # 运行示例（示例页见 example/lib/pages/）
 ```
 
 ## 许可证
