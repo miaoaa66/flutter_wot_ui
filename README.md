@@ -128,10 +128,11 @@ if (ok == true) {
 ## 本地开发 & 验证
 
 ```bash
+cd example
 flutter pub get
 flutter analyze        # 应为零告警
 flutter test           # 全量单测
-cd example && flutter run -d chrome   # 运行示例（示例页见 example/lib/pages/）
+flutter run
 ```
 
 ## 许可证
