@@ -1,6 +1,6 @@
 # flutter_wot_ui
 
-对 **Wot UI**（uni-app 版）的 Flutter 复刻组件库，纯 Dart/Flutter 实现，跨平台（Web / Android / iOS / Windows / macOS / Linux）。
+对 **Wot UI**（uni-app 版 https://wot-ui.cn/ ）的 Flutter 复刻组件库，纯 Dart/Flutter 实现，跨平台（Web / Android / iOS / Windows / macOS / Linux）。
 
 - 语义设计令牌：Light / Dark 两套主题 + `WotScheme.copyWith` 全色值可配置。
 - 命名与参数对齐 wot：Vue props 驼峰化 → Dart 构造命名参数；`emit` → `onXxx` 回调。
@@ -10,6 +10,13 @@
 > 开源仓库：<https://gitee.com/miaoaa66/flutter_wot_ui>
 
 ---
+
+
+## 须知
+
+此组件库仅测试和构建了web端和android端，其他平台未测试。
+组件库也没有进行所有组件所有属性的完整测试。
+flutter新项目引入组件库参考：<https://gitee.com/miaoaa66/flutter_wot_ui_demo>
 
 ## 组件清单
 
@@ -35,7 +42,7 @@ flutter_wot_ui/
 │       ├── icon/                    # 图标名称 → IconData 映射
 │       ├── util/                    # props / format / touch 纯 Dart 工具
 │       └── components/              # 各组件独立目录，含 components.dart 分类出口
-├── example/                         # 示例应用（含接入指南 README）
+├── example/                         # 示例应用
 └── test/                            # 单元测试
 ```
 
@@ -48,8 +55,7 @@ dependencies:
   flutter_wot_ui:
     git:
       url: https://gitee.com/miaoaa66/flutter_wot_ui.git
-      ref: main
-      path: flutter_wot_ui   # 仓库内组件包所在目录；按仓库实际结构调整
+      ref: master
 ```
 
 然后执行 `flutter pub get`。
@@ -92,9 +98,20 @@ WotButton(
 ```dart
 WotToast.success(context, '操作成功');
 final ok = await WotDialog.confirm(context, message: '确认删除吗？');
+if (ok == true) {
+  // ...
+}
 ```
 
-> 更完整的接入步骤、FAQ（主题/图标/插件权限/深色换肤）见 [example/README.md](example/README.md)。
+
+## 常见问题 FAQ
+
+| 问题 | 说明 |
+| --- | --- |
+| **忘记包 `WotConfigProvider`** | 组件仍会渲染但颜色回退浅色默认，主题不生效；务必在根部包裹。 |
+| **文件/图片选择、视频播放** | 依赖 `file_picker` `video_player` 等插件，接入方需按对应插件要求配置对应平台权限。 |
+| **深色模式** | 切换 `WotConfigProvider` 的 `wotTheme` 为 `WotThemeData.dark`，或传 `themeMode: ThemeMode.dark`。 |
+| **自定义主题色** | 通过 `WotScheme.copyWithPrimary(...)` 一键换肤，再配合 `copyWith(...)` 逐项覆盖其它语义令牌；用 `WotThemeData.copyWith(scheme: myScheme)` 组装后传入 `WotConfigProvider`。 |
 
 ## 三方依赖
 
@@ -114,7 +131,7 @@ final ok = await WotDialog.confirm(context, message: '确认删除吗？');
 flutter pub get
 flutter analyze        # 应为零告警
 flutter test           # 全量单测
-cd example && flutter run -d chrome   # 运行示例
+cd example && flutter run -d chrome   # 运行示例（示例页见 example/lib/pages/）
 ```
 
 ## 许可证
