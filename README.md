@@ -128,11 +128,35 @@ if (ok == true) {
 ## 本地开发 & 验证
 
 ```bash
+
+
 cd example
+# 查看环境
+flutter doctor
+# 接受 Android 许可
+flutter doctor --android-licenses
 flutter pub get
-flutter analyze        # 应为零告警
-flutter test           # 全量单测
+flutter analyze
+flutter test
 flutter run
+
+
+# 打包web
+flutter build web --release
+# 如果部署在子路径，例如 https://xxx.com/myapp/：
+flutter build web --release --base-href /myapp/
+
+
+# 打包android
+flutter build apk --debug
+flutter build apk --release
+# 分架构，输出3个小包（推荐）
+flutter build apk --release --split-per-abi
+# 只打 arm64 APK
+flutter build apk --release --target-platform android-arm64
+
+
+
 ```
 
 ## 许可证
