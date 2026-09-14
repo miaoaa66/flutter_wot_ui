@@ -46,6 +46,7 @@ import 'package:flutter_wot_ui_example/pages/display/wot_badge_page.dart';
 import 'package:flutter_wot_ui_example/pages/display/wot_barcode_page.dart';
 import 'package:flutter_wot_ui_example/pages/display/wot_card_page.dart';
 import 'package:flutter_wot_ui_example/pages/display/wot_collapse_page.dart';
+import 'package:flutter_wot_ui_example/pages/display/wot_expand_page.dart';
 import 'package:flutter_wot_ui_example/pages/display/wot_curtain_page.dart';
 import 'package:flutter_wot_ui_example/pages/display/wot_grid_page.dart';
 import 'package:flutter_wot_ui_example/pages/display/wot_img_cropper_page.dart';
@@ -191,12 +192,13 @@ void main() {
     ('card', () => const WotCardPage()),
     ('grid', () => const WotGridPage()),
     ('collapse', () => const WotCollapsePage()),
+    ('expand', () => const WotExpandPage()),
     ('steps', () => const WotStepsPage()),
     ('skeleton', () => const WotSkeletonPage()),
     ('loadmore', () => const WotLoadmorePage()),
     ('img', () => const WotImgPage()),
     ('swiper', () => const WotSwiperPage()),
-    ('table', () => const WotTablePage()),
+    ('table', () => WotTablePage()),
     ('watermark', () => const WotWatermarkPage()),
     ('qrcode', () => const WotQrCodePage()),
     ('barcode', () => const WotBarcodePage()),

@@ -69,6 +69,7 @@ export 'avatar/wot_avatar.dart';
 export 'card/wot_card.dart';
 export 'grid/wot_grid.dart';
 export 'collapse/wot_collapse.dart';
+export 'expand/wot_expand.dart';
 export 'steps/wot_steps.dart';
 export 'skeleton/wot_skeleton.dart';
 export 'loadmore/wot_loadmore.dart';

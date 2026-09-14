@@ -28,7 +28,7 @@ flutter新项目引入组件库参考：<https://gitee.com/miaoaa66/flutter_wot_
 | 导航 | Navbar、Tabbar、Tabs、Segmented、Sidebar、Pagination、IndexBar、Backtop、Tour |
 | 录入 | Form、FormItem、Input、Textarea、Search、InputNumber、Checkbox、Radio、Switch、Rate、Slider、PickerView、Picker、SelectPicker、Cascader、Calendar、CalendarView、DatetimePicker、PasswordInput、Keyboard、Signature、SlideVerify、Upload |
 | 反馈 | Overlay、Loading、Popup、Dialog、ActionSheet、DropMenu、Popover、Tooltip、FloatingPanel、Progress、Circle、Toast、Notify、NoticeBar、SwipeAction、SortButton、Empty、CountDown、CountTo |
-| 展示 | Tag、Badge、Avatar、Card、Grid、Collapse、Steps、Skeleton、Loadmore、Img、ImagePreview、Swiper、Table、Watermark、QrCode、Barcode、Curtain、ImgCropper、VideoPreview |
+| 展示 | Tag、Badge、Avatar、Card、Grid、Collapse、Expand、Steps、Skeleton、Loadmore、Img、ImagePreview、Swiper、Table、Watermark、QrCode、Barcode、Curtain、ImgCropper、VideoPreview |
 
 ## 目录结构
 

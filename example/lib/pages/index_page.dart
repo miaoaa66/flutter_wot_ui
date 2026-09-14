@@ -44,6 +44,7 @@ import 'display/wot_badge_page.dart';
 import 'display/wot_barcode_page.dart';
 import 'display/wot_card_page.dart';
 import 'display/wot_collapse_page.dart';
+import 'display/wot_expand_page.dart';
 import 'display/wot_curtain_page.dart';
 import 'display/wot_grid_page.dart';
 import 'display/wot_img_cropper_page.dart';
@@ -165,12 +166,13 @@ class WotIndexPage extends StatelessWidget {
         _Entry('Card', '卡片', () => _push(context, const WotCardPage())),
         _Entry('Grid', '宫格', () => _push(context, const WotGridPage())),
         _Entry('Collapse', '折叠面板', () => _push(context, const WotCollapsePage())),
+        _Entry('Expand', '展开更多', () => _push(context, const WotExpandPage())),
         _Entry('Steps', '步骤条', () => _push(context, const WotStepsPage())),
         _Entry('Skeleton', '骨架屏', () => _push(context, const WotSkeletonPage())),
         _Entry('Loadmore', '加载更多', () => _push(context, const WotLoadmorePage())),
         _Entry('Img', '图片', () => _push(context, const WotImgPage())),
         _Entry('Swiper', '轮播', () => _push(context, const WotSwiperPage())),
-        _Entry('Table', '表格', () => _push(context, const WotTablePage())),
+        _Entry('Table', '表格', () => _push(context, WotTablePage())),
         _Entry('Watermark', '水印', () => _push(context, const WotWatermarkPage())),
         _Entry('QrCode', '二维码', () => _push(context, const WotQrCodePage())),
         _Entry('Barcode', '条形码', () => _push(context, const WotBarcodePage())),

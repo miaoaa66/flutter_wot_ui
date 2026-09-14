@@ -16,7 +16,7 @@ class WotTooltip extends StatefulWidget {
     this.onShow,
     this.onHide,
     this.placement = WotTooltipPlacement.top,
-    this.offset = const Offset(0, 6),
+    this.offset = Offset.zero,
     this.tooltipStyle,
     this.maxWidth = 200,
     this.trigger = 'hover',
