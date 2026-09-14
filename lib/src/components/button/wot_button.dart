@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../theme/wot_scheme.dart';
 import '../../theme/wot_theme.dart';
@@ -79,7 +79,7 @@ class WotButton extends StatelessWidget {
   /// 按钮样式变体，可选 `base`/`plain`/`dashed`/`soft`/`subtle`/`text`，默认 `base`。
   final WotButtonVariant? variant;
 
-  /// 是否为圆角胶囊按钮（椭圆），默认 false。
+  /// 是否为圆角按钮（椭圆），默认 false。
   final bool? round;
 
   /// 是否禁用，禁用后不可点击且样式置灰，默认 false。
@@ -187,6 +187,7 @@ class WotButton extends StatelessWidget {
 
     final bool showBorder = effVariant == WotButtonVariant.plain ||
         effVariant == WotButtonVariant.dashed;
+    final bool isDashed = effVariant == WotButtonVariant.dashed;
 
     final Widget content;
     if (child != null) {
@@ -229,22 +230,34 @@ class WotButton extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: isDisabled ? null : (onTap ?? onClick),
-        child: Container(
-          padding: paddingOf(effSize),
-          decoration: showBorder
-              ? BoxDecoration(
+        child: CustomPaint(
+          painter: isDashed
+              ? _DashedBorderPainter(
                   borderRadius: radius,
-                  border: Border.all(
-                    color:
-                        isDisabled && effVariant == WotButtonVariant.plain
-                            ? scheme.borderMain
-                            : baseColor,
-                    width: hairline ? 0.5 : 1,
-                  ),
+                  color:
+                      isDisabled && effVariant == WotButtonVariant.dashed
+                          ? scheme.borderMain
+                          : baseColor,
+                  strokeWidth: hairline ? 0.5 : 1,
                 )
               : null,
-          child: DefaultTextStyle.merge(
-            child: content,
+          child: Container(
+            padding: paddingOf(effSize),
+            decoration: showBorder && !isDashed
+                ? BoxDecoration(
+                    borderRadius: radius,
+                    border: Border.all(
+                      color:
+                          isDisabled && effVariant == WotButtonVariant.plain
+                              ? scheme.borderMain
+                              : baseColor,
+                      width: hairline ? 0.5 : 1,
+                    ),
+                  )
+                : null,
+            child: DefaultTextStyle.merge(
+              child: content,
+            ),
           ),
         ),
       ),
@@ -257,5 +270,52 @@ class WotButton extends StatelessWidget {
       button = Padding(padding: margin!, child: button);
     }
     return button;
+  }
+}
+
+/// 虚线边框绘制器。
+class _DashedBorderPainter extends CustomPainter {
+  const _DashedBorderPainter({
+    required this.borderRadius,
+    required this.color,
+    required this.strokeWidth,
+    this.dashLength = 4,
+    this.gapLength = 3,
+  });
+
+  final BorderRadius borderRadius;
+  final Color color;
+  final double strokeWidth;
+  final double dashLength;
+  final double gapLength;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final rect = Offset.zero & size;
+    final rrect = borderRadius.toRRect(rect);
+    final path = Path()..addRRect(rrect);
+    final metrics = path.computeMetrics();
+
+    for (final metric in metrics) {
+      double distance = 0;
+      while (distance < metric.length) {
+        final end = (distance + dashLength).clamp(0.0, metric.length);
+        final extractPath = metric.extractPath(distance, end);
+        canvas.drawPath(extractPath, paint);
+        distance += dashLength + gapLength;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorderPainter oldDelegate) {
+    return borderRadius != oldDelegate.borderRadius ||
+        color != oldDelegate.color ||
+        strokeWidth != oldDelegate.strokeWidth;
   }
 }

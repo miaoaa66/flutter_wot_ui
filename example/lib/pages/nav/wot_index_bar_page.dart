@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_wot_ui/flutter_wot_ui.dart';
 
 import '../../common/demo_scaffold.dart';
@@ -26,7 +26,6 @@ class _WotIndexBarPageState extends State<WotIndexBarPage> {
   final Map<String, GlobalKey> _keys = {
     for (final l in _letters) l: GlobalKey(),
   };
-  bool _persist = false;
 
   @override
   void dispose() {
@@ -63,7 +62,6 @@ class _WotIndexBarPageState extends State<WotIndexBarPage> {
               child: WotIndexBar(
                 indexList: _letters,
                 activeColor: context.wotScheme.primaryOf(6),
-                persistentHighlight: _persist,
                 onSelect: _jump,
                 child: ListView(
                   controller: _controller,
@@ -96,13 +94,6 @@ class _WotIndexBarPageState extends State<WotIndexBarPage> {
                 ),
               ),
             )),
-        demoSection('persistentHighlight（常驻选中色）'),
-        Row(children: [
-          Flexible(child: FilledButton.tonal(onPressed: () => setState(() => _persist = !_persist), child: Text('persistentHighlight: $_persist'))),
-        ]),
-        const SizedBox(height: 8),
-        demoBlock('开启后选中索引会常驻高亮',
-            const WotText('拖动右侧索引条体验锚点定位；开启 persistentHighlight 后选中色常驻。')),
       ],
     );
   }

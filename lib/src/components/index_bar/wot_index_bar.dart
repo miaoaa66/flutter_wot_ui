@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 
@@ -151,8 +151,6 @@ class WotIndexBar extends StatefulWidget {
     this.itemSize = 20,
     this.onSelect,
     this.child,
-    this.persistentHighlight = false,
-    this.highlightDuration,
   });
 
   /// 索引字符数组，决定右侧字母条显示哪些字母，默认 [kWotIndexBarDefaultList]
@@ -174,16 +172,6 @@ class WotIndexBar extends StatefulWidget {
   /// 使内部的 [WotIndexBarAnchor] 能读取当前激活索引做「联动」高亮。
   final Widget? child;
 
-  /// 是否让激活高亮一直保持（默认 false）。
-  ///
-  /// 默认（false）时，点击定位或拖拽结束会在一小段延时后自动清除高亮，
-  /// 锚点标题与右侧字母不常驻选中色；若要高亮常驻，设为 true。
-  final bool persistentHighlight;
-
-  /// 点击/拖拽结束后自动清除高亮前的延时，用于配合定位/滚动动画时长。
-  /// 默认约 260ms。仅当 [persistentHighlight] 为 false 时生效。
-  final Duration? highlightDuration;
-
   @override
   State<WotIndexBar> createState() => _WotIndexBarState();
 }
@@ -202,7 +190,7 @@ class _WotIndexBarState extends State<WotIndexBar> {
   List<String> get _indexList =>
       widget.indexList.where((e) => e.isNotEmpty).toList(growable: false);
 
-  /// 高亮自动清除定时器（非持久高亮时使用）。
+  /// 高亮自动清除定时器。
   Timer? _highlightTimer;
 
   @override
@@ -211,13 +199,11 @@ class _WotIndexBarState extends State<WotIndexBar> {
     super.dispose();
   }
 
-  /// 在 [widget.persistentHighlight] 为 false 时，安排一小段延时后清除激活高亮，
-  /// 使锚点/字母条不常驻选中色。延时可配置以匹配定位/滚动动画时长。
+  /// 安排一小段延时后清除激活高亮，使锚点/字母条不常驻选中色。
   void _scheduleClearHighlight() {
-    if (widget.persistentHighlight) return;
     _highlightTimer?.cancel();
     _highlightTimer = Timer(
-      widget.highlightDuration ?? const Duration(milliseconds: 260),
+      const Duration(milliseconds: 260),
       () {
         if (mounted && _active != null) setState(() => _active = null);
       },
@@ -253,7 +239,7 @@ class _WotIndexBarState extends State<WotIndexBar> {
         // 支持手指/鼠标拖拽连续高亮并回调（拖拽过程中对相同字母去重，避免重复回调）。
         onVerticalDragStart: (d) => _selectFromGlobal(d.globalPosition),
         onVerticalDragUpdate: (d) => _selectFromGlobal(d.globalPosition),
-        // 拖拽结束：安排清除高亮（非持久）；
+        // 拖拽结束：安排清除高亮；
         // 取消拖拽时不改激活，仍由延时清除兜底。
         onVerticalDragEnd: (_) => _scheduleClearHighlight(),
         onVerticalDragCancel: () => _scheduleClearHighlight(),
