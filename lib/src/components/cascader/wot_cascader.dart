@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../theme/wot_scheme.dart';
 import '../../theme/wot_theme.dart';
@@ -241,7 +241,7 @@ class _CascaderSheetState extends State<_CascaderSheet> {
                   itemBuilder: (_, i) => _buildRow(scheme, primary, current[i]),
                 ),
         ),
-        SizedBox(height: MediaQuery.of(context).padding.bottom),
+        Container(height: MediaQuery.of(context).padding.bottom, color: scheme.filledContent),
       ],
     );
   }

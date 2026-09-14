@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_wot_ui/flutter_wot_ui.dart';
 
 import '../../common/demo_scaffold.dart';
@@ -49,14 +49,9 @@ class _WotTagPageState extends State<WotTagPage> {
               WotTag(text: '方角', round: false, type: WotTagType.warning),
             ])),
         demoSection('自定义色（color）与交互'),
-        demoBlock('自定义颜色',
-            WotTag(text: '自定义色', color: const Color(0xFF8B5CF6), variant: WotTagVariant.plain)),
-        demoBlock('可点击 onClick',
-            WotTag(text: '可点击', onClick: () => demoToast(context, '点击标签'))),
-        demoBlock('closable 可关闭',
-            !_closed.contains('c1')
-                ? WotTag(text: '可关闭', closable: true, onClose: () => setState(() => _closed.add('c1')))
-                : const WotTag(text: '已关闭')),
+        demoBlock('自定义颜色', Wrap(spacing: 8, runSpacing: 8, children: [WotTag(text: '自定义色', color: const Color(0xFF8B5CF6), variant: WotTagVariant.plain)])),
+        demoBlock('可点击 onClick', Wrap(spacing: 8, runSpacing: 8, children: [WotTag(text: '可点击', onClick: () => demoToast(context, '点击标签'))])),
+        demoBlock('closable 可关闭', Wrap(spacing: 8, runSpacing: 8, children: [if (!_closed.contains('c1')) WotTag(text: '可关闭', closable: true, onClose: () => setState(() => _closed.add('c1'))) else const WotTag(text: '已关闭')])),
       ],
     );
   }

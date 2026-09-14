@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 
@@ -1401,7 +1401,7 @@ class _YearMonthPickerState extends State<_YearMonthPicker> {
           height: 200,
           child: WotPickerView(columns: _columns, values: _values, color: primary, onChange: (v) => setState(() => _values = [...v])),
         ),
-        SizedBox(height: MediaQuery.of(context).padding.bottom),
+        Container(height: MediaQuery.of(context).padding.bottom, color: scheme.filledContent),
       ],
     );
   }

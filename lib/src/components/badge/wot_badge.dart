@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../../theme/wot_theme.dart';
 
-/// 角标位置。
-enum WotBadgePosition { topRight, topLeft, bottomRight, bottomLeft }
+/// 角标位置（9 宫格：上/中/下 x 左/中/右）。
+enum WotBadgePosition {
+  topLeft, topCenter, topRight,
+  middleLeft, middleCenter, middleRight,
+  bottomLeft, bottomCenter, bottomRight,
+}
 
 /// 徽标，对应 wot `wd-badge`。
+///
+/// 用于在子组件上显示角标，支持数字、圆点、自定义内容三种形式，
+/// 可通过 [badgePosition] 控制角标在 9 宫格中的任意位置。
+///
+/// 角标定位规则：角标覆盖在子组件对应角落/边缘上。
 class WotBadge extends StatelessWidget {
   const WotBadge({
     super.key,
@@ -21,34 +31,34 @@ class WotBadge extends StatelessWidget {
     required this.child,
   });
 
-  /// 徽标值。
+  /// 角标值，大于 0 时显示。
   final num modelValue;
 
-  /// 徽标值上限，超过该值显示为 `max+`，默认 99。
+  /// 最大值，超过时显示 `${max}+`，默认 99。
   final num max;
 
-  /// 自定义徽标内容。
+  /// 自定义角标内容，优先级高于 [modelValue] 和 [isDot]。
   final Widget? slot;
 
-  /// 徽标显示位置，默认 `topRight`。
+  /// 角标位置（9 宫格），默认 [WotBadgePosition.topRight]。
   final WotBadgePosition badgePosition;
 
-  /// 背景颜色，默认取主题危险色。
+  /// 角标背景色，默认使用主题 dangerMain。
   final Color? bgColor;
 
-  /// 徽标文字颜色，默认白色。
+  /// 角标文字颜色，默认白色。
   final Color color;
 
-  /// 是否隐藏徽标，默认 false。
+  /// 是否隐藏角标，默认 false。
   final bool hidden;
 
-  /// 是否以小圆点形式显示，默认 false。
+  /// 是否显示为圆点，默认 false。
   final bool isDot;
 
-  /// 是否显示小圆点，默认 false。
+  /// 是否显示圆点（兼容旧 API），默认 false。
   final bool showDot;
 
-  /// 承载徽标的子组件。
+  /// 子组件。
   final Widget child;
 
   @override
@@ -79,28 +89,152 @@ class WotBadge extends StatelessWidget {
       );
     }
 
-    final offset = switch (badgePosition) {
-      WotBadgePosition.topRight => const Offset(6, -6),
-      WotBadgePosition.topLeft => const Offset(-6, -6),
-      WotBadgePosition.bottomRight => const Offset(6, 6),
-      WotBadgePosition.bottomLeft => const Offset(-6, 6),
-    };
-
-    // 无论是否显示徽标都统一用 Stack 包裹 child：保证 hidden / shown 两种状态下
-    // 给子元素相同的宽松约束，避免隐藏徽标时裸 child 在 stretch 布局里被拉满宽度。
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        child,
-        if (badge != null)
-          Positioned(
-            right: badgePosition == WotBadgePosition.topRight || badgePosition == WotBadgePosition.bottomRight ? 0 : null,
-            left: badgePosition == WotBadgePosition.topLeft || badgePosition == WotBadgePosition.bottomLeft ? 0 : null,
-            top: badgePosition == WotBadgePosition.topRight || badgePosition == WotBadgePosition.topLeft ? 0 : null,
-            bottom: badgePosition == WotBadgePosition.bottomRight || badgePosition == WotBadgePosition.bottomLeft ? 0 : null,
-            child: Transform.translate(offset: offset, child: badge),
-          ),
-      ],
+    return _BadgeWidget(
+      position: badgePosition,
+      badge: badge,
+      child: child,
     );
+  }
+}
+
+/// 自定义 RenderObject 实现徽标定位。
+class _BadgeWidget extends MultiChildRenderObjectWidget {
+  _BadgeWidget({
+    required this.position,
+    required this.badge,
+    required this.child,
+  }) : super(children: [child, if (badge != null) badge]);
+
+  final WotBadgePosition position;
+  final Widget? badge;
+  final Widget child;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) => _RenderBadge(position: position);
+
+  @override
+  void updateRenderObject(BuildContext context, _RenderBadge renderObject) {
+    renderObject.position = position;
+  }
+}
+
+class _BadgeParentData extends ContainerBoxParentData<RenderBox> {}
+
+class _RenderBadge extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _BadgeParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _BadgeParentData> {
+  _RenderBadge({required WotBadgePosition position}) : _position = position;
+
+  WotBadgePosition _position;
+  WotBadgePosition get position => _position;
+  set position(WotBadgePosition value) {
+    if (_position == value) return;
+    _position = value;
+    markNeedsLayout();
+  }
+
+  RenderBox? get _child => firstChild;
+  RenderBox? get _badge => lastChild == firstChild ? null : lastChild;
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! _BadgeParentData) {
+      child.parentData = _BadgeParentData();
+    }
+  }
+
+  @override
+  double computeMinIntrinsicWidth(double height) => _child?.getMinIntrinsicWidth(height) ?? 0;
+  @override
+  double computeMaxIntrinsicWidth(double height) => _child?.getMaxIntrinsicWidth(height) ?? 0;
+  @override
+  double computeMinIntrinsicHeight(double width) => _child?.getMinIntrinsicHeight(width) ?? 0;
+  @override
+  double computeMaxIntrinsicHeight(double width) => _child?.getMaxIntrinsicHeight(width) ?? 0;
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) {
+    return _child?.getDryLayout(constraints) ?? Size.zero;
+  }
+
+  @override
+  void performLayout() {
+    final child = _child;
+    final badge = _badge;
+
+    if (child == null) {
+      size = Size.zero;
+      return;
+    }
+
+    child.layout(constraints, parentUsesSize: true);
+    final childSize = child.size;
+    size = childSize;
+
+    if (badge != null) {
+      badge.layout(const BoxConstraints(), parentUsesSize: true);
+      final badgeSize = badge.size;
+      final offset = _computeOffset(childSize, badgeSize);
+      (badge.parentData as _BadgeParentData).offset = offset;
+    }
+  }
+
+  /// 计算角标偏移量。
+  ///
+  /// 定位规则：角标覆盖在子组件对应角落/边缘上。
+  /// 例如 topRight 时，角标右上角对齐到子组件右上角。
+  Offset _computeOffset(Size childSize, Size badgeSize) {
+    // 水平方向：角标左上角 x 坐标
+    final double dx;
+    switch (_position) {
+      case WotBadgePosition.topLeft:
+      case WotBadgePosition.middleLeft:
+      case WotBadgePosition.bottomLeft:
+        dx = 0 - 5;
+        break;
+      case WotBadgePosition.topCenter:
+      case WotBadgePosition.middleCenter:
+      case WotBadgePosition.bottomCenter:
+        dx = (childSize.width - badgeSize.width) / 2;
+        break;
+      case WotBadgePosition.topRight:
+      case WotBadgePosition.middleRight:
+      case WotBadgePosition.bottomRight:
+        dx = childSize.width - badgeSize.width + 5;
+        break;
+    }
+
+    // 垂直方向：角标左上角 y 坐标
+    final double dy;
+    switch (_position) {
+      case WotBadgePosition.topLeft:
+      case WotBadgePosition.topCenter:
+      case WotBadgePosition.topRight:
+        dy = 0 - 5;
+        break;
+      case WotBadgePosition.middleLeft:
+      case WotBadgePosition.middleCenter:
+      case WotBadgePosition.middleRight:
+        dy = (childSize.height - badgeSize.height) / 2;
+        break;
+      case WotBadgePosition.bottomLeft:
+      case WotBadgePosition.bottomCenter:
+      case WotBadgePosition.bottomRight:
+        dy = childSize.height - badgeSize.height + 5;
+        break;
+    }
+
+    return Offset(dx, dy);
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    defaultPaint(context, offset);
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    return defaultHitTestChildren(result, position: position);
   }
 }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
 
@@ -21,11 +21,11 @@ class WotRate extends StatelessWidget {
     this.name,
   });
 
-  /// 当前评分值，0~[count]，受控（v-model）。
-  final int modelValue;
+  /// 当前评分值，0~[count]，受控（v-model）。支持 0.5 步进（半选）。
+  final double modelValue;
 
   /// 评分变化回调。
-  final ValueChanged<int>? onChange;
+  final ValueChanged<double>? onChange;
 
   /// 图标总数，默认 5。
   final int count;
@@ -73,15 +73,13 @@ class WotRate extends StatelessWidget {
       children: [
         for (var i = 1; i <= count; i++) ...[
           if (i > 1) SizedBox(width: gutter),
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (readonly || disabled)
-                ? null
-                : (d) {
-                    // allowHalf 时，点击图标左半侧本应选择半星值 i-0.5；由于
-                    // modelValue/onChange 为 int，无法持久化 x.5，故半星点击仍落到整星值 i。
-                    onChange?.call(i);
-                  },
+          _StarTapArea(
+            index: i,
+            size: size,
+            allowHalf: allowHalf,
+            readonly: readonly,
+            disabled: disabled,
+            onChange: onChange,
             child: _Star(
               size: size,
               icon: voidIcon,
@@ -98,7 +96,53 @@ class WotRate extends StatelessWidget {
   }
 }
 
-/// 单个评分图标，支持整星填充与（受值类型限制的）半星显示。
+/// 单个星星的点击区域，处理半选逻辑。
+class _StarTapArea extends StatelessWidget {
+  const _StarTapArea({
+    required this.index,
+    required this.size,
+    required this.allowHalf,
+    required this.readonly,
+    required this.disabled,
+    required this.onChange,
+    required this.child,
+  });
+
+  final int index;
+  final double size;
+  final bool allowHalf;
+  final bool readonly;
+  final bool disabled;
+  final ValueChanged<double>? onChange;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTapDown: (readonly || disabled)
+          ? null
+          : (d) {
+              if (allowHalf) {
+                // 使用当前星星的 renderBox 计算局部坐标
+                final box = context.findRenderObject() as RenderBox?;
+                if (box != null) {
+                  final local = box.globalToLocal(d.globalPosition);
+                  final isLeftHalf = local.dx < size / 2;
+                  onChange?.call(isLeftHalf ? index - 0.5 : index.toDouble());
+                } else {
+                  onChange?.call(index.toDouble());
+                }
+              } else {
+                onChange?.call(index.toDouble());
+              }
+            },
+      child: child,
+    );
+  }
+}
+
+/// 单个评分图标，支持整星填充与半星显示。
 class _Star extends StatelessWidget {
   const _Star({
     required this.size,

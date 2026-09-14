@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_wot_ui/flutter_wot_ui.dart';
 
 import '../../common/demo_scaffold.dart';
@@ -12,10 +12,10 @@ class WotRatePage extends StatefulWidget {
 }
 
 class _WotRatePageState extends State<WotRatePage> {
-  int _v1 = 3;
-  int _v2 = 2;
-  int _v3 = 5;
-  int _v4 = 4;
+  double _v1 = 3;
+  double _v2 = 2;
+  double _v3 = 5;
+  double _v4 = 4;
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +23,7 @@ class _WotRatePageState extends State<WotRatePage> {
       title: 'WotRate 评分',
       children: [
         demoSection('基础用法（modelValue / onChange）'),
-        demoBlock('基础 5 星（当前$_v1）', WotRate(modelValue: _v1, onChange: (v) => setState(() => _v1 = v))),
+        demoBlock('基础 5 星（当前${_v1.toStringAsFixed(1)}）', WotRate(modelValue: _v1, onChange: (v) => setState(() => _v1 = v))),
         demoSection('数量与尺寸（count / size / gutter）'),
         demoBlock('count=8 size=20 gutter=8',
             WotRate(modelValue: _v2, count: 8, size: 20, gutter: 8, onChange: (v) => setState(() => _v2 = v))),
@@ -34,7 +34,7 @@ class _WotRatePageState extends State<WotRatePage> {
         demoBlock('自定义未选中/选中颜色',
             WotRate(modelValue: _v4, color: Colors.grey, activeColor: const Color(0xFF12B886), onChange: (v) => setState(() => _v4 = v))),
         demoSection('特性（allowHalf / disabled / readonly）'),
-        demoBlock('allowHalf 允许半选', WotRate(modelValue: _v2, allowHalf: true, onChange: (v) => setState(() => _v2 = v))),
+        demoBlock('allowHalf 允许半选（当前${_v2.toStringAsFixed(1)}）', WotRate(modelValue: _v2, size: 55, allowHalf: true, onChange: (v) => setState(() => _v2 = v))),
         demoBlock('disabled 禁用', WotRate(modelValue: _v1, disabled: true, onChange: (v) => setState(() => _v1 = v))),
         demoBlock('readonly 只读', WotRate(modelValue: _v3, readonly: true, onChange: (v) => setState(() => _v3 = v))),
       ],

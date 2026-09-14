@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
 
@@ -98,12 +98,12 @@ class WotSwitch extends StatelessWidget {
               Align(
                 alignment: on ? Alignment.centerLeft : Alignment.centerRight,
                 child: Padding(
-                  padding: EdgeInsets.all(pad * 0.5),
+                  padding: EdgeInsets.symmetric(horizontal: pad, vertical: pad * 0.5),
                   child: Text(
                     switchText,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.white, fontSize: height * 0.32),
+                    style: TextStyle(color: Colors.white, fontSize: height * 0.4),
                   ),
                 ),
               ),

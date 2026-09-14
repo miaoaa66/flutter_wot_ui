@@ -1,12 +1,15 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
 
-/// 轮播图指示点位置。
-enum WotSwiperIndicatorPosition { bottom, top, middleLeft, middleCenter, middleRight }
+/// 轮播图指示点位置（2 行 x 3 列 = 6 个位置）。
+enum WotSwiperIndicatorPosition {
+  topLeft, topCenter, topRight,
+  bottomLeft, bottomCenter, bottomRight,
+}
 
 /// 轮播图，对应 wot `wd-swiper`。
 ///
@@ -21,7 +24,7 @@ class WotSwiper extends StatefulWidget {
     this.duration = 500,
     this.loop = true,
     this.indicator = true,
-    this.indicatorPosition = WotSwiperIndicatorPosition.bottom,
+    this.indicatorPosition = WotSwiperIndicatorPosition.bottomCenter,
     this.width,
     this.height,
     this.onChange,
@@ -43,7 +46,7 @@ class WotSwiper extends StatefulWidget {
   /// 是否显示指示点，默认 true。
   final bool indicator;
 
-  /// 指示点位置：bottom/top/middleLeft/middleCenter/middleRight，默认 bottom。
+  /// 指示点位置（上/下 x 左/中/右），默认 bottomCenter。
   final WotSwiperIndicatorPosition indicatorPosition;
 
   /// 轮播图宽度。
@@ -167,23 +170,32 @@ class _WotSwiperState extends State<WotSwiper> with SingleTickerProviderStateMix
       ],
     );
 
+    final isTop = widget.indicatorPosition == WotSwiperIndicatorPosition.topLeft ||
+        widget.indicatorPosition == WotSwiperIndicatorPosition.topCenter ||
+        widget.indicatorPosition == WotSwiperIndicatorPosition.topRight;
+
+    final alignment = switch (widget.indicatorPosition) {
+      WotSwiperIndicatorPosition.topLeft => Alignment.topLeft,
+      WotSwiperIndicatorPosition.topCenter => Alignment.topCenter,
+      WotSwiperIndicatorPosition.topRight => Alignment.topRight,
+      WotSwiperIndicatorPosition.bottomLeft => Alignment.bottomLeft,
+      WotSwiperIndicatorPosition.bottomCenter => Alignment.bottomCenter,
+      WotSwiperIndicatorPosition.bottomRight => Alignment.bottomRight,
+    };
+
     return Positioned(
       left: 0,
       right: 0,
-      top: widget.indicatorPosition == WotSwiperIndicatorPosition.top
-          ? 10
-          : widget.indicatorPosition == WotSwiperIndicatorPosition.middleCenter
-              ? null
-              : null,
-      bottom: widget.indicatorPosition == WotSwiperIndicatorPosition.bottom
-          ? 10
-          : widget.indicatorPosition == WotSwiperIndicatorPosition.middleCenter
-              ? null
-              : null,
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-          child: indicators,
+      top: isTop ? 10 : null,
+      bottom: isTop ? null : 10,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Align(
+          alignment: alignment,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            child: indicators,
+          ),
         ),
       ),
     );

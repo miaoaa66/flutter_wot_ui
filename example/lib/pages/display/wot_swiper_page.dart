@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_wot_ui/flutter_wot_ui.dart';
 
 import '../../common/demo_scaffold.dart';
@@ -39,20 +39,37 @@ class _WotSwiperPageState extends State<WotSwiperPage> {
                 ],
               ),
             )),
-        demoSection('指示点位置 + 循环（indicatorPosition / loop）'),
-        demoBlock('居中指示点 + 循环',
-            SizedBox(
-              height: 150,
-              child: WotSwiper(
-                loop: true,
-                indicatorPosition: WotSwiperIndicatorPosition.middleCenter,
-                children: const [
-                  WotSwiperItem(child: ColoredBox(color: Color(0xFF4DB6AC), child: Center(child: Text('第 1 页', style: TextStyle(color: Colors.white))))),
-                  WotSwiperItem(child: ColoredBox(color: Color(0xFF7986CB), child: Center(child: Text('第 2 页', style: TextStyle(color: Colors.white))))),
-                  WotSwiperItem(child: ColoredBox(color: Color(0xFFF06292), child: Center(child: Text('第 3 页', style: TextStyle(color: Colors.white))))),
-                ],
-              ),
-            )),
+        demoSection('指示点位置（indicatorPosition）'),
+        demoBlock('上排：topLeft / topCenter / topRight',
+            Wrap(spacing: 12, runSpacing: 12, children: [
+              for (final pos in [WotSwiperIndicatorPosition.topLeft, WotSwiperIndicatorPosition.topCenter, WotSwiperIndicatorPosition.topRight])
+                SizedBox(
+                  width: 120,
+                  height: 100,
+                  child: WotSwiper(
+                    indicatorPosition: pos,
+                    children: [
+                      WotSwiperItem(child: ColoredBox(color: const Color(0xFF4DB6AC), child: const Center(child: Text('1', style: TextStyle(color: Colors.white))))),
+                      WotSwiperItem(child: ColoredBox(color: const Color(0xFF7986CB), child: const Center(child: Text('2', style: TextStyle(color: Colors.white))))),
+                    ],
+                  ),
+                ),
+            ])),
+        demoBlock('下排：bottomLeft / bottomCenter / bottomRight',
+            Wrap(spacing: 12, runSpacing: 12, children: [
+              for (final pos in [WotSwiperIndicatorPosition.bottomLeft, WotSwiperIndicatorPosition.bottomCenter, WotSwiperIndicatorPosition.bottomRight])
+                SizedBox(
+                  width: 120,
+                  height: 100,
+                  child: WotSwiper(
+                    indicatorPosition: pos,
+                    children: [
+                      WotSwiperItem(child: ColoredBox(color: const Color(0xFFF06292), child: const Center(child: Text('1', style: TextStyle(color: Colors.white))))),
+                      WotSwiperItem(child: ColoredBox(color: const Color(0xFFA1887F), child: const Center(child: Text('2', style: TextStyle(color: Colors.white))))),
+                    ],
+                  ),
+                ),
+            ])),
       ],
     );
   }

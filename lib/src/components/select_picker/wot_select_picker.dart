@@ -1,4 +1,4 @@
-import 'dart:async';
+﻿import 'dart:async';
 
 import 'package:flutter/material.dart';
 
@@ -536,7 +536,7 @@ class _WotSelectPickerSheetState extends State<_WotSelectPickerSheet> {
             ),
           Container(height: 1, color: scheme.dividerLight),
           Expanded(child: _buildBody(scheme, primary, options)),
-          SizedBox(height: MediaQuery.of(context).padding.bottom),
+          Container(height: MediaQuery.of(context).padding.bottom, color: scheme.filledContent),
         ],
       ),
     );

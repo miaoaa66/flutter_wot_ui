@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../theme/wot_theme.dart';
@@ -69,6 +69,7 @@ class WotPasswordInput extends StatefulWidget {
 
 class _WotPasswordInputState extends State<WotPasswordInput> {
   late final FocusNode _focus;
+  late final TextEditingController _controller;
   String _value = '';
 
   /// 内部 / 受控聚焦态。
@@ -79,12 +80,18 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
     super.initState();
     _value = widget.modelValue;
     _focus = FocusNode()..addListener(_onFocusChange);
+    _controller = TextEditingController(text: widget.modelValue);
   }
 
   @override
   void didUpdateWidget(WotPasswordInput old) {
     super.didUpdateWidget(old);
-    if (old.modelValue != widget.modelValue) _value = widget.modelValue;
+    if (old.modelValue != widget.modelValue) {
+      _value = widget.modelValue;
+      if (_controller.text != widget.modelValue) {
+        _controller.text = widget.modelValue;
+      }
+    }
     // 受控聚焦态变化时同步硬件焦点。
     if (widget.focused != null && old.focused != widget.focused) {
       if (widget.focused!) {
@@ -100,6 +107,7 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
     _focus
       ..removeListener(_onFocusChange)
       ..dispose();
+    _controller.dispose();
     super.dispose();
   }
 
@@ -116,85 +124,103 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
   void _tap() {
     if (widget.disabled || widget.readonly) return;
     _focus.requestFocus();
-    widget.onFocus?.call();
   }
 
-  /// 处理物理/软键盘按键：输入字符或退格，并回调解密变化。
-  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
-    if (widget.disabled || widget.readonly) return KeyEventResult.ignored;
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    final character = event.character;
-    if (character == null || character.isEmpty) return KeyEventResult.ignored;
-
-    final handled = character == '\b' || character.runes.length == 1;
-    if (character == '\b') {
-      if (_value.isNotEmpty) {
-        setState(() => _value = _value.substring(0, _value.length - 1));
-        widget.onChange?.call(_value);
-      }
-      return KeyEventResult.handled;
+  void _onChanged(String text) {
+    if (widget.disabled || widget.readonly) return;
+    // 只保留数字/字符，截断到 maxLength。
+    final clamped = text.length > widget.maxLength ? text.substring(0, widget.maxLength) : text;
+    setState(() => _value = clamped);
+    // 同步 controller 避免不一致。
+    if (_controller.text != clamped) {
+      _controller.text = clamped;
     }
-    if (_value.length >= widget.maxLength) return KeyEventResult.handled;
-    setState(() => _value = _value + character);
-    widget.onChange?.call(_value);
-    widget.onInput?.call(_value);
-    return handled ? KeyEventResult.handled : KeyEventResult.ignored;
+    widget.onChange?.call(clamped);
+    widget.onInput?.call(clamped);
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
     final focus = _isFocused;
-    final borderColor = focus
-        ? (widget.focusColor ?? scheme.primaryOf(6))
-        : scheme.borderStrong;
     final mask = widget.maskable ?? widget.obscure;
 
-    return Focus(
-      focusNode: _focus,
-      onKeyEvent: _onKeyEvent,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _tap,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            for (var i = 0; i < widget.maxLength; i++) ...[
-              if (i > 0) SizedBox(width: widget.gutter),
-              Container(
-                width: 40,
-                height: 48,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: (focus && i == _value.length)
-                        ? (widget.focusColor ?? scheme.primaryOf(6))
-                        : borderColor,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: _tap,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // 隐藏的 TextField，用于唤起软键盘和接收输入。
+          SizedBox(
+            width: 0,
+            height: 0,
+            child: Opacity(
+              opacity: 0,
+              child: SizedBox(
+                width: 1,
+                height: 1,
+                child: TextField(
+                  controller: _controller,
+                  focusNode: _focus,
+                  keyboardType: TextInputType.number,
+                  enabled: !widget.disabled && !widget.readonly,
+                  maxLength: widget.maxLength,
+                  onChanged: _onChanged,
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(widget.maxLength),
+                  ],
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    border: InputBorder.none,
+                    counterText: '',
                   ),
-                  borderRadius: BorderRadius.circular(6),
+                  style: const TextStyle(fontSize: 1),
                 ),
-                child: i < _value.length
-                    ? (mask
-                        ? Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: scheme.textMain,
-                              shape: BoxShape.circle,
-                            ),
-                          )
-                        : Text(
-                            _value[i],
-                            style: TextStyle(fontSize: 16, color: scheme.textMain),
-                          ))
-                    : Text(
-                        i == _value.length && focus ? '|' : '',
-                        style: TextStyle(fontSize: 16, color: borderColor),
-                      ),
               ),
-            ],
+            ),
+          ),
+          for (var i = 0; i < widget.maxLength; i++) ...[
+            if (i > 0) SizedBox(width: widget.gutter),
+            Container(
+              width: 40,
+              height: 48,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: (focus && i == _value.length)
+                      ? (widget.focusColor ?? scheme.primaryOf(6))
+                      : scheme.borderStrong,
+                ),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: i < _value.length
+                  ? (mask
+                      ? Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: scheme.textMain,
+                            shape: BoxShape.circle,
+                          ),
+                        )
+                      : Text(
+                          _value[i],
+                          style: TextStyle(fontSize: 16, color: scheme.textMain),
+                        ))
+                  : Text(
+                      i == _value.length && focus ? '|' : '',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: focus
+                            ? (widget.focusColor ?? scheme.primaryOf(6))
+                            : scheme.borderStrong,
+                      ),
+                    ),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

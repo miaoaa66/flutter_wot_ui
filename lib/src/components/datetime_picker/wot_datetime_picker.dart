@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
 import '../picker_view/wot_picker_view.dart';
@@ -427,7 +427,7 @@ class _WotDatetimePickerState extends State<WotDatetimePicker> {
             widget.onChange?.call(v);
           },
         ),
-        SizedBox(height: MediaQuery.of(context).padding.bottom),
+        Container(height: MediaQuery.of(context).padding.bottom, color: scheme.filledContent),
       ],
     );
   }

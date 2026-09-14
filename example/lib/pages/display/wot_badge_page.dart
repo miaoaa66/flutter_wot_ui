@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_wot_ui/flutter_wot_ui.dart';
 
 import '../../common/demo_scaffold.dart';
@@ -33,11 +33,17 @@ class _WotBadgePageState extends State<WotBadgePage> {
               WotBadge(isDot: true, child: _box(context)),
             ])),
         demoSection('位置（badgePosition）'),
-        demoBlock('topRight / topLeft / bottomRight',
+        demoBlock('9 宫格位置',
             Wrap(spacing: 24, runSpacing: 16, children: [
-              WotBadge(modelValue: 8, child: _box(context)),
-              WotBadge(modelValue: 8, badgePosition: WotBadgePosition.topLeft, child: _box(context)),
-              WotBadge(modelValue: 8, badgePosition: WotBadgePosition.bottomRight, child: _box(context)),
+              WotBadge(modelValue: 1, badgePosition: WotBadgePosition.topLeft, child: _box(context)),
+              WotBadge(modelValue: 2, badgePosition: WotBadgePosition.topCenter, child: _box(context)),
+              WotBadge(modelValue: 3, badgePosition: WotBadgePosition.topRight, child: _box(context)),
+              WotBadge(modelValue: 4, badgePosition: WotBadgePosition.middleLeft, child: _box(context)),
+              WotBadge(modelValue: 5, badgePosition: WotBadgePosition.middleCenter, child: _box(context)),
+              WotBadge(modelValue: 6, badgePosition: WotBadgePosition.middleRight, child: _box(context)),
+              WotBadge(modelValue: 7, badgePosition: WotBadgePosition.bottomLeft, child: _box(context)),
+              WotBadge(modelValue: 8, badgePosition: WotBadgePosition.bottomCenter, child: _box(context)),
+              WotBadge(modelValue: 9, badgePosition: WotBadgePosition.bottomRight, child: _box(context)),
             ])),
         demoSection('隐藏（hidden）与插槽（slot）'),
         demoBlock('点击切换 hidden',
