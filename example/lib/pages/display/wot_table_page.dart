@@ -11,7 +11,7 @@ class WotTablePage extends StatelessWidget {
   final List<Map<String, dynamic>> bigData =
       List.generate(1000 * 300, (i) {
     return {
-      'id': 'U001$i',
+      'id': 'U00${i + 1}',
       'name': '用户${i + 1}',
       'dept': ['研发', '产品', '设计', '运营'][i % 4],
       'amount': (i + 1) * 3.7,
@@ -62,6 +62,7 @@ class WotTablePage extends StatelessWidget {
               maxHeight: 320,
               rowSelection: WotTableRowSelection.multiple,
               showOverflowTooltip: true,
+              dragSort: true,
               data: bigData,
               columns: [
                 WotTableColumn(
@@ -99,6 +100,8 @@ class WotTablePage extends StatelessWidget {
                   demoToast(context, '选中 ${sel.length} 行'),
               footer: ['文案1', '合计', '文案2', '¥ 18535.00', '文案3', '文案4'],
             )),
+        demoSection('长按拖拽行重排（dragSort + onReorder）'),
+        demoBlock('长按拖动行改变顺序', const _DragSortDemo()),
         demoSection('loading 加载态'),
         demoBlock('加载中占位', WotTable(
               border: true,
@@ -110,6 +113,47 @@ class WotTablePage extends StatelessWidget {
               ],
             )),
       ],
+    );
+  }
+}
+
+/// 长按拖拽行重排示例：外部受控 data，onReorder 里重排后 setState 回传。
+class _DragSortDemo extends StatefulWidget {
+  const _DragSortDemo();
+
+  @override
+  State<_DragSortDemo> createState() => _DragSortDemoState();
+}
+
+class _DragSortDemoState extends State<_DragSortDemo> {
+  final List<Map<String, dynamic>> _data = [
+    {'name': '张三', 'age': 28, 'city': '北京'},
+    {'name': '李四', 'age': 25, 'city': '上海'},
+    {'name': '王五', 'age': 30, 'city': '广州'},
+    {'name': '赵六', 'age': 27, 'city': '深圳'},
+    {'name': '钱七', 'age': 32, 'city': '杭州'},
+    {'name': '孙八', 'age': 26, 'city': '成都'},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return WotTable(
+      border: true,
+      dragSort: true,
+      data: _data,
+      columns: [
+        const WotTableColumn(prop: 'name', label: '姓名', width: 100, align: WotTableAlign.left),
+        const WotTableColumn(prop: 'age', label: '年龄', width: 80, align: WotTableAlign.center),
+        const WotTableColumn(prop: 'city', label: '城市', align: WotTableAlign.left),
+      ],
+      onReorder: (oldIndex, newIndex) {
+        setState(() {
+          if (newIndex > oldIndex) newIndex -= 1;
+          final item = _data.removeAt(oldIndex);
+          _data.insert(newIndex, item);
+        });
+        demoToast(context, '重排 $oldIndex -> $newIndex');
+      },
     );
   }
 }

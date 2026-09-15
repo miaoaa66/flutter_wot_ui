@@ -112,6 +112,8 @@ class WotTable extends StatefulWidget {
     this.selectedRows,
     this.onSelectionChange,
     this.rowSelectionWidth = 46,
+    this.dragSort = false,
+    this.onReorder,
   });
 
   /// 列定义列表。
@@ -170,6 +172,14 @@ class WotTable extends StatefulWidget {
   /// 选择列宽度，默认 46。
   final double rowSelectionWidth;
 
+  /// 是否允许长按拖拽行重排顺序，默认 false。仅影响数据行顺序，不作用于左右固定列；
+  /// loading / 空态时不触发。
+  final bool dragSort;
+
+  /// 拖拽行重排完成回调，参数为拖拽起止位置（`onReorder(oldIndex, newIndex)`）。
+  /// 组件内部会先按新顺序更新顺序再回调；此处可据此同步外部数据。
+  final void Function(int oldIndex, int newIndex)? onReorder;
+
   @override
   State<WotTable> createState() => _WotTableState();
 }
@@ -184,6 +194,30 @@ class _WotTableState extends State<WotTable> {
   String? _sortProp;
   WotTableSortDirection _sortDirection = WotTableSortDirection.none;
 
+  /// 行渲染数据源（可被拖拽重排）。外部未更新 [WotTable.data] 时，组件本地持有一份副本。
+  late List<Map<String, dynamic>> _rows;
+
+  /// 当前正在拖拽的行索引；用于让被拖行在拖拽期间放弃斑马纹、统一成固定浮卡底。
+  int? _dragIndex;
+
+  /// 行背景色：拖拽中的行统一用不透明显色的表面底（与斑马纹深浅行都不同），其余走斑马纹。
+  Color _rowBackground(int index) {
+    final scheme = _scheme(context);
+    if (_dragIndex == index) return scheme.filledStrong;
+    return (widget.stripe && index.isOdd) ? scheme.filledContent : Colors.transparent;
+  }
+
+  /// 拖拽完成后提交新顺序：更新内部数据源再回调外部。
+  void _handleReorder(int oldIndex, int newIndex) {
+    setState(() {
+      if (newIndex > oldIndex) newIndex -= 1;
+      if (newIndex < 0 || newIndex >= _rows.length) return;
+      final item = _rows.removeAt(oldIndex);
+      _rows.insert(newIndex, item);
+    });
+    widget.onReorder?.call(oldIndex, newIndex);
+  }
+
   /// 选择状态（未受控时自维护）。
   late Set<int> _selRows = widget.selectedRows ?? <int>{};
 
@@ -194,14 +228,14 @@ class _WotTableState extends State<WotTable> {
   /// 是否启用了行选择。
   bool get _hasSelection => widget.rowSelection != null;
 
-  /// 展示数据（含排序）。
+  /// 展示数据（含排序）。以内部 `_rows` 为基准，支持拖拽重排。
   List<Map<String, dynamic>> get _displayData {
     if (_sortProp == null || _sortDirection == WotTableSortDirection.none) {
-      return widget.data;
+      return _rows;
     }
     final prop = _sortProp!;
     final ascending = _sortDirection == WotTableSortDirection.ascending;
-    final copy = [...widget.data];
+    final copy = [..._rows];
     copy.sort((a, b) {
       final va = a[prop];
       final vb = b[prop];
@@ -218,6 +252,7 @@ class _WotTableState extends State<WotTable> {
   @override
   void initState() {
     super.initState();
+    _rows = List.of(widget.data);
     // 固定列为不可拖动，仅由主体垂直滚动驱动镜像同步（避免双向 jumpTo 竞争卡住主体）。
     _vCtrl.addListener(_syncFixedScroll);
   }
@@ -228,6 +263,10 @@ class _WotTableState extends State<WotTable> {
     // 受控选择切换时同步内部缓存起始值。
     if (old.selectedRows != widget.selectedRows) {
       _selRows = widget.selectedRows ?? <int>{};
+    }
+    // 外部更新 data 时视为权威顺序，覆盖内部拖拽排序。
+    if (old.data != widget.data) {
+      _rows = List.of(widget.data);
     }
   }
 
@@ -340,7 +379,11 @@ class _WotTableState extends State<WotTable> {
       }
 
       // ===== 轻量模式：全量渲染 =====
-      final layout = _computeLayout(viewportWidth, widget.columns);
+      // 最外层 border:true 时左右边框 0.5*2=1px 会压缩内容区，列宽求和需按压缩后的宽度算，
+      // 否则表头/合计行 Row 会恰好多出 1px 而溢出。
+      final layoutWidth =
+          math.max(1.0, viewportWidth - (widget.border ? 1.0 : 0.0));
+      final layout = _computeLayout(layoutWidth, widget.columns);
       final table = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -351,6 +394,28 @@ class _WotTableState extends State<WotTable> {
             _buildLoading(context)
           else if (_displayData.isEmpty)
             _buildEmpty(context)
+          else if (widget.dragSort)
+            // 轻量模式拖拽重排：等价原 for 循环的高度行为，但支持长按拖拽挤动动画。
+            CustomScrollView(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              slivers: [
+                SliverReorderableList(
+                  itemExtent: widget.rowHeight,
+                  itemCount: _displayData.length,
+                  onReorder: _handleReorder,
+                  onReorderStart: (i) => setState(() => _dragIndex = i),
+                  onReorderEnd: (_) => setState(() => _dragIndex = null),
+                  proxyDecorator: _dragProxyDecorator,
+                  itemBuilder: (_, i) => ReorderableDelayedDragStartListener(
+                    key: ObjectKey(_displayData[i]),
+                    index: i,
+                    child: _buildLightRow(context, layout, _displayData[i], i,
+                        hasSelectionCell: _hasSelection),
+                  ),
+                ),
+              ],
+            )
           else
             for (var i = 0; i < _displayData.length; i++)
               _buildLightRow(context, layout, _displayData[i], i,
@@ -461,14 +526,36 @@ class _WotTableState extends State<WotTable> {
                 SizedBox(
                   width: layout.tableWidth,
                   height: dataH,
-                  child: ListView.builder(
-                    controller: _vCtrl,
-                    itemExtent: widget.rowHeight,
-                    itemCount: _displayData.length,
-                    itemBuilder: (_, i) => _buildScrollRow(
-                        context, layout, _displayData[i], i,
-                        cols: _scrollableCols()),
-                  ),
+                  child: widget.dragSort
+                      ? CustomScrollView(
+                          controller: _vCtrl,
+                          slivers: [
+                            SliverReorderableList(
+                              itemExtent: widget.rowHeight,
+                              itemCount: _displayData.length,
+                              onReorder: _handleReorder,
+                              onReorderStart: (i) => setState(() => _dragIndex = i),
+                              onReorderEnd: (_) => setState(() => _dragIndex = null),
+                              proxyDecorator: _dragProxyDecorator,
+                              itemBuilder: (_, i) =>
+                                  ReorderableDelayedDragStartListener(
+                                key: ObjectKey(_displayData[i]),
+                                index: i,
+                                child: _buildScrollRow(context, layout,
+                                    _displayData[i], i,
+                                    cols: _scrollableCols()),
+                              ),
+                            ),
+                          ],
+                        )
+                      : ListView.builder(
+                          controller: _vCtrl,
+                          itemExtent: widget.rowHeight,
+                          itemCount: _displayData.length,
+                          itemBuilder: (_, i) => _buildScrollRow(
+                              context, layout, _displayData[i], i,
+                              cols: _scrollableCols()),
+                        ),
                 ),
               // 普通列合计行：放在主体横向滚动区，随主体滚动并可随列对齐，
               // 修复窄屏（如手机）下合计行被裁剪/挤压的问题。
@@ -531,26 +618,38 @@ class _WotTableState extends State<WotTable> {
                       const ScrollBehavior().copyWith(scrollbars: false),
                   child: NotificationListener<ScrollUpdateNotification>(
                     onNotification: (n) => _onFixedScroll(n, fixedCtrl),
-                    child: ListView.builder(
-                      controller: fixedCtrl,
-                      itemExtent: widget.rowHeight,
-                      itemCount: _displayData.length,
-                      itemBuilder: (_, i) {
-                        final row = _displayData[i];
-                        List<Widget> cells = [];
-                        if (alignRight == false) {
-                          cells.addAll(
-                              _buildSelectionCells(context, layout, row, i));
-                        }
-                        for (final c in cols) {
-                          cells.add(_cell(context, layout, c, row, i));
-                        }
-                        return _fixedRowContainer(context, row, i, cells, layout,
-                            onSelect: alignRight == false
-                                ? () => _selectByMode(i)
-                                : null);
-                      },
-                    ),
+                      child: widget.dragSort
+                          // 拖拽排序开启时，左右固定列同样支持长按拖拽重排（复用主体的 _handleReorder）。
+                          // 拖动期间固定列保持原位，放下瞬间与其它列精确对齐同步。
+                          ? CustomScrollView(
+                              controller: fixedCtrl,
+                              slivers: [
+                                SliverReorderableList(
+                                  itemExtent: widget.rowHeight,
+                                  itemCount: _displayData.length,
+                                  onReorder: _handleReorder,
+                                  onReorderStart: (i) =>
+                                      setState(() => _dragIndex = i),
+                                  onReorderEnd: (_) =>
+                                      setState(() => _dragIndex = null),
+                                  proxyDecorator: _dragProxyDecorator,
+                                  itemBuilder: (_, i) =>
+                                      ReorderableDelayedDragStartListener(
+                                    key: ObjectKey(_displayData[i]),
+                                    index: i,
+                                    child: _fixedRow(
+                                        context, layout, cols, i, alignRight),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : ListView.builder(
+                              controller: fixedCtrl,
+                              itemExtent: widget.rowHeight,
+                              itemCount: _displayData.length,
+                              itemBuilder: (_, i) =>
+                                  _fixedRow(context, layout, cols, i, alignRight),
+                            ),
                   ),
                 ),
               ),
@@ -562,6 +661,50 @@ class _WotTableState extends State<WotTable> {
         ),
       ),
     );
+  }
+
+  /// 拖拽浮动行外观：被拖行此时已由 [_rowBackground] 统一成表面底（复去斑马纹差异），
+  /// 因此这里只叠加统一的圆角 + 阴影 + 轻微放大，稳定成一张浮卡，不随浅/深行漂移。
+  Widget _dragProxyDecorator(
+      Widget child, int index, Animation<double> animation) {
+    return AnimatedBuilder(
+      animation: animation,
+      child: child,
+      builder: (context, c) {
+        final t = animation.value;
+        return Transform.scale(
+          scale: 1.0 + t * 0.02,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08 + t * 0.16),
+                  blurRadius: 12,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: c,
+          ),
+        );
+      },
+    );
+  }
+
+  /// 构建固定列的一行（选择列占位 + 固定列单元格），供固定层行渲染与拖拽复用。
+  Widget _fixedRow(BuildContext context, _TableLayout layout,
+      List<WotTableColumn> cols, int index, bool alignRight) {
+    final row = _displayData[index];
+    List<Widget> cells = [];
+    if (alignRight == false) {
+      cells.addAll(_buildSelectionCells(context, layout, row, index));
+    }
+    for (final c in cols) {
+      cells.add(_cell(context, layout, c, row, index));
+    }
+    return _fixedRowContainer(context, row, index, cells, layout,
+        onSelect: alignRight == false ? () => _selectByMode(index) : null);
   }
 
   /// 根据选择模式响应点击（单选点击行，多选仅点复选框）。
@@ -683,14 +826,13 @@ class _WotTableState extends State<WotTable> {
   Widget _buildScrollRow(BuildContext context, _TableLayout layout,
       Map<String, dynamic> row, int index,
       {List<WotTableColumn>? cols}) {
-    final scheme = _scheme(context);
     final columns = cols ?? widget.columns;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: widget.onRowClick == null ? null : () => widget.onRowClick!(row, index),
       child: Container(
         height: widget.rowHeight,
-        color: (widget.stripe && index.isOdd) ? scheme.filledContent : Colors.transparent,
+        color: _rowBackground(index),
         child: Row(
           children: [
             for (final c in columns) _cell(context, layout, c, row, index),
@@ -703,13 +845,12 @@ class _WotTableState extends State<WotTable> {
   Widget _fixedRowContainer(BuildContext context, Map<String, dynamic> row,
       int index, List<Widget> cells, _TableLayout layout,
       {VoidCallback? onSelect}) {
-    final scheme = _scheme(context);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onSelect,
       child: Container(
         height: widget.rowHeight,
-        color: (widget.stripe && index.isOdd) ? scheme.filledContent : Colors.transparent,
+        color: _rowBackground(index),
         child: Row(
           children: cells,
         ),
@@ -720,13 +861,12 @@ class _WotTableState extends State<WotTable> {
   /// 轻量模式行（含选择列单元格）。
   Widget _buildLightRow(BuildContext context, _TableLayout layout,
       Map<String, dynamic> row, int index, {bool hasSelectionCell = false}) {
-    final scheme = _scheme(context);
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: widget.onRowClick == null ? null : () => widget.onRowClick!(row, index),
       child: Container(
         height: widget.rowHeight,
-        color: (widget.stripe && index.isOdd) ? scheme.filledContent : Colors.transparent,
+        color: _rowBackground(index),
         child: Row(
           children: [
             if (hasSelectionCell) _selectCell(context, index, selWidth: _selWidth()),
