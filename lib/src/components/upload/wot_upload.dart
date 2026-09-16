@@ -4,6 +4,9 @@ import 'package:flutter/foundation.dart';
 
 import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
+// 内置上传走 dart:io（native）；web 平台降级为占位实现，需用 uploadMethod。
+import 'wot_upload_unsupported.dart'
+    if (dart.library.io) 'wot_upload_native.dart';
 
 /// 上传文件状态。
 enum WotUploadStatus {
@@ -54,11 +57,15 @@ class WotUploadFile {
   /// 可用于缩略图地址。
   String get thumbUrl => url ?? path ?? '';
 
-  /// 复制并替换上传状态。
-  WotUploadFile copyWith({WotUploadStatus? status, double? percent}) {
+  /// 复制并替换上传状态/进度/地址。
+  WotUploadFile copyWith({
+    WotUploadStatus? status,
+    double? percent,
+    String? url,
+  }) {
     return WotUploadFile(
       name: name,
-      url: url,
+      url: url ?? this.url,
       path: path,
       type: type,
       size: size,
@@ -69,6 +76,36 @@ class WotUploadFile {
     );
   }
 }
+
+/// 上传结果。
+class WotUploadResponse {
+  const WotUploadResponse({
+    this.statusCode = 200,
+    this.body,
+    this.url,
+    this.error,
+  });
+
+  /// HTTP 状态码；0 表示请求未发出（URL 非法、平台不支持等）。
+  final int statusCode;
+
+  /// 响应体原文，便于调用方自行解析。
+  final String? body;
+
+  /// 上传成功后的文件地址；为空时保留原文件的 [WotUploadFile.url]。
+  final String? url;
+
+  /// 错误信息；非空即视为失败。
+  final String? error;
+
+  bool get isSuccess => error == null && statusCode >= 200 && statusCode < 300;
+}
+
+/// 自定义上传实现：接收文件与进度回调（0-100），返回 [WotUploadResponse]。
+typedef WotUploadMethod = Future<WotUploadResponse> Function(
+  WotUploadFile file,
+  void Function(double percent) onProgress,
+);
 
 /// 文件上传组件，对应 wot `wd-upload`。
 ///
@@ -96,6 +133,12 @@ class WotUpload extends StatefulWidget {
     this.gutter = 10,
     this.addText = '添加',
     this.name,
+    this.action,
+    this.header,
+    this.formData,
+    this.fileFieldName = 'file',
+    this.uploadMethod,
+    this.onFail,
   });
 
   /// 外部受控文件列表（传入非空即受控），否则组件自维护。
@@ -142,6 +185,29 @@ class WotUpload extends StatefulWidget {
   final String addText;
   final String? name;
 
+  /// 上传地址（wot `action` 语义）。设置后使用内置 multipart 上传。
+  ///
+  /// **web 平台不支持**：无 `dart:io`，请改用 [uploadMethod] 自行实现
+  ///（如 `package:http` 的 `BrowserClient` 或 `dart:html` 的 `HttpRequest`）。
+  final String? action;
+
+  /// 上传请求头（wot `header` 语义）。
+  final Map<String, String>? header;
+
+  /// 随文件一并提交的额外表单字段。
+  final Map<String, String>? formData;
+
+  /// multipart 中文件字段名，默认 `file`。
+  ///
+  /// 注意：wot 的 `name` 在此组件中已被「表单字段名」占用，故另取此名。
+  final String fileFieldName;
+
+  /// 自定义上传实现；提供后**优先于** [action]，且全平台可用。
+  final WotUploadMethod? uploadMethod;
+
+  /// 单个文件上传失败时回调。
+  final ValueChanged<WotUploadFile>? onFail;
+
   @override
   State<WotUpload> createState() => _WotUploadState();
 }
@@ -176,7 +242,8 @@ class _WotUploadState extends State<WotUpload> {
 
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: widget.multiple,
-      type: FileType.any,
+      type: _fileType,
+      allowedExtensions: _allowedExtensions,
     );
     if (result == null || result.files.isEmpty) return;
 
@@ -217,26 +284,110 @@ class _WotUploadState extends State<WotUpload> {
     });
     widget.onChange?.call(_files);
 
-    // 自动上传：模拟上传成功。
+    // 自动上传：走真实上传（uploadMethod 优先，其次 action）。
     if (widget.autoUpload) {
       for (final f in picked) {
-        _simulateUpload(f);
+        _startUpload(f);
       }
     }
   }
 
-  /// 模拟上传：延迟后置为成功并回调 [onUpload]。
-  void _simulateUpload(WotUploadFile f) {
-    Future<void>.delayed(const Duration(milliseconds: 600), () {
+  /// 把 [WotUpload.accept] 解析为 `file_picker` 的 [FileType]。
+  FileType get _fileType {
+    final a = widget.accept?.trim().toLowerCase();
+    if (a == null || a.isEmpty) return FileType.any;
+    if (a.startsWith('image')) return FileType.image;
+    if (a.startsWith('video')) return FileType.video;
+    if (a.startsWith('audio')) return FileType.audio;
+    if (a.startsWith('media')) return FileType.media;
+    return FileType.custom;
+  }
+
+  /// [WotUpload.accept] 解析出的扩展名列表；仅 [FileType.custom] 时需要。
+  List<String>? get _allowedExtensions {
+    if (_fileType != FileType.custom) return null;
+    final exts = widget.accept!
+        .toLowerCase()
+        .split(',')
+        .map((e) => e.trim())
+        .map((e) => e.startsWith('*.') ? e.substring(2) : e)
+        .map((e) => e.startsWith('.') ? e.substring(1) : e)
+        .where((e) => e.isNotEmpty && !e.contains('*'))
+        .toList();
+    return exts.isEmpty ? null : exts;
+  }
+
+  /// 真实上传：[WotUpload.uploadMethod] 优先，其次 [WotUpload.action] 内置实现。
+  Future<void> _startUpload(WotUploadFile f) async {
+    if (_files.indexWhere((e) => identical(e, f)) < 0) return;
+
+    // copyWith 会换掉对象，因此用 current 跟踪列表里最新的那一份。
+    var current = f;
+    void setFile(WotUploadFile next) {
       if (!mounted) return;
-      final idx = _files.indexWhere((e) => identical(e, f));
-      if (idx < 0) return;
-      final done = f.copyWith(status: WotUploadStatus.success);
-      _files[idx] = done;
+      final i = _files.indexWhere((e) => identical(e, current));
+      if (i < 0) return;
+      _files[i] = next;
+      current = next;
       setState(() {});
+    }
+
+    setFile(f.copyWith(status: WotUploadStatus.loading, percent: 0));
+
+    WotUploadResponse res;
+    try {
+      final custom = widget.uploadMethod;
+      if (custom != null) {
+        res = await custom(f, (p) {
+          setFile(current.copyWith(status: WotUploadStatus.loading, percent: p));
+        });
+      } else {
+        final action = widget.action;
+        if (action == null || action.isEmpty) {
+          res = const WotUploadResponse(
+            statusCode: 0,
+            error: '未配置 action 或 uploadMethod，无法上传',
+          );
+        } else {
+          final uri = Uri.tryParse(action);
+          if (uri == null) {
+            res = const WotUploadResponse(statusCode: 0, error: 'action 不是合法 URL');
+          } else {
+            res = await wotUploadViaHttp(
+              uri: uri,
+              header: widget.header,
+              formData: widget.formData,
+              fieldName: widget.fileFieldName,
+              fileName: f.name ?? 'file',
+              bytes: f.bytes ?? Uint8List(0),
+              contentType: f.type,
+              onProgress: (p) {
+                setFile(current.copyWith(
+                    status: WotUploadStatus.loading, percent: p));
+              },
+            );
+          }
+        }
+      }
+    } catch (e) {
+      res = WotUploadResponse(statusCode: 0, error: '$e');
+    }
+
+    final done = res.isSuccess
+        ? current.copyWith(
+            status: WotUploadStatus.success,
+            percent: 100,
+            url: res.url ?? current.url,
+          )
+        : current.copyWith(status: WotUploadStatus.fail, percent: 0);
+    setFile(done);
+
+    if (res.isSuccess) {
       widget.onUpload?.call(done);
-      widget.onChange?.call(_files);
-    });
+    } else {
+      widget.onFail?.call(done);
+    }
+    widget.onChange?.call(_files);
   }
 
   void _remove(int index) {
@@ -326,18 +477,41 @@ class _WotUploadState extends State<WotUpload> {
               Image.network(f.thumbUrl, fit: BoxFit.cover, errorBuilder: (_, _, _) => _filePlaceholder(context, f))
             else
               _filePlaceholder(context, f),
-            // 上传中：加载动画遮罩。
+            // 上传中：加载动画 + 真实进度百分比。
             if (f.status == WotUploadStatus.loading)
               ColoredBox(
                 color: Colors.black.withValues(alpha: 0.45),
-                child: const Center(
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      ),
+                      if (f.percent != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          '${f.percent!.round()}%',
+                          style: const TextStyle(fontSize: 10, color: Colors.white),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            // 上传失败：点击重试。
+            if (f.status == WotUploadStatus.fail)
+              GestureDetector(
+                onTap: () => _startUpload(f),
+                child: ColoredBox(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  child: const Center(
+                    child: Icon(Icons.refresh, size: 22, color: Colors.white),
                   ),
                 ),
               ),

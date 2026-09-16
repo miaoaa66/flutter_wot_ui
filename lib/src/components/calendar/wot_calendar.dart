@@ -132,7 +132,7 @@ class WotCalendar extends StatelessWidget {
     this.initialValues,
     this.onConfirm,
     this.onCancel,
-    this.firstDayOfWeek = 1,
+    this.firstDayOfWeek = 0,
     this.formatter,
     this.innerDisplayFormat,
     this.maxRange,
@@ -147,7 +147,7 @@ class WotCalendar extends StatelessWidget {
     this.beforeConfirm,
     this.confirmLeft,
     this.confirmRight,
-    this.switchMode = WotCalendarSwitchMode.month,
+    this.switchMode = WotCalendarSwitchMode.none,
   });
 
   /// 当前选中日期（v-model，仅对单选 [WotCalendarType.single] 生效）。
@@ -186,7 +186,7 @@ class WotCalendar extends StatelessWidget {
   /// 点击取消（或关闭且未确认）时触发的回调。
   final VoidCallback? onCancel;
 
-  /// 周起始日：0=周日，1=周一（默认周一，对应 wot `first-day-of-week`）。
+  /// 周起始日：0=周日，1=周一，默认 0（即周日起始，对齐 wot `first-day-of-week`）。
   final int firstDayOfWeek;
 
   /// 日期单元格格式化回调（对应 wot `formatter`）。
@@ -231,7 +231,8 @@ class WotCalendar extends StatelessWidget {
   /// 确定按钮区域右侧拓展组件（对应 wot `confirm-right` 插槽）。
   final Widget? confirmRight;
 
-  /// 月份面板切换模式（对应 wot `switch-mode`）。
+  /// 月份面板切换模式（对应 wot `switch-mode`），默认 none（平铺展示所有月份，对齐 wot）；
+  /// month 为按月切换、yearMonth 为年+月切换。
   final WotCalendarSwitchMode switchMode;
 
   /// 便捷静态方法：单选弹窗。等同于打开一个仅单选类型的日历。
@@ -307,7 +308,7 @@ class _CalendarSheet extends StatefulWidget {
     this.initialValues,
     this.onConfirm,
     this.onCancel,
-    this.firstDayOfWeek = 1,
+    this.firstDayOfWeek = 0,
     this.formatter,
     this.innerDisplayFormat,
     this.maxRange,
@@ -322,7 +323,7 @@ class _CalendarSheet extends StatefulWidget {
     this.beforeConfirm,
     this.confirmLeft,
     this.confirmRight,
-    this.switchMode = WotCalendarSwitchMode.month,
+    this.switchMode = WotCalendarSwitchMode.none,
   });
   final DateTime? modelValue;
   final ValueChanged<DateTime>? onChange;
@@ -1007,9 +1008,9 @@ class _MonthGrid extends StatefulWidget {
     required this.color,
     this.minDate,
     this.maxDate,
-    this.firstDayOfWeek = 1,
+    this.firstDayOfWeek = 0,
     this.formatter,
-    this.switchMode = WotCalendarSwitchMode.month,
+    this.switchMode = WotCalendarSwitchMode.none,
     required this.onDay,
   });
 
@@ -1056,9 +1057,23 @@ class _MonthGridState extends State<_MonthGrid> {
 
   bool _same(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
 
+  /// 默认最小日期：当前日期往前 6 个月（对齐 wot `min-date` 默认值）。
+  DateTime _defaultMinDate() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month - 6, now.day);
+  }
+
+  /// 默认最大日期：当前日期往后 6 个月（对齐 wot `max-date` 默认值）。
+  DateTime _defaultMaxDate() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month + 6, now.day);
+  }
+
   bool _isDisabled(DateTime d) {
-    if (widget.minDate != null && d.isBefore(widget.minDate!)) return true;
-    if (widget.maxDate != null && d.isAfter(widget.maxDate!)) return true;
+    final minDate = widget.minDate ?? _defaultMinDate();
+    final maxDate = widget.maxDate ?? _defaultMaxDate();
+    if (d.isBefore(minDate)) return true;
+    if (d.isAfter(maxDate)) return true;
     final fmt = widget.formatter;
     if (fmt != null && fmt(d).disabled) return true;
     return false;
@@ -1080,8 +1095,10 @@ class _MonthGridState extends State<_MonthGrid> {
   }
 
   Future<void> _openYearMonthPicker(BuildContext context) async {
-    final yMin = widget.minDate?.year ?? (_year - 20);
-    final yMax = widget.maxDate?.year ?? (_year + 20);
+    final minDate = widget.minDate ?? _defaultMinDate();
+    final maxDate = widget.maxDate ?? _defaultMaxDate();
+    final yMin = minDate.year;
+    final yMax = maxDate.year;
     final years = <WotColumnOption>[
       for (var y = yMin; y <= yMax; y++) WotColumnOption(text: '$y', value: y),
     ];
@@ -1097,13 +1114,13 @@ class _MonthGridState extends State<_MonthGrid> {
     if (res == null || res.length < 2 || !mounted) return;
     final picked = DateTime((res[0] as num).toInt(), (res[1] as num).toInt(), 1);
     var year = picked.year, month = picked.month;
-    if (widget.minDate != null && picked.isBefore(widget.minDate!)) {
-      year = widget.minDate!.year;
-      month = widget.minDate!.month;
+    if (picked.isBefore(minDate)) {
+      year = minDate.year;
+      month = minDate.month;
     }
-    if (widget.maxDate != null && picked.isAfter(widget.maxDate!)) {
-      year = widget.maxDate!.year;
-      month = widget.maxDate!.month;
+    if (picked.isAfter(maxDate)) {
+      year = maxDate.year;
+      month = maxDate.month;
     }
     setState(() {
       _year = year;

@@ -79,8 +79,13 @@ class _WotTransitionState extends State<WotTransition>
       if (widget.inShow) {
         _visible = true;
         setState(() {});
-        widget.onEnter?.call();
         _controller.forward(from: 0);
+        // didUpdateWidget 处于 build 阶段，回调里 setState 会撞上
+        // 「setState() called during build」，延后到本帧构建结束。
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          widget.onEnter?.call();
+        });
       } else {
         _controller.reverse();
       }

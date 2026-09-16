@@ -163,7 +163,7 @@ class _WotSkeletonState extends State<WotSkeleton> with SingleTickerProviderStat
 }
 
 /// 骨架屏元素，对应 wot `wd-skeleton-item`。
-class WotSkeletonItem extends StatelessWidget {
+class WotSkeletonItem extends StatefulWidget {
   const WotSkeletonItem({
     super.key,
     this.type = WotSkeletonItemType.text,
@@ -189,8 +189,51 @@ class WotSkeletonItem extends StatelessWidget {
   final double size;
 
   @override
+  State<WotSkeletonItem> createState() => _WotSkeletonItemState();
+}
+
+class _WotSkeletonItemState extends State<WotSkeletonItem>
+    with SingleTickerProviderStateMixin {
+  AnimationController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncController();
+  }
+
+  @override
+  void didUpdateWidget(WotSkeletonItem old) {
+    super.didUpdateWidget(old);
+    if (old.animate != widget.animate) _syncController();
+  }
+
+  /// [WotSkeletonItem.animate] 为 false 时不创建/销毁控制器，避免空转。
+  void _syncController() {
+    if (widget.animate) {
+      _controller ??= AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 1200),
+      )..repeat(reverse: true);
+    } else {
+      _controller?.dispose();
+      _controller = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
+    final type = widget.type;
+    final width = widget.width;
+    final height = widget.height;
+    final size = widget.size;
     Widget block;
     switch (type) {
       case WotSkeletonItemType.image:
@@ -214,7 +257,12 @@ class WotSkeletonItem extends StatelessWidget {
           decoration: BoxDecoration(color: scheme.filledStrong, borderRadius: BorderRadius.circular(4)),
         );
     }
-    return block;
+    final controller = _controller;
+    if (controller == null) return block;
+    return FadeTransition(
+      opacity: Tween(begin: 1.0, end: 0.4).animate(controller),
+      child: block,
+    );
   }
 }
 

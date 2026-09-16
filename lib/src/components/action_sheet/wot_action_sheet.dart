@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
+import '../icon/wot_icon.dart';
 import '../loading/wot_loading.dart';
 
 /// 操作表单项。
@@ -176,12 +177,28 @@ class _ActionSheetPanel extends StatelessWidget {
         // 加载中优先展示 loading 指示器，而非文字。
         child: a.loading
             ? WotLoading(size: 18, loadingColor: scheme.primaryOf(6))
-            : Text(
-                a.name,
-                style: TextStyle(
-                  fontSize: 15,
-                  color: a.disabled ? scheme.textDisabled : color,
-                ),
+            : Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (a.icon != null && a.icon!.isNotEmpty) ...[
+                    WotIcon(
+                      name: a.icon,
+                      size: 18,
+                      color: a.disabled ? scheme.textDisabled : color,
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  Flexible(
+                    child: Text(
+                      a.name,
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: a.disabled ? scheme.textDisabled : color,
+                      ),
+                    ),
+                  ),
+                ],
               ),
       ),
     );

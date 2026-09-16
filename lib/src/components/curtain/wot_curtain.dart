@@ -18,7 +18,7 @@ class WotCurtain extends StatefulWidget {
   const WotCurtain({
     super.key,
     this.modelValue = false,
-    this.maskClose = true,
+    this.maskClose = false,
     this.closeIcon = 'close',
     this.closeIconSize = 24,
     this.closeIconColor,
@@ -84,7 +84,11 @@ class _WotCurtainState extends State<WotCurtain> {
   void didUpdateWidget(WotCurtain oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.modelValue && !_opened) {
-      _open();
+      // didUpdateWidget 处于 build 阶段，而 _open 会同步回调 onOpen，
+      // 调用方在其中 setState 会撞上「setState() called during build」。故延后一帧。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _open();
+      });
     } else if (!widget.modelValue && _opened) {
       _opened = false;
       if (mounted && Navigator.of(context, rootNavigator: true).canPop()) {

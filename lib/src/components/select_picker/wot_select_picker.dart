@@ -42,7 +42,7 @@ class WotSelectPicker extends StatefulWidget {
   const WotSelectPicker({
     super.key,
     this.columns = const [],
-    this.type = 'radio',
+    this.type = 'checkbox',
     this.modelValue,
     this.modelVisible,
     this.onChange,
@@ -71,7 +71,7 @@ class WotSelectPicker extends StatefulWidget {
   /// `String`、`Map`（配合 valueKey/labelKey/disabledKey 提取）。
   final List<Object> columns;
 
-  /// 选择类型：`radio`（单选，默认）或 `checkbox`（多选）。
+  /// 选择类型：`radio`（单选）或 `checkbox`（多选，默认，对齐 wot）。
   final String type;
 
   /// 当前选中值（受控 v-model）。radio 存单个值；checkbox 存 `List<Object?>`。
@@ -193,7 +193,7 @@ class WotSelectPicker extends StatefulWidget {
   static Future<T?> show<T>(
     BuildContext context, {
     List<Object> columns = const [],
-    String type = 'radio',
+    String type = 'checkbox',
     Object? initialValue,
     String? title,
     bool filterable = false,

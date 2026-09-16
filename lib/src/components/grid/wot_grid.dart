@@ -13,7 +13,7 @@ class WotGrid extends StatelessWidget {
     this.columnNum = 4,
     this.border = false,
     this.gap = 0,
-    this.square = true,
+    this.square = false,
     this.reverse = false,
     this.children = const [],
   });
@@ -50,10 +50,11 @@ class WotGrid extends StatelessWidget {
         final totalWidth = constraints.maxWidth;
         final cellWidth = _cellWidth(totalWidth, children.length);
 
-        // 分组：按列数分成行。
+        // 分组：按列数分成行。[reverse] 为 true 时先整体倒序，再按列切分。
+        final ordered = reverse ? children.reversed.toList() : children;
         final rows = <List<Widget>>[];
-        for (var i = 0; i < children.length; i += columnNum) {
-          rows.add(children.sublist(i, (i + columnNum).clamp(0, children.length)));
+        for (var i = 0; i < ordered.length; i += columnNum) {
+          rows.add(ordered.sublist(i, (i + columnNum).clamp(0, ordered.length)));
         }
 
         return SingleChildScrollView(

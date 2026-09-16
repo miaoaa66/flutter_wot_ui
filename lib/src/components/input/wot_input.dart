@@ -289,8 +289,31 @@ class WotInput extends StatelessWidget {
   /// 文本行数（多行时生效）。
   final int maxLines;
 
-  /// 输入框类型（透传备用，当前未影响键盘类型）。
+  /// 输入框类型，对应 wot `type`。可选 `text` / `number` / `digit` / `tel` / `email` / `url` / `password`。
+  ///
+  /// 会映射为 [TextInputType]；显式传入 [inputType] 时以 [inputType] 为准。
   final String? type;
+
+  /// [type] → [TextInputType] 映射；未识别的类型返回 null（保持默认键盘）。
+  static TextInputType? _keyboardTypeOf(String? type) {
+    switch (type) {
+      case 'number':
+        return const TextInputType.numberWithOptions(decimal: true);
+      case 'digit':
+        return TextInputType.number;
+      case 'tel':
+        return TextInputType.phone;
+      case 'email':
+        return TextInputType.emailAddress;
+      case 'url':
+        return TextInputType.url;
+      case 'text':
+      case 'password':
+        return TextInputType.text;
+      default:
+        return null;
+    }
+  }
 
   /// 是否使用数字键盘（允许小数）。
   final bool number;
@@ -328,7 +351,9 @@ class WotInput extends StatelessWidget {
       maxLines: maxLines,
       inputType: number
           ? const TextInputType.numberWithOptions(decimal: true)
-          : (password ? TextInputType.visiblePassword : TextInputType.text),
+          : (password
+              ? TextInputType.visiblePassword
+              : (_keyboardTypeOf(type) ?? TextInputType.text)),
       showWordLimit: showWordLimit,
       onFocus: onFocus,
       onBlur: onBlur,

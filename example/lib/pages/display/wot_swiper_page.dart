@@ -39,6 +39,16 @@ class _WotSwiperPageState extends State<WotSwiperPage> {
                 ],
               ),
             )),
+        demoBlock('默认自动轮播（autoplay 默认 true，interval 5000）',
+            SizedBox(
+              height: 120,
+              child: WotSwiper(
+                children: [
+                  for (var i = 0; i < 3; i++)
+                    WotSwiperItem(child: _slide(i, [Colors.blue, Colors.green, Colors.purple][i % 3])),
+                ],
+              ),
+            )),
         demoSection('指示点位置（indicatorPosition）'),
         demoBlock('上排：topLeft / topCenter / topRight',
             Wrap(spacing: 12, runSpacing: 12, children: [
@@ -47,6 +57,7 @@ class _WotSwiperPageState extends State<WotSwiperPage> {
                   width: 120,
                   height: 100,
                   child: WotSwiper(
+                    autoplay: false,
                     indicatorPosition: pos,
                     children: [
                       WotSwiperItem(child: ColoredBox(color: const Color(0xFF4DB6AC), child: const Center(child: Text('1', style: TextStyle(color: Colors.white))))),
@@ -62,6 +73,7 @@ class _WotSwiperPageState extends State<WotSwiperPage> {
                   width: 120,
                   height: 100,
                   child: WotSwiper(
+                    autoplay: false,
                     indicatorPosition: pos,
                     children: [
                       WotSwiperItem(child: ColoredBox(color: const Color(0xFFF06292), child: const Center(child: Text('1', style: TextStyle(color: Colors.white))))),

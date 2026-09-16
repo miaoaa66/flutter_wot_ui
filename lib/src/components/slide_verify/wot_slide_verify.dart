@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
@@ -34,7 +36,12 @@ class WotSlideVerify extends StatefulWidget {
 class _WotSlideVerifyState extends State<WotSlideVerify> {
   double _offset = 0;
   bool _success = false;
+  bool _failed = false;
   late double _width = 0;
+  Timer? _resetTimer;
+
+  /// 失败文案展示时长。
+  static const Duration _errorDuration = Duration(milliseconds: 1200);
 
   @override
   void didUpdateWidget(WotSlideVerify old) {
@@ -42,9 +49,23 @@ class _WotSlideVerifyState extends State<WotSlideVerify> {
     if (old.modelValue != widget.modelValue) _success = widget.modelValue;
   }
 
+  @override
+  void dispose() {
+    _resetTimer?.cancel();
+    super.dispose();
+  }
+
   void _update(double dx) {
     if (widget.disabled || _success) return;
+    // 重新拖动即清除失败态。
+    if (_failed) _clearFailed();
     setState(() => _offset = dx);
+  }
+
+  void _clearFailed() {
+    _resetTimer?.cancel();
+    _resetTimer = null;
+    _failed = false;
   }
 
   void _end() {
@@ -54,11 +75,21 @@ class _WotSlideVerifyState extends State<WotSlideVerify> {
       setState(() {
         _offset = threshold;
         _success = true;
+        _failed = false;
       });
       widget.onChange?.call(true);
     } else {
-      setState(() => _offset = 0);
+      setState(() {
+        _offset = 0;
+        _failed = true;
+      });
       widget.onChange?.call(false);
+      // 短暂展示失败文案后自动复原。
+      _resetTimer?.cancel();
+      _resetTimer = Timer(_errorDuration, () {
+        if (!mounted) return;
+        setState(() => _clearFailed());
+      });
     }
   }
 
@@ -87,7 +118,9 @@ class _WotSlideVerifyState extends State<WotSlideVerify> {
               children: [
                 Center(
                   child: Text(
-                    _success ? widget.successText : widget.text,
+                    _success
+                        ? widget.successText
+                        : (_failed ? widget.errorText : widget.text),
                     style: TextStyle(fontSize: 14, color: scheme.textSecondary),
                   ),
                 ),

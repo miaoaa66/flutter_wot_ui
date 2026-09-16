@@ -385,6 +385,7 @@ class _WotCalendarPageState extends State<WotCalendarPage> {
             WotCalendar(
               type: WotCalendarType.single,
               modelValue: _date,
+              switchMode: WotCalendarSwitchMode.month,
               onChange: (d) => setState(() => _date = d),
             )),
       ],

@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
+import '../form/wot_form.dart';
 
 /// 开关，对应 wot `wd-switch`。受控（v-model:value，true/false）。
 class WotSwitch extends StatelessWidget {
@@ -81,6 +82,7 @@ class WotSwitch extends StatelessWidget {
       onTap: disabled || loading
           ? null
           : () {
+              wotFormPushValue(context, name, !on);
               onChange?.call(!on);
             },
       child: AnimatedContainer(

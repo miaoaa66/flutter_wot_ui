@@ -26,7 +26,7 @@ class WotDatetimePickerView extends StatelessWidget {
     super.key,
     required this.modelValue,
     required this.onChange,
-    this.type = WotDatetimePickerType.date,
+    this.type = WotDatetimePickerType.datetime,
     this.minYear = 1900,
     this.maxYear = 2100,
     this.color,
@@ -45,7 +45,7 @@ class WotDatetimePickerView extends StatelessWidget {
   /// 选中值变化回调（每次滚轮变化即触发）。
   final ValueChanged<DateTime> onChange;
 
-  /// 选择器类型，可选 [WotDatetimePickerType]，默认 date。
+  /// 选择器类型，可选 [WotDatetimePickerType]，默认 datetime（对齐 wot）。
   final WotDatetimePickerType type;
 
   /// 最小可选择年份，默认 1900。
@@ -262,7 +262,7 @@ class WotDatetimePicker extends StatefulWidget {
     this.title,
     this.confirmText = '确定',
     this.cancelText = '取消',
-    this.type = WotDatetimePickerType.date,
+    this.type = WotDatetimePickerType.datetime,
     this.color,
     this.minDate,
     this.maxDate,
@@ -291,7 +291,7 @@ class WotDatetimePicker extends StatefulWidget {
   /// 取消按钮文案，默认“取消”。
   final String cancelText;
 
-  /// 选择器类型，可选 [WotDatetimePickerType]，默认 date。
+  /// 选择器类型，可选 [WotDatetimePickerType]，默认 datetime（对齐 wot）。
   final WotDatetimePickerType type;
 
   /// 确认按钮高亮颜色；为空时取主题主色。
@@ -331,7 +331,7 @@ class WotDatetimePicker extends StatefulWidget {
     BuildContext context, {
     DateTime? modelValue,
     String? title,
-    WotDatetimePickerType type = WotDatetimePickerType.date,
+    WotDatetimePickerType type = WotDatetimePickerType.datetime,
     Color? color,
     DateTime? minDate,
     DateTime? maxDate,

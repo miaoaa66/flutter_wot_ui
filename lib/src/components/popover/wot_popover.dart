@@ -131,15 +131,23 @@ class _WotPopoverState extends State<WotPopover> {
   void didUpdateWidget(covariant WotPopover old) {
     super.didUpdateWidget(old);
     if (old.visible != widget.visible || old.modelValue != widget.modelValue) {
-      if (_handleVisible) {
-        _ensureOverlay();
-        if (!_show) setState(() => _show = true);
-        widget.onOpen?.call();
-      } else if (_entry != null) {
-        _removeOverlay();
-        if (_show) setState(() => _show = false);
-        widget.onClose?.call();
-      }
+      final opening = _handleVisible;
+      if (!opening && _entry == null) return;
+      // didUpdateWidget 处于 build 阶段：OverlayEntry 的 insert/remove 会让 Overlay
+      // 这个祖先节点 markNeedsBuild，回调里调用方也可能 setState，
+      // 两者都会撞上「setState() called during build」，故整体延后一帧。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (opening) {
+          _ensureOverlay();
+          if (!_show) setState(() => _show = true);
+          widget.onOpen?.call();
+        } else if (_entry != null) {
+          _removeOverlay();
+          if (_show) setState(() => _show = false);
+          widget.onClose?.call();
+        }
+      });
     }
   }
 
@@ -200,10 +208,51 @@ class _WotPopoverState extends State<WotPopover> {
         ),
         CustomSingleChildLayout(
           delegate: _PopoverPosDelegate(_anchorRect(), widget.placement),
-          child: _popup(scheme),
+          child: _bubble(scheme),
         ),
       ],
     );
+  }
+
+  /// 气泡 + 箭头（[WotPopover.showArrow] 为 false 时只有气泡）。
+  ///
+  /// 箭头朝向由 [WotPopover.placement] 推导。**已知限制**：当空间不足触发
+  /// [_PopoverPosDelegate] 自动翻转时，箭头方向不会跟着翻转。
+  Widget _bubble(WotScheme scheme) {
+    if (!widget.showArrow) return _popup(scheme);
+    final side = _arrowSideFor(widget.placement);
+    final arrow = CustomPaint(
+      size: side == _ArrowSide.top || side == _ArrowSide.bottom
+          ? const Size(12, 6)
+          : const Size(6, 12),
+      painter: _ArrowPainter(color: scheme.filledOppo, side: side),
+    );
+    switch (side) {
+      case _ArrowSide.top:
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [arrow, _popup(scheme)],
+        );
+      case _ArrowSide.bottom:
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [_popup(scheme), arrow],
+        );
+      case _ArrowSide.left:
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [arrow, Flexible(child: _popup(scheme))],
+        );
+      case _ArrowSide.right:
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [Flexible(child: _popup(scheme)), arrow],
+        );
+    }
   }
 
   Widget _popup(WotScheme scheme) {
@@ -235,6 +284,65 @@ class _WotPopoverState extends State<WotPopover> {
       ),
     );
   }
+}
+
+/// 箭头所在的一侧（相对气泡本体）。
+enum _ArrowSide { top, bottom, left, right }
+
+/// 由 [WotPopoverPlacement] 推导箭头方位：气泡在锚点上方时箭头朝下，依此类推。
+_ArrowSide _arrowSideFor(WotPopoverPlacement p) => switch (p) {
+      WotPopoverPlacement.top ||
+      WotPopoverPlacement.topLeft ||
+      WotPopoverPlacement.topRight =>
+        _ArrowSide.bottom,
+      WotPopoverPlacement.bottom ||
+      WotPopoverPlacement.bottomLeft ||
+      WotPopoverPlacement.bottomRight =>
+        _ArrowSide.top,
+      WotPopoverPlacement.left => _ArrowSide.right,
+      WotPopoverPlacement.right => _ArrowSide.left,
+    };
+
+/// 气泡箭头（纯三角形）。
+class _ArrowPainter extends CustomPainter {
+  const _ArrowPainter({required this.color, required this.side});
+
+  final Color color;
+  final _ArrowSide side;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = color;
+    final path = Path();
+    switch (side) {
+      case _ArrowSide.bottom:
+        path
+          ..moveTo(0, 0)
+          ..lineTo(size.width, 0)
+          ..lineTo(size.width / 2, size.height);
+      case _ArrowSide.top:
+        path
+          ..moveTo(0, size.height)
+          ..lineTo(size.width, size.height)
+          ..lineTo(size.width / 2, 0);
+      case _ArrowSide.right:
+        path
+          ..moveTo(0, 0)
+          ..lineTo(0, size.height)
+          ..lineTo(size.width, size.height / 2);
+      case _ArrowSide.left:
+        path
+          ..moveTo(size.width, 0)
+          ..lineTo(size.width, size.height)
+          ..lineTo(0, size.height / 2);
+    }
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_ArrowPainter old) =>
+      old.color != color || old.side != side;
 }
 
 /// 计算气泡相对锚点的定位（主轴向空间不足时自动翻转）。

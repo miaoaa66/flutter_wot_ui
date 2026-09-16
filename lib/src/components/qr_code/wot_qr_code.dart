@@ -15,8 +15,8 @@ class WotQrCode extends StatelessWidget {
   const WotQrCode({
     super.key,
     required this.value,
-    this.size = 160,
-    this.errorLevel = WotQrCodeErrorLevel.m,
+    this.size = 200,
+    this.errorLevel = WotQrCodeErrorLevel.h,
     this.color,
     this.backgroundColor,
     this.border = 0,

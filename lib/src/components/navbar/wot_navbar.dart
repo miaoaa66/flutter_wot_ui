@@ -5,14 +5,21 @@ import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
 
 /// 顶部导航栏，对应 wot `wd-navbar`。
-class WotNavbar extends StatelessWidget {
+///
+/// 实现 [PreferredSizeWidget]，因此可直接放进 `Scaffold.appBar` /
+/// `NestedScrollView.headerSliverBuilder` / `SliverAppBar` 等需要该约束的位置。
+///
+/// **作为 appBar 使用时应把 [safeArea] 置为 false**：`Scaffold` 已经处理了状态栏避让，
+/// 再套一层 `SafeArea` 会导致顶部多出一段空白。此时用 [topPadding] 把状态栏高度
+/// 计入 [preferredSize] 即可。
+class WotNavbar extends StatelessWidget implements PreferredSizeWidget {
   const WotNavbar({
     super.key,
     this.title,
     this.titleWidget,
     this.leftText,
     this.rightText,
-    this.leftArrow = true,
+    this.leftArrow = false,
     this.leftArrowColor,
     this.background,
     this.color,
@@ -24,6 +31,9 @@ class WotNavbar extends StatelessWidget {
     this.onCapsuleRight,
     this.onClickLeft,
     this.onClickRight,
+    this.height = 44,
+    this.topPadding = 0,
+    this.safeArea = true,
   });
 
   /// 标题文本（无 [titleWidget] 时使用）。
@@ -74,6 +84,22 @@ class WotNavbar extends StatelessWidget {
   /// 点击右侧区域时回调。
   final VoidCallback? onClickRight;
 
+  /// 导航栏内容区高度（不含 [topPadding]），默认 44。
+  final double height;
+
+  /// 计入 [preferredSize] 的顶部额外高度（通常填状态栏高度）。
+  ///
+  /// 只为让 [preferredSize] 算准，组件内部不会额外绘制这段高度。
+  final double topPadding;
+
+  /// 是否自行套一层 [SafeArea] 避让状态栏，默认 true。
+  ///
+  /// 放进 `Scaffold.appBar` 时应置为 false（由 Scaffold 统一避让）。
+  final bool safeArea;
+
+  @override
+  Size get preferredSize => Size.fromHeight(height + topPadding);
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
@@ -109,44 +135,43 @@ class WotNavbar extends StatelessWidget {
       onClickRight,
     );
 
+    final bar = Container(
+      decoration: bordered
+          ? BoxDecoration(
+              border: Border(bottom: BorderSide(color: scheme.borderLight)),
+            )
+          : null,
+      height: height,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        children: [
+          left,
+          Expanded(
+            child: Center(
+              child: capsule
+                  ? _capsule(scheme, fg)
+                  : (titleWidget ??
+                      Text(
+                        title ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: fg,
+                        ),
+                      )),
+            ),
+          ),
+          right,
+        ],
+      ),
+    );
+
     return Container(
       width: double.infinity,
       color: bg,
-      child: SafeArea(
-        bottom: false,
-        child: Container(
-          decoration: bordered
-              ? BoxDecoration(
-                  border: Border(bottom: BorderSide(color: scheme.borderLight)),
-                )
-              : null,
-          height: 44,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            children: [
-              left,
-              Expanded(
-                child: Center(
-                  child: capsule
-                      ? _capsule(scheme, fg)
-                      : (titleWidget ??
-                          Text(
-                            title ?? '',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: fg,
-                            ),
-                          )),
-                ),
-              ),
-              right,
-            ],
-          ),
-        ),
-      ),
+      child: safeArea ? SafeArea(bottom: false, child: bar) : bar,
     );
   }
 

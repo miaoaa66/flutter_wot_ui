@@ -1,9 +1,42 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
+import '../toast/wot_toast.dart';
 
-/// 表单项校验规则，对齐 wot `FormRule`：给定当前值返回是否通过。
-typedef WotFormRule = bool Function(String? value);
+/// 表单项校验规则，对齐 wot `FormRule`。
+///
+/// 返回值语义同时兼容两种写法：
+/// - `null` 或 `true` —— 校验通过
+/// - `false` —— 校验失败，使用默认文案「{label}校验未通过」
+/// - 非空字符串 —— 校验失败，并以该字符串作为错误提示（自定义消息）
+///
+/// 入参声明为 `dynamic`，因此既有的 `(v) => v != null && v.isNotEmpty`
+/// 这类针对 String 的写法无需改动即可继续编译。
+typedef WotFormRule = Object? Function(dynamic value);
+
+/// 触发校验的时机。
+enum WotFormTrigger {
+  /// 值变化时立即校验。
+  change,
+
+  /// 失焦时校验（需录入控件在失焦时调用 [WotFormControl.validateField]）。
+  blur,
+
+  /// 提交或手动调用 validate 时校验。
+  submit,
+}
+
+/// 校验失败的展示方式。
+enum WotFormErrorType {
+  /// 表单项下方内联展示错误文案（默认）。
+  message,
+
+  /// 除内联展示外，额外用 toast 提示首个错误。
+  toast,
+
+  /// 不展示错误（调用方自行处理 validate 的返回值）。
+  none,
+}
 
 /// 通过 [BuildContext] 访问当前表单 [WotFormControl]（供子控件注册/取值）。
 class WotFormScope extends InheritedWidget {
@@ -13,6 +46,14 @@ class WotFormScope extends InheritedWidget {
 
   static WotFormControl? of(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<WotFormScope>()?.control;
+  }
+
+  /// 在非 build 阶段（如点击回调）读取控制器，**不建立**依赖关系。
+  ///
+  /// 录入控件在值变化回调里登记数据时应走这里，避免把回调变成依赖方。
+  static WotFormControl? read(BuildContext context) {
+    final el = context.getElementForInheritedWidgetOfExactType<WotFormScope>();
+    return (el?.widget as WotFormScope?)?.control;
   }
 
   @override
@@ -28,54 +69,165 @@ class _WotFormFieldEntry {
 }
 
 /// 表单控制器：维护各字段值、错误与校验规则。
+///
+/// 值类型为 [Object]，因此 switch（bool）、rate / slider（num）、
+/// input（String）等控件都能登记同一个字段。
 class WotFormControl extends ChangeNotifier {
-  WotFormControl({this.rules = const {}});
+  WotFormControl({
+    Map<String, WotFormRule> rules = const {},
+    Map<String, Object?> model = const {},
+    Set<WotFormTrigger> validateTrigger = const {WotFormTrigger.submit},
+    this.errorType = WotFormErrorType.message,
+  })  : _rules = Map<String, WotFormRule>.of(rules),
+        _trigger = Set<WotFormTrigger>.of(validateTrigger),
+        _initialModel = Map<String, Object?>.of(model) {
+    _values.addAll(_initialModel);
+  }
 
-  final Map<String, WotFormRule> rules;
-  final Map<String, String> _values = {};
-  final Map<String, String?> _errors = {};
+  final Map<String, WotFormRule> _rules;
+  final Set<WotFormTrigger> _trigger;
+  Map<String, Object?> _initialModel;
+
+  /// 错误展示方式（由 [WotForm] 下发，供 [WotFormItem] 读取）。
+  WotFormErrorType errorType;
+
+  final Map<String, Object?> _values = {};
+  final Map<String, String> _errors = {};
   final Map<String, _WotFormFieldEntry> _fields = {};
 
-  void register(String name, String label) => _fields[name] = _WotFormFieldEntry(name: name, label: label);
+  /// 已被校验过的字段名。
+  ///
+  /// 用于区分「尚未校验」与「校验不通过」：仅标记过的字段才允许展示
+  /// 必填类错误，避免刚进入页面就满屏红字。
+  final Set<String> _validated = {};
+
+  /// 该字段是否已被校验过（至少跑过一次规则）。
+  bool wasValidated(String name) => _validated.contains(name);
+
+  /// 当前全部字段值（只读副本）。
+  Map<String, Object?> get values => Map<String, Object?>.unmodifiable(_values);
+
+  /// 当前全部错误（只读副本）。
+  Map<String, String> get errors => Map<String, String>.unmodifiable(_errors);
+
+  void register(String name, String label) =>
+      _fields[name] = _WotFormFieldEntry(name: name, label: label);
+
   void unregister(String name) {
     _fields.remove(name);
     _values.remove(name);
     _errors.remove(name);
   }
 
-  String? valueOf(String name) => _values[name];
+  Object? valueOf(String name) => _values[name];
 
-  void setValue(String name, String? v) {
-    _values[name] = v ?? '';
+  String? errorOf(String name) => _errors[name];
+
+  /// 写入字段值。若触发时机包含 [WotFormTrigger.change] 则立即校验该字段。
+  void setValue(String name, Object? v) {
+    _values[name] = v;
+    if (_trigger.contains(WotFormTrigger.change)) {
+      validateField(name);
+      return;
+    }
     _errors.remove(name);
+    notifyListeners();
+  }
+
+  /// 整体替换校验规则。
+  void setRules(Map<String, WotFormRule> r) {
+    _rules
+      ..clear()
+      ..addAll(r);
+  }
+
+  /// 更新初始 model：合并新键，已存在的键保持不变（避免覆盖用户输入）。
+  void setModel(Map<String, Object?> model) {
+    _initialModel = Map<String, Object?>.of(model);
+    for (final e in model.entries) {
+      _values.putIfAbsent(e.key, () => e.value);
+    }
     notifyListeners();
   }
 
   void clearValidate() {
     _errors.clear();
+    // 必须一并清除：否则清空错误后，必填字段会因「已校验 + 值为空」立刻重新报错。
+    _validated.clear();
     notifyListeners();
   }
 
-  /// 校验全部字段：为每个失败字段设置错误信息；返回首个失败信息，无则 null。
-  /// 注意：会遍历所有字段，因此多个字段全部失败时，它们的错误都会同步展示。
-  String? validate() {
-    String? first;
+  /// 重置到初始 model 并清空错误。
+  void reset() {
+    _values
+      ..clear()
+      ..addAll(_initialModel);
+    _errors.clear();
+    _validated.clear();
+    notifyListeners();
+  }
+
+  /// 校验单个字段；返回错误文案，通过返回 null。
+  String? validateField(String name) {
+    final entry = _fields[name];
+    if (entry == null) return null;
+    _validated.add(name);
+    final rule = _rules[name];
+    if (rule == null) {
+      _errors.remove(name);
+      notifyListeners();
+      return null;
+    }
+    final msg = _evalRule(rule, _values[name], entry.label);
+    if (msg == null) {
+      _errors.remove(name);
+    } else {
+      _errors[name] = msg;
+    }
+    notifyListeners();
+    return msg;
+  }
+
+  /// 校验全部字段（或 [prop] 指定的单个字段），返回「字段名 → 错误文案」。
+  ///
+  /// 与 [validate] 的区别是它返回完整错误表，便于调用方自行处理。
+  Map<String, String> validateFields([String? prop]) {
+    if (prop != null) {
+      final m = validateField(prop);
+      return m == null ? <String, String>{} : <String, String>{prop: m};
+    }
+    final out = <String, String>{};
     for (final e in _fields.values) {
-      final rule = rules[e.name];
+      _validated.add(e.name);
+      final rule = _rules[e.name];
       if (rule == null) continue;
-      if (!rule(_values[e.name])) {
-        final msg = '${e.label}校验未通过';
-        _errors[e.name] = msg;
-        first ??= msg;
-      } else {
+      final msg = _evalRule(rule, _values[e.name], e.label);
+      if (msg == null) {
         _errors.remove(e.name);
+      } else {
+        _errors[e.name] = msg;
+        out[e.name] = msg;
       }
     }
     notifyListeners();
-    return first;
+    return out;
   }
 
-  String? errorOf(String name) => _errors[name];
+  /// 校验并给出首个错误文案；全部通过返回 null。
+  ///
+  /// 传入 [prop] 时只校验该字段。注意：无 [prop] 时会遍历全部字段，
+  /// 因此多个字段失败时它们的错误会同步展示。
+  String? validate([String? prop]) {
+    final errs = validateFields(prop);
+    return errs.isEmpty ? null : errs.values.first;
+  }
+
+  static String? _evalRule(WotFormRule rule, Object? value, String label) {
+    final r = rule(value);
+    if (r == null || r == true) return null;
+    if (r == false) return '$label校验未通过';
+    return r.toString();
+  }
 }
 
 /// 表单组件，对应 wot `wd-form`。
@@ -87,14 +239,32 @@ class WotForm extends StatefulWidget {
   const WotForm({
     super.key,
     this.rules = const {},
+    this.model = const {},
+    this.validateTrigger = const {WotFormTrigger.submit},
+    this.errorType = WotFormErrorType.message,
+    this.onError,
     this.submitButtonText,
     this.showSubmitButton = false,
     this.onSubmit,
     this.children = const [],
   });
 
-  /// 校验规则：`{ 'field': (value) => ok }`。
+  /// 校验规则：`{ 'field': (value) => ... }`。
+  ///
+  /// 返回 `null`/`true` 通过；`false` 用默认文案；返回字符串则用该字符串作为提示。
   final Map<String, WotFormRule> rules;
+
+  /// 初始表单数据（wot `model` 语义）。
+  final Map<String, Object?> model;
+
+  /// 触发校验的时机集合，默认仅提交时。
+  final Set<WotFormTrigger> validateTrigger;
+
+  /// 错误展示方式，默认 [WotFormErrorType.message]。
+  final WotFormErrorType errorType;
+
+  /// 校验失败回调（参数为「字段名 → 错误文案」），与 [errorType] 独立。
+  final ValueChanged<Map<String, String>>? onError;
 
   /// 底部提交按钮文字；为空则不渲染提交块。
   final String? submitButtonText;
@@ -118,14 +288,21 @@ class WotFormState extends State<WotForm> {
   @override
   void initState() {
     super.initState();
-    _control = WotFormControl(rules: widget.rules);
+    _control = WotFormControl(
+      rules: widget.rules,
+      model: widget.model,
+      validateTrigger: widget.validateTrigger,
+      errorType: widget.errorType,
+    );
   }
 
   @override
   void didUpdateWidget(WotForm oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.rules != widget.rules) {
-      _control.rules..clear()..addAll(widget.rules);
+    if (oldWidget.rules != widget.rules) _control.setRules(widget.rules);
+    if (oldWidget.model != widget.model) _control.setModel(widget.model);
+    if (oldWidget.errorType != widget.errorType) {
+      _control.errorType = widget.errorType;
     }
   }
 
@@ -138,14 +315,26 @@ class WotFormState extends State<WotForm> {
   /// 当前表单控制器。
   WotFormControl get control => _control;
 
-  /// 校验全部字段；通过返回 null，失败返回首个错误信息。
-  String? validate() => _control.validate();
+  /// 校验全部字段（或 [prop] 指定的单个字段）；通过返回 null，失败返回首个错误信息。
+  String? validate([String? prop]) {
+    final errs = _control.validateFields(prop);
+    if (errs.isEmpty) return null;
+    final first = errs.values.first;
+    if (widget.errorType == WotFormErrorType.toast) {
+      WotToast.show(context, first);
+    }
+    widget.onError?.call(errs);
+    return first;
+  }
 
   /// 清除校验状态。
   void clearValidate() => _control.clearValidate();
 
+  /// 重置到初始 model 并清空错误。
+  void reset() => _control.reset();
+
   void _onSubmit() {
-    final err = _control.validate();
+    final err = validate();
     if (err == null) widget.onSubmit?.call(_control);
   }
 
@@ -182,4 +371,14 @@ class WotFormState extends State<WotForm> {
       ),
     );
   }
+}
+
+
+/// 供录入控件把当前值登记到所属表单（wot `name` 语义）。
+///
+/// 值类型为 [Object]，因此 switch（bool）、rate / slider（num）、input（String）
+/// 等不同控件都能共用同一个字段槽位。
+void wotFormPushValue(BuildContext context, String? name, Object? value) {
+  if (name == null) return;
+  WotFormScope.read(context)?.setValue(name, value);
 }

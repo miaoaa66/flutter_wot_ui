@@ -20,10 +20,11 @@ class WotToast {
   static OverlayState? _overlayOf(BuildContext context) =>
       Overlay.of(context, rootOverlay: true);
 
+  /// [duration] 为 null 时表示常驻不自动关闭（loading 语义），只能由 [close] / 下一个 toast 顶替。
   static void _show(
     BuildContext context, {
     required Widget child,
-    Duration duration = const Duration(milliseconds: 2000),
+    Duration? duration = const Duration(milliseconds: 2000),
     String position = 'center',
   }) {
     final overlay = _overlayOf(context);
@@ -36,7 +37,9 @@ class WotToast {
     _current = entry;
     overlay.insert(entry);
 
-    _timer = Timer(duration, () {
+    final d = duration;
+    if (d == null) return;
+    _timer = Timer(d, () {
       entry.remove();
       _current = null;
     });
@@ -107,12 +110,13 @@ class WotToast {
           {Duration? duration, String position = 'center'}) =>
       show(context, msg, duration: duration, position: position);
 
-  /// 加载中（不自动关闭）。
+  /// 加载中（不自动关闭，须显式调用 [close]）。
   static void loading(BuildContext context, String msg,
       {String position = 'center'}) {
     _show(
         context,
         child: _ToastIcon(type: WotToastType.loading, msg: msg),
+        duration: null,
         position: position);
   }
 

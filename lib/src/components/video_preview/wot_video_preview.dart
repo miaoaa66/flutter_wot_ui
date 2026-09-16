@@ -122,8 +122,13 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
   @override
   void initState() {
     super.initState();
-    widget.onOpen?.call();
     _controller = VideoPlayerController.networkUrl(Uri.parse(widget.src));
+    // initState 处于父级的 build 阶段，同步回调 onOpen 会让调用方的 setState
+    // 撞上「setState() called during build」。延后到本帧构建结束后再发出。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.onOpen?.call();
+    });
     _controller.addListener(_onControllerChanged);
     _init();
   }

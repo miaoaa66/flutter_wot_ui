@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class WotGap extends StatelessWidget {
   const WotGap({
     super.key,
-    this.gap = 12,
+    this.gap = 14,
     this.width,
     this.bgColor,
     this.flex = false,

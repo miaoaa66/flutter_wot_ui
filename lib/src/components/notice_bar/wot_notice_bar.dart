@@ -26,7 +26,7 @@ class WotNoticeBar extends StatefulWidget {
     this.closeable = false,
     this.leftIcon = true,
     this.delay = 1,
-    this.speed = 60,
+    this.speed = 50,
     this.onClose,
     this.onNext,
     this.onClick,
@@ -69,7 +69,7 @@ class WotNoticeBar extends StatefulWidget {
   /// 滚动/轮播动画初始延时（秒）。
   final int delay;
 
-  /// 滚动速度（px/s）。
+  /// 滚动速度（px/s），默认 50。
   final int speed;
 
   /// 点击关闭按钮（closeable 模式，动画结束后）时回调。

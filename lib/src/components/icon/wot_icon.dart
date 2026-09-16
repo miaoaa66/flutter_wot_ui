@@ -112,9 +112,14 @@ class WotIconResolver {
   /// 将 wot 名称解析为 [IconData]。
   static IconData resolve(String? name) {
     if (name == null || name.isEmpty) return fallback;
-    final normalized = name.replaceAll('-', '-').toLowerCase();
-    return _map[normalized] ?? _map[name] ?? fallback;
+    // 归一化分隔符：下划线与空格都按中划线处理，再转小写。
+    final normalized = normalizeName(name);
+    return _map[normalized] ?? _map[name.trim()] ?? fallback;
   }
+
+  /// 名称归一化：去首尾空格，`_` / 空格 → `-`，并转小写。
+  static String normalizeName(String name) =>
+      name.trim().replaceAll('_', '-').replaceAll(' ', '-').toLowerCase();
 }
 
 /// 图标组件，对应 wot `wd-icon`。
@@ -128,7 +133,7 @@ class WotIcon extends StatelessWidget {
     this.name,
     this.size,
     this.color,
-    this.classPrefix = 'wot-icon',
+    @Deprecated('classPrefix 从未生效，将在后续版本移除。') this.classPrefix = 'wot-icon',
     this.onClick,
   });
 
@@ -141,7 +146,8 @@ class WotIcon extends StatelessWidget {
   /// 图标颜色；为空时取语义图标主色。
   final Color? color;
 
-  /// 兼容 wot 参数保留（class 前缀），本项目不启用。
+  /// **已废弃**：wot 的 CSS class 前缀，Flutter 没有 class 概念，该参数从未参与解析。
+  @Deprecated('classPrefix 从未生效（Flutter 无 CSS class 语义），将在后续版本移除。')
   final String classPrefix;
 
   /// 点击回调。

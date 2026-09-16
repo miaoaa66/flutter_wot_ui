@@ -248,6 +248,18 @@ class _WotNetworkImageState extends State<_WotNetworkImage> {
     }
   }
 
+  /// 回调一律延后到本帧构建结束后再发出。
+  ///
+  /// [onLoad] / [onError] 由 `loadingBuilder` / `errorBuilder` 触发，二者都在 build 阶段同步执行；
+  /// 若直接回调，调用方在回调里 `setState` 就会抛「setState() or markNeedsBuild() called during build」。
+  void _notify(VoidCallback? cb) {
+    if (cb == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      cb();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_visible) return widget.loadPlaceholder ?? const SizedBox.shrink();
@@ -261,7 +273,7 @@ class _WotNetworkImageState extends State<_WotNetworkImage> {
         if (progress == null) {
           if (!_loaded) {
             _loaded = true;
-            widget.onLoad?.call();
+            _notify(widget.onLoad);
           }
           return child;
         }
@@ -270,7 +282,7 @@ class _WotNetworkImageState extends State<_WotNetworkImage> {
       errorBuilder: (_, _, _) {
         if (!_failed) {
           _failed = true;
-          widget.onError?.call();
+          _notify(widget.onError);
         }
         return widget.errorPlaceholder ?? const SizedBox.shrink();
       },

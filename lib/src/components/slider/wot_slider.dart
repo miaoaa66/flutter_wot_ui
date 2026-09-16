@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
+import '../form/wot_form.dart';
 
 /// 滑块，对应 wot `wd-slider`。受控（v-model:value）。
 class WotSlider extends StatefulWidget {
@@ -124,6 +125,7 @@ class _WotSliderState extends State<WotSlider> {
     final v = _fracToValue(fraction);
     if (v == _value) return;
     setState(() => _value = v);
+    wotFormPushValue(context, widget.name, v);
     widget.onChange?.call(v);
   }
 

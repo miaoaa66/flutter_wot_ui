@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
 import '../form/wot_form.dart';
+import '../icon/wot_icon.dart';
 
 /// 表单项，对应 wot `wd-form-item`。
 ///
@@ -19,6 +20,9 @@ class WotFormItem extends StatefulWidget {
     this.showMessage = true,
     this.border = true,
     this.childrenPadding = const EdgeInsets.fromLTRB(16, 10, 16, 10),
+    this.clickable = false,
+    this.isLink = false,
+    this.onTap,
     required this.child,
   });
 
@@ -48,6 +52,15 @@ class WotFormItem extends StatefulWidget {
 
   /// 整体内边距，默认 (16, 10, 16, 10)。
   final EdgeInsets childrenPadding;
+
+  /// 是否可点击（为 true 时整行包裹点击手势并带水波纹）。
+  final bool clickable;
+
+  /// 是否展示右侧箭头（配合 [clickable] 表达「跳转」语义）。
+  final bool isLink;
+
+  /// 点击整行的回调；需要 [clickable] 为 true 才会触发。
+  final VoidCallback? onTap;
 
   /// 表单项内容（录入控件）。
   final Widget child;
@@ -92,10 +105,17 @@ class _WotFormItemState extends State<WotFormItem> {
     final control = _control;
     final err = widget.errorMessage ??
         control?.errorOf(widget.name) ??
-        (widget.required && control?.valueOf(widget.name)?.isEmpty == true
+        // 必填空值提示只在「该字段已被校验过」后才展示，
+        // 否则进入页面就会满屏红字。
+        (widget.required &&
+                (control?.wasValidated(widget.name) ?? false) &&
+                _isEmpty(control?.valueOf(widget.name))
             ? '${widget.label ?? widget.name}不能为空'
             : null);
-    final showErr = widget.showMessage && err != null;
+    final showErr = widget.showMessage &&
+        err != null &&
+        (control?.errorType ?? WotFormErrorType.message) !=
+            WotFormErrorType.none;
 
     final labelWidget = widget.label == null
         ? null
@@ -128,22 +148,51 @@ class _WotFormItemState extends State<WotFormItem> {
               ),
             )
           : null,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (labelWidget != null) ...[
-            Padding(padding: const EdgeInsets.only(bottom: 6), child: labelWidget),
-          ],
-          widget.child,
-          if (showErr) ...[
-            const SizedBox(height: 6),
-            Text(
-              err,
-              style: TextStyle(fontSize: 12, color: scheme.dangerMain),
+      child: _wrapTappable(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (labelWidget != null) ...[
+              Padding(padding: const EdgeInsets.only(bottom: 6), child: labelWidget),
+            ],
+            Row(
+              children: [
+                Expanded(child: widget.child),
+                if (widget.isLink) ...[
+                  const SizedBox(width: 6),
+                  WotIcon(
+                    name: 'arrow-right',
+                    size: 16,
+                    color: scheme.iconAuxiliary,
+                  ),
+                ],
+              ],
             ),
+            if (showErr) ...[
+              const SizedBox(height: 6),
+              Text(
+                err,
+                style: TextStyle(fontSize: 12, color: scheme.dangerMain),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
+  }
+
+  /// [clickable] 为 true 时给整行加点击手势与水波纹。
+  Widget _wrapTappable(Widget content) {
+    if (!widget.clickable) return content;
+    return InkWell(onTap: widget.onTap, child: content);
+  }
+
+  /// 判定「值为空」：兼容 String / Iterable / Map / null。
+  static bool _isEmpty(Object? v) {
+    if (v == null) return true;
+    if (v is String) return v.isEmpty;
+    if (v is Iterable) return v.isEmpty;
+    if (v is Map) return v.isEmpty;
+    return false;
   }
 }

@@ -15,7 +15,7 @@ class WotOverlay extends StatefulWidget {
     this.onTap,
     this.child,
     this.withAnimation = true,
-    this.zIndex,
+    @Deprecated('zIndex 从未生效，将在后续版本移除。') this.zIndex,
     this.clickToClose = false,
   });
 
@@ -48,9 +48,9 @@ class WotOverlay extends StatefulWidget {
 
   /// 层级（wot `z-index`，默认 10）。
   ///
-  /// Flutter 中同层级的上下顺序由父级 `Stack` 的子节点渲染顺序决定，
-  /// 此参数主要用于 API 对齐与可读性标记；多个遮罩需调整层级时，
-  /// 请在父级 `Stack` 中调整顺序。
+  /// **已废弃**：该参数从未被 `build` 消费（死参数）。Flutter 没有 CSS `z-index` 语义——
+  /// 同层级的上下顺序由父级 `Stack` 的子节点顺序决定，多个遮罩需调整层级时请在父级 `Stack` 中调整顺序。
+  @Deprecated('zIndex 从未生效（Flutter 无 z-index 语义）。请通过调整父级 Stack 的子节点顺序控制层级。')
   final int? zIndex;
 
   /// 点击遮罩层后是否自动隐藏本次遮罩（仅当遮罩为"一次性"提示时需要；

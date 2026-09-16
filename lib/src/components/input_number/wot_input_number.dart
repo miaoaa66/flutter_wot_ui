@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
+import '../form/wot_form.dart';
 
 /// 数字输入框，对应 wot `wd-input-number`。受控（v-model:value）。
 class WotInputNumber extends StatefulWidget {
@@ -10,8 +12,8 @@ class WotInputNumber extends StatefulWidget {
     super.key,
     this.modelValue = 0,
     this.onChange,
-    this.min = 0,
-    this.max = 100,
+    this.min = 1,
+    this.max = 9007199254740991,
     this.step = 1,
     this.precision,
     this.disabled = false,
@@ -28,10 +30,10 @@ class WotInputNumber extends StatefulWidget {
   /// 值变化时回调。
   final ValueChanged<num>? onChange;
 
-  /// 最小值；默认 0，小于该值的输入会被夹取到该值。
+  /// 最小值；默认 1（对齐 wot），小于该值的输入会被夹取到该值。
   final num min;
 
-  /// 最大值；默认 100。
+  /// 最大值；默认 Number.MAX_SAFE_INTEGER（对齐 wot）。
   final num max;
 
   /// 每次增减的步长；默认 1。
@@ -66,6 +68,26 @@ class _WotInputNumberState extends State<WotInputNumber> {
   late final TextEditingController _c;
   late num _value;
 
+  /// 长按连续增减的定时器；仅 [WotInputNumber.longPress] 为 true 时启用。
+  Timer? _repeatTimer;
+
+  /// 长按触发间隔（毫秒）。
+  static const int _repeatInterval = 120;
+
+  void _stopRepeat() {
+    _repeatTimer?.cancel();
+    _repeatTimer = null;
+  }
+
+  void _startRepeat(num delta) {
+    if (!widget.longPress) return;
+    _stopRepeat();
+    _repeatTimer = Timer.periodic(const Duration(milliseconds: _repeatInterval), (_) {
+      // 到达 min/max 后 _step 不再变化，此时主动停止，避免空转。
+      if (!_step(delta)) _stopRepeat();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -84,6 +106,7 @@ class _WotInputNumberState extends State<WotInputNumber> {
 
   @override
   void dispose() {
+    _stopRepeat();
     _c.dispose();
     super.dispose();
   }
@@ -108,18 +131,21 @@ class _WotInputNumberState extends State<WotInputNumber> {
 
   void _emit(num v) {
     _value = v;
+    wotFormPushValue(context, widget.name, v);
     widget.onChange?.call(v);
   }
 
-  void _step(double delta) {
-    if (widget.disabled || widget.readonly) return;
+  /// 步进一次；返回数值是否真的发生变化（到边界时为 false）。
+  bool _step(num delta) {
+    if (widget.disabled || widget.readonly) return false;
     final next = _round((_value + delta * widget.step).clamp(widget.min, widget.max).toDouble());
-    if (next == _value) return;
+    if (next == _value) return false;
     setState(() {
       _value = next;
       _syncText();
       _emit(next);
     });
+    return true;
   }
 
   void _parseAndEmit(String s) {
@@ -144,8 +170,8 @@ class _WotInputNumberState extends State<WotInputNumber> {
     final disableMinus = _value <= widget.min;
     final disablePlus = _value >= widget.max;
 
-    final minus = _button(Icons.remove, disableMinus, () => _step(-1), btnColor);
-    final plus = _button(Icons.add, disablePlus, () => _step(1), btnColor);
+    final minus = _button(Icons.remove, disableMinus, -1, btnColor);
+    final plus = _button(Icons.add, disablePlus, 1, btnColor);
 
     final field = SizedBox(
       width: widget.inputWidth,
@@ -179,12 +205,16 @@ class _WotInputNumberState extends State<WotInputNumber> {
     );
   }
 
-  Widget _button(IconData icon, bool disabled, VoidCallback onTap, Color color) {
+  Widget _button(IconData icon, bool disabled, num delta, Color color) {
     final scheme = context.wotScheme;
     final border = disabled ? scheme.borderLight : scheme.borderMain;
+    final canLongPress = !disabled && widget.longPress;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: disabled ? null : onTap,
+      onTap: disabled ? null : () => _step(delta),
+      onLongPressStart: canLongPress ? (_) => _startRepeat(delta) : null,
+      onLongPressEnd: canLongPress ? (_) => _stopRepeat() : null,
+      onLongPressCancel: canLongPress ? _stopRepeat : null,
       child: Container(
         width: widget.buttonSize,
         height: widget.buttonSize,

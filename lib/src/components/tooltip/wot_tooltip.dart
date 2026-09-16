@@ -120,15 +120,23 @@ class _WotTooltipState extends State<WotTooltip> {
     super.didUpdateWidget(old);
     // 受控 external 变化（show/visible）与内部状态同步到 Overlay。
     if (old.visible != widget.visible || old.show != widget.show) {
-      if (_handleVisible) {
-        _ensureOverlay();
-        if (!_show) setState(() => _show = true);
-        widget.onShow?.call();
-      } else if (_entry != null) {
-        _removeOverlay();
-        if (_show) setState(() => _show = false);
-        widget.onHide?.call();
-      }
+      final opening = _handleVisible;
+      if (!opening && _entry == null) return;
+      // didUpdateWidget 处于 build 阶段：OverlayEntry 的 insert/remove 会让 Overlay
+      // 这个祖先节点 markNeedsBuild，onShow/onHide 里调用方也可能 setState，
+      // 两者都会撞上「setState() called during build」，故整体延后一帧。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (opening) {
+          _ensureOverlay();
+          if (!_show) setState(() => _show = true);
+          widget.onShow?.call();
+        } else if (_entry != null) {
+          _removeOverlay();
+          if (_show) setState(() => _show = false);
+          widget.onHide?.call();
+        }
+      });
     }
   }
 

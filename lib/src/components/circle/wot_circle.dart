@@ -11,10 +11,10 @@ class WotCircle extends StatelessWidget {
   const WotCircle({
     super.key,
     this.modelValue = 0,
-    this.size = 100,
+    this.size = 120,
     this.width,
     this.height,
-    this.strokeWidth = 14,
+    this.strokeWidth = 18,
     this.color,
     this.trackColor,
     this.showText = true,
@@ -25,7 +25,7 @@ class WotCircle extends StatelessWidget {
   /// 当前进度值（0-100，v-model）。
   final num modelValue;
 
-  /// 默认边长（当 [width]/[height] 未给出时使用）。
+  /// 默认边长（当 [width]/[height] 未给出时使用），默认 120（对齐 wot）。
   final double size;
 
   /// 显式宽度，为空时用 [size]。
@@ -34,7 +34,7 @@ class WotCircle extends StatelessWidget {
   /// 显式高度，为空时用 [size]。
   final double? height;
 
-  /// 圆环线宽，默认 14。
+  /// 圆环线宽，默认 18。
   final double strokeWidth;
 
   /// 进度环颜色，缺省取主题主色。

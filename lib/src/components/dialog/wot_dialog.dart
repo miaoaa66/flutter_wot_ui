@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/wot_scheme.dart';
 import '../../theme/wot_theme.dart';
 
 /// 命令式对话框服务，对应 wot `useDialog`（+ wd-dialog 渲染）。
@@ -168,6 +169,14 @@ class WotDialogView extends StatelessWidget {
   /// 是否显示右上角关闭按钮（对齐 wot `showClose`）；点击触发 [onClose]。
   final bool showClose;
 
+  /// [type] 对应的左侧辅助色条颜色。
+  Color _accent(WotScheme scheme, Color primary) => switch (type) {
+        WotDialogType.success => scheme.successMain,
+        WotDialogType.warning => scheme.warningMain,
+        WotDialogType.error => scheme.dangerMain,
+        WotDialogType.info => primary,
+      };
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
@@ -238,8 +247,17 @@ class WotDialogView extends StatelessWidget {
     return Dialog(
       backgroundColor: scheme.filledOppo,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      // 左侧辅助色条需随圆角裁切，否则会顶出圆角外。
+      clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
+          // [type] 对应的左侧辅助色条（宽 4，铺满高度）。
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: Container(width: 4, color: _accent(scheme, primary)),
+          ),
           Padding(
             padding: EdgeInsets.fromLTRB(20, showClose ? 32 : 20, 20, 12),
             child: Column(

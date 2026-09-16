@@ -52,9 +52,19 @@ class _WotCountDownState extends State<WotCountDown> {
   @override
   void didUpdateWidget(WotCountDown old) {
     super.didUpdateWidget(old);
-    if (old.value != widget.value) {
+    final valueChanged = old.value != widget.value;
+    final autoStartChanged = old.autoStart != widget.autoStart;
+    if (!valueChanged && !autoStartChanged) return;
+
+    if (valueChanged) {
       _remaining = Duration(milliseconds: widget.value.toInt());
     }
+    // 重置数值或切换自动启动后，定时器的运行态必须与入参重新对齐；
+    // 否则会出现「数字变了但计时没重启 / 没停」的受控失效。
+    _timer?.cancel();
+    _timer = null;
+    setState(() {});
+    if (widget.autoStart) _start();
   }
 
   void _start() {

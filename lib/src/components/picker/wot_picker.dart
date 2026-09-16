@@ -102,6 +102,26 @@ class _WotPickerState extends State<WotPicker> {
     _values = _clamp(widget.values, widget.columns);
   }
 
+  @override
+  void didUpdateWidget(WotPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 外部改变 values / columns 后需重新钳制，否则受控失效。
+    // columns 是 List，未重写 ==，此处按引用比较即可。
+    if (!_sameValues(oldWidget.values, widget.values) ||
+        oldWidget.columns != widget.columns) {
+      _values = _clamp(widget.values, widget.columns);
+    }
+  }
+
+  static bool _sameValues(List<Object?> a, List<Object?> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
   /// 保证每列值合法，非法时回退到列首项。
   static List<Object?> _clamp(List<Object?> v, List<List<WotColumnOption>> cols) {
     final out = <Object?>[];

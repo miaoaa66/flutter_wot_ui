@@ -1,6 +1,7 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
+import '../form/wot_form.dart';
 
 /// 评分，对应 wot `wd-rate`。受控（v-model:value，0~`count`）。
 class WotRate extends StatelessWidget {
@@ -79,7 +80,10 @@ class WotRate extends StatelessWidget {
             allowHalf: allowHalf,
             readonly: readonly,
             disabled: disabled,
-            onChange: onChange,
+            onChange: (v) {
+              wotFormPushValue(context, name, v);
+              onChange?.call(v);
+            },
             child: _Star(
               size: size,
               icon: voidIcon,
@@ -129,7 +133,8 @@ class _StarTapArea extends StatelessWidget {
                 if (box != null) {
                   final local = box.globalToLocal(d.globalPosition);
                   final isLeftHalf = local.dx < size / 2;
-                  onChange?.call(isLeftHalf ? index - 0.5 : index.toDouble());
+                  final rv = isLeftHalf ? index - 0.5 : index.toDouble();
+                  onChange?.call(rv);
                 } else {
                   onChange?.call(index.toDouble());
                 }

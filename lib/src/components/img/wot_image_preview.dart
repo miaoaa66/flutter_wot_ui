@@ -3,6 +3,21 @@ import 'package:flutter/material.dart';
 /// 图片预览指示器位置，对应 wot `closeIconPosition`/指示器 top/bottom。
 enum WotImagePreviewIndicatorPosition { top, bottom }
 
+/// 关闭按钮位置，对应 wot `closeIconPosition`。
+enum WotImagePreviewClosePosition {
+  /// 左上角（wot 默认）。
+  topLeft,
+
+  /// 右上角。
+  topRight,
+
+  /// 左下角。
+  bottomLeft,
+
+  /// 右下角。
+  bottomRight,
+}
+
 /// 图片预览服务（命令式），对应 wot `useImagePreview`。
 class WotImagePreview {
   const WotImagePreview._();
@@ -20,6 +35,9 @@ class WotImagePreview {
         WotImagePreviewIndicatorPosition.bottom,
     bool showIndex = true,
     bool closeOnClickOverlay = true,
+    bool closeable = true,
+    WotImagePreviewClosePosition closeIconPosition =
+        WotImagePreviewClosePosition.topLeft,
     ValueChanged<int>? onChange,
     void Function()? onOpen,
     void Function()? onClose,
@@ -36,6 +54,8 @@ class WotImagePreview {
               indicatorPosition: indicatorPosition,
               showIndex: showIndex,
               closeOnClickOverlay: closeOnClickOverlay,
+              closeable: closeable,
+              closeIconPosition: closeIconPosition,
               onChange: onChange,
               onOpen: onOpen,
             ),
@@ -57,6 +77,8 @@ class _PreviewPage extends StatefulWidget {
     this.indicatorPosition = WotImagePreviewIndicatorPosition.bottom,
     this.showIndex = true,
     this.closeOnClickOverlay = true,
+    this.closeable = true,
+    this.closeIconPosition = WotImagePreviewClosePosition.topLeft,
     this.onChange,
     this.onOpen,
   });
@@ -66,6 +88,12 @@ class _PreviewPage extends StatefulWidget {
   final WotImagePreviewIndicatorPosition indicatorPosition;
   final bool showIndex;
   final bool closeOnClickOverlay;
+
+  /// 是否显示右上角/指定角的关闭按钮，默认 true。
+  final bool closeable;
+
+  /// 关闭按钮位置，默认 [WotImagePreviewClosePosition.topLeft]。
+  final WotImagePreviewClosePosition closeIconPosition;
   final ValueChanged<int>? onChange;
   final VoidCallback? onOpen;
 
@@ -81,8 +109,14 @@ class _PreviewPageState extends State<_PreviewPage> {
   void initState() {
     super.initState();
     _current = widget.initialIndex;
-    widget.onOpen?.call();
     _page = PageController(initialPage: widget.initialIndex);
+    // 路由页面是在 Navigator 的 buildScope 内挂载的，此时同步回调 onOpen
+    // 会让调用方的 setState 撞上「setState() called during build」。
+    // 因此延后到本帧构建结束后再发出（与 WotImg 的 _notify 同一处理）。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.onOpen?.call();
+    });
   }
 
   @override
@@ -156,7 +190,7 @@ class _PreviewPageState extends State<_PreviewPage> {
                 );
               },
             ),
-            if (widget.urls.length > 1)
+            if (widget.showIndex && widget.urls.length > 1)
               Positioned(
                 top: MediaQuery.of(context).padding.top + 16,
                 left: 0,
@@ -172,7 +206,59 @@ class _PreviewPageState extends State<_PreviewPage> {
                 ),
               ),
             indicator,
+            if (widget.closeable) _closeButton(),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// 关闭按钮：位于 [WotImagePreviewClosePosition] 指定的角落，自动避让状态栏/安全区。
+  Widget _closeButton() {
+    final pad = MediaQuery.of(context).padding;
+    final double top;
+    final double bottom;
+    final double? left;
+    final double? right;
+    switch (widget.closeIconPosition) {
+      case WotImagePreviewClosePosition.topLeft:
+        top = pad.top + 8;
+        bottom = double.infinity;
+        left = 8;
+        right = null;
+      case WotImagePreviewClosePosition.topRight:
+        top = pad.top + 8;
+        bottom = double.infinity;
+        left = null;
+        right = 8;
+      case WotImagePreviewClosePosition.bottomLeft:
+        top = double.infinity;
+        bottom = pad.bottom + 12;
+        left = 8;
+        right = null;
+      case WotImagePreviewClosePosition.bottomRight:
+        top = double.infinity;
+        bottom = pad.bottom + 12;
+        left = null;
+        right = 8;
+    }
+    return Positioned(
+      top: top == double.infinity ? null : top,
+      bottom: bottom == double.infinity ? null : bottom,
+      left: left,
+      right: right,
+      child: SafeArea(
+        child: GestureDetector(
+          onTap: () => WotImagePreview.close(context),
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.45),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.close, size: 20, color: Colors.white),
+          ),
         ),
       ),
     );

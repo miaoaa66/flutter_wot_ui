@@ -50,6 +50,9 @@ void main() {
               type: WotCalendarType.datetimeRange,
               title: '日期时间区间',
               initialValues: [now, now.add(const Duration(days: 2))],
+              // 显式指定 month 模式：本用例的语义是「受限高度下不溢出」，
+              // 而 switchMode 默认值已改为 none（平铺全部月份），平铺 12 个月无法塞进 480px。
+              switchMode: WotCalendarSwitchMode.month,
               onConfirm: (v) => result = v,
             ),
           ),

@@ -49,6 +49,7 @@ import 'display/wot_curtain_page.dart';
 import 'display/wot_grid_page.dart';
 import 'display/wot_img_cropper_page.dart';
 import 'display/wot_img_page.dart';
+import 'display/wot_image_preview_page.dart';
 import 'display/wot_loadmore_page.dart';
 import 'display/wot_qr_code_page.dart';
 import 'display/wot_skeleton_page.dart';
@@ -171,6 +172,8 @@ class WotIndexPage extends StatelessWidget {
         _Entry('Skeleton', '骨架屏', () => _push(context, const WotSkeletonPage())),
         _Entry('Loadmore', '加载更多', () => _push(context, const WotLoadmorePage())),
         _Entry('Img', '图片', () => _push(context, const WotImgPage())),
+        _Entry('ImagePreview', '图片预览',
+            () => _push(context, const WotImagePreviewPage())),
         _Entry('Swiper', '轮播', () => _push(context, const WotSwiperPage())),
         _Entry('Table', '表格', () => _push(context, WotTablePage())),
         _Entry('Watermark', '水印', () => _push(context, const WotWatermarkPage())),

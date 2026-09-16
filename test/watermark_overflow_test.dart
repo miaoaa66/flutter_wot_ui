@@ -15,6 +15,9 @@ void main() {
             child: WotWatermark(
               content: 'Wot UI Flutter',
               fontSize: 14,
+              // 显式关闭全屏：本用例验证的是「内嵌水印被裁剪在容器内」，
+              // 而 fullScreen 默认值已改为 true（水印改由 Overlay 全屏承载，不在容器内）。
+              fullScreen: false,
               child: SizedBox.expand(),
             ),
           ),
@@ -33,7 +36,7 @@ void main() {
           body: SizedBox(
             width: 100,
             height: 60,
-            child: WotWatermark(content: '很长的水印文字内容让旋转后探出边界', rotate: -22),
+            child: WotWatermark(content: '很长的水印文字内容让旋转后探出边界', rotate: -22, fullScreen: false),
           ),
         ),
       ),

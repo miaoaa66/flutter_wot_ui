@@ -25,7 +25,7 @@ class WotNotify {
     BuildContext context, {
     String message = '',
     WotNotifyType type = WotNotifyType.info,
-    Duration duration = const Duration(milliseconds: 2500),
+    Duration duration = const Duration(milliseconds: 3000),
     VoidCallback? onClose,
   }) {
     final overlay = Overlay.of(context, rootOverlay: true);
