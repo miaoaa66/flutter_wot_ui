@@ -31,6 +31,34 @@ class _WotInputPageState extends State<WotInputPage> {
             WotInput(placeholder: '请输入数字', number: true)),
         demoBlock('type 透传类型 + maxLines 多行',
             WotInput(placeholder: '多行输入', type: 'textarea', maxLines: 3)),
+        demoSection('键盘类型（type，A 类死参数 #4 已实现）'),
+        demoBlock(
+            '原先 type 只是摆在注释里，完全不影响键盘。现已映射为 TextInputType：'
+            'number→小数数字盘、digit→纯数字、tel→电话盘、email→邮箱盘、url→网址盘。'
+            '移动端聚焦即可验证，桌面端看不出来属正常',
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                for (final e in <(String, String)>[
+                  ('number', 'number：小数数字盘'),
+                  ('digit', 'digit：纯数字'),
+                  ('tel', 'tel：电话盘'),
+                  ('email', 'email：邮箱盘'),
+                  ('url', 'url：网址盘'),
+                  ('text', 'text：普通文本'),
+                ])
+                  SizedBox(
+                    width: 200,
+                    child: WotInput(placeholder: e.$2, type: e.$1),
+                  ),
+              ],
+            )),
+        demoBlock('number:true 等价于 type:number（允许小数）',
+            const WotInput(placeholder: 'number: true', number: true)),
+        demoBlock('对照：不传 type（默认键盘）——与 text 应一致',
+            const WotInput(placeholder: '默认键盘')),
+
         demoSection('前后缀（prefixIcon / suffixIcon / prefix / suffix 插槽）'),
         demoBlock('图标前后缀',
             WotInput(value: _v2, prefixIcon: 'search', suffixIcon: 'close', onChange: (v) => setState(() => _v2 = v))),

@@ -70,8 +70,26 @@ class _WotSkeletonState extends State<WotSkeleton> with SingleTickerProviderStat
   void initState() {
     super.initState();
     _controller =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 1200))
-          ..repeat(reverse: true);
+        AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
+    if (widget.animate) _controller.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(WotSkeleton old) {
+    super.didUpdateWidget(old);
+    if (old.animate != widget.animate) _syncController();
+  }
+
+  /// [WotSkeleton.animate] 为 false 时停掉 ticker，避免后台空转。
+  ///
+  /// 这里只 stop 不 dispose —— 重新开启时要复用同一个控制器，
+  /// 否则会撞上 `SingleTickerProviderStateMixin` 的「multiple tickers」断言。
+  void _syncController() {
+    if (widget.animate) {
+      _controller.repeat(reverse: true);
+    } else {
+      _controller.stop();
+    }
   }
 
   @override
@@ -192,8 +210,15 @@ class WotSkeletonItem extends StatefulWidget {
   State<WotSkeletonItem> createState() => _WotSkeletonItemState();
 }
 
+/// 注意：这里必须用 [TickerProviderStateMixin] 而非 [SingleTickerProviderStateMixin]。
+///
+/// [WotSkeletonItem.animate] 可以在 true / false 之间来回切换，
+/// [_syncController] 会随之销毁并重建 [AnimationController]，即同一 State 上
+/// 会多次调用 `createTicker`。而 `SingleTickerProviderStateMixin._ticker`
+/// 只在 State 的 `dispose()` 里清空，重建时会命中
+/// 「multiple tickers were created」断言并崩溃。
 class _WotSkeletonItemState extends State<WotSkeletonItem>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   AnimationController? _controller;
 
   @override

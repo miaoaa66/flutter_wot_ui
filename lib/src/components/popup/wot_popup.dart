@@ -78,11 +78,15 @@ class WotPopup extends StatefulWidget {
   /// [customStyle] 非空时优先）。
   final EdgeInsetsGeometry? customStyle;
 
-  /// 是否适配系统安全区。
+  /// 是否四边全适配系统安全区，默认 false。
+  ///
+  /// false（默认）时只避让「贴屏幕边」的那一侧：底部弹层避让底部、
+  /// 顶部弹层避让顶部、左右弹层避让各自贴边侧 + 上下、居中弹层四边中除顶部外的三边。
+  /// true 时四边统一避让。
   final bool safeArea;
 
-  /// 底部弹层是否适配底部安全区（wot `safe-area-inset-bottom`，与 [safeArea] 互为别名；
-  /// 仅底部弹出时有意义；[safeAreaInsetBottom] 非空时优先）。
+  /// 单独控制底边是否适配安全区（wot `safe-area-inset-bottom`）。
+  /// 非空时覆盖 [safeArea] 与 position 推导出的底边取值。
   final bool? safeAreaInsetBottom;
 
   /// 自定义遮罩颜色（优先于遮罩默认的主遮罩色）。
@@ -194,6 +198,20 @@ class _WotPopupState extends State<WotPopup> with SingleTickerProviderStateMixin
       };
     }
 
+    // 安全区适配：默认只避让「贴屏幕边」的那一侧（由 position 推导）；
+    // safeArea: true 时四边全避让；safeAreaInsetBottom 非空时单独覆盖底边。
+    final bottomInset = widget.safeAreaInsetBottom ??
+        (widget.safeArea ||
+            position == WotPopupPosition.bottom ||
+            position == WotPopupPosition.center);
+    final leftInset = widget.safeArea ||
+        position == WotPopupPosition.left ||
+        position == WotPopupPosition.center;
+    final rightInset = widget.safeArea ||
+        position == WotPopupPosition.right ||
+        position == WotPopupPosition.center;
+    final topInset = widget.safeArea || position == WotPopupPosition.top;
+
     // 内容内边距 + 自定义弹层样式（作为内容外层的额外内边距）。
     final style = _style;
     Widget padded = child;
@@ -210,10 +228,10 @@ class _WotPopupState extends State<WotPopup> with SingleTickerProviderStateMixin
       borderRadius: borderRadius,
       clipBehavior: Clip.antiAlias,
       child: SafeArea(
-        left: position == WotPopupPosition.left || position == WotPopupPosition.center,
-        right: position == WotPopupPosition.right || position == WotPopupPosition.center,
-        top: position == WotPopupPosition.top,
-        bottom: position == WotPopupPosition.bottom || position == WotPopupPosition.center,
+        left: leftInset,
+        right: rightInset,
+        top: topInset,
+        bottom: bottomInset,
         minimum: EdgeInsets.zero,
         child: padded,
       ),

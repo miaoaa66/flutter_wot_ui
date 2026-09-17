@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+// TextInputFormatter / FilteringTextInputFormatter 定义在 services.dart，
+// material.dart 不会导出它们，必须显式引入。
+import 'package:flutter/services.dart';
 
 import '../../theme/wot_theme.dart';
 import '../form/wot_form.dart';
@@ -28,6 +31,12 @@ class _WotTextInput extends StatefulWidget {
     this.prefix,
     this.suffix,
     this.autosize = false,
+    this.controller,
+    this.focusNode,
+    this.inputFormatters,
+    this.autofocus = false,
+    this.onSubmitted,
+    this.textInputAction,
   });
 
   final String? name;
@@ -66,6 +75,27 @@ class _WotTextInput extends StatefulWidget {
   /// 多行输入是否随内容自动增高（minLines 为 [maxLines]，行数不设上限）。
   final bool autosize;
 
+  /// 外部文本控制器；传入后由调用方持有与销毁，组件不再内部创建。
+  ///
+  /// **传入 [controller] 后 [value] 仅作为初始值，后续外部回填不再生效**——
+  /// controller 即唯一数据源，避免「外部改 controller → 组件用旧 value 覆盖」的回弹。
+  final TextEditingController? controller;
+
+  /// 外部焦点节点；传入后由调用方销毁，组件只挂/摘 listener。
+  final FocusNode? focusNode;
+
+  /// 输入格式化器（如 `FilteringTextInputFormatter.digitsOnly`）。
+  final List<TextInputFormatter>? inputFormatters;
+
+  /// 是否自动聚焦，默认 false。
+  final bool autofocus;
+
+  /// 提交（键盘完成键）回调。
+  final ValueChanged<String>? onSubmitted;
+
+  /// 键盘动作按钮类型；与 [onSubmitted] 配合使用。
+  final TextInputAction? textInputAction;
+
   @override
   State<_WotTextInput> createState() => _WotTextInputState();
 }
@@ -73,13 +103,23 @@ class _WotTextInput extends StatefulWidget {
 class _WotTextInputState extends State<_WotTextInput> {
   late final TextEditingController _c;
   late final FocusNode _focusNode;
+
+  /// 是否由本组件创建（决定 dispose 时是否销毁——外部传入的对象不能代管）。
+  late final bool _ownsController;
+  late final bool _ownsFocusNode;
   late bool _obscure;
 
   @override
   void initState() {
     super.initState();
-    _c = TextEditingController(text: widget.value ?? '');
-    _focusNode = FocusNode()..addListener(_handleFocusChange);
+    _ownsController = widget.controller == null;
+    _ownsFocusNode = widget.focusNode == null;
+    _c = widget.controller ?? TextEditingController(text: widget.value ?? '');
+    _focusNode = widget.focusNode ?? FocusNode();
+    _focusNode.addListener(_handleFocusChange);
+    // 外部直接改 controller.text 时（不经过键盘输入），onChanged 不会触发，
+    // 清空按钮与字数统计会停在旧值——这里补一个监听保证它们同步。
+    _c.addListener(_handleControllerChange);
     _obscure = widget.password;
   }
 
@@ -92,9 +132,18 @@ class _WotTextInputState extends State<_WotTextInput> {
     }
   }
 
+  /// 文本被程序化修改时刷新依赖 [TextEditingController.text] 的后置区。
+  void _handleControllerChange() {
+    if (!mounted) return;
+    if (widget.clearable || showWordLimitEnabled()) setState(() {});
+  }
+
   @override
   void didUpdateWidget(_WotTextInput old) {
     super.didUpdateWidget(old);
+    // 外部持有 controller 时不再用 value 回填——controller 是唯一数据源，
+    // 否则「外部改 controller」会被旧 value 覆盖回去。
+    if (!_ownsController) return;
     if (widget.value != null && widget.value != _c.text) {
       _c.value = _c.value.copyWith(text: widget.value, selection: _c.selection);
     }
@@ -102,8 +151,10 @@ class _WotTextInputState extends State<_WotTextInput> {
 
   @override
   void dispose() {
-    _focusNode.dispose();
-    _c.dispose();
+    _c.removeListener(_handleControllerChange);
+    _focusNode.removeListener(_handleFocusChange);
+    if (_ownsFocusNode) _focusNode.dispose();
+    if (_ownsController) _c.dispose();
     super.dispose();
   }
 
@@ -190,6 +241,10 @@ class _WotTextInputState extends State<_WotTextInput> {
       maxLength: widget.maxLength,
       keyboardType: widget.inputType,
       textAlign: TextAlign.left,
+      autofocus: widget.autofocus,
+      inputFormatters: widget.inputFormatters,
+      onSubmitted: widget.onSubmitted,
+      textInputAction: widget.textInputAction,
       onChanged: (v) {
         _pushValue(v);
         if (widget.clearable || showWordLimitEnabled()) setState(() {});
@@ -248,6 +303,12 @@ class WotInput extends StatelessWidget {
     this.onBlur,
     this.prefix,
     this.suffix,
+    this.controller,
+    this.focusNode,
+    this.inputFormatters,
+    this.autofocus = false,
+    this.onSubmitted,
+    this.textInputAction,
   });
 
   /// 表单字段名；传入后在 [WotFormScope] 中按该名称关联取值。
@@ -333,6 +394,25 @@ class WotInput extends StatelessWidget {
   /// 后置内容插槽，可放置自定义图标/文案，展示在末位。
   final Widget? suffix;
 
+  /// 外部文本控制器；**传入后由调用方持有与销毁**，且 [value] 仅作为初始值，
+  /// 后续外部回填不再生效（controller 即唯一数据源）。
+  final TextEditingController? controller;
+
+  /// 外部焦点节点；传入后由调用方销毁。
+  final FocusNode? focusNode;
+
+  /// 输入格式化器，如 `FilteringTextInputFormatter.digitsOnly`。
+  final List<TextInputFormatter>? inputFormatters;
+
+  /// 是否自动聚焦，默认 false。
+  final bool autofocus;
+
+  /// 提交（键盘完成键）回调。
+  final ValueChanged<String>? onSubmitted;
+
+  /// 键盘动作按钮类型，与 [onSubmitted] 配合使用。
+  final TextInputAction? textInputAction;
+
   @override
   Widget build(BuildContext context) {
     return _WotTextInput(
@@ -359,6 +439,12 @@ class WotInput extends StatelessWidget {
       onBlur: onBlur,
       prefix: prefix,
       suffix: suffix,
+      controller: controller,
+      focusNode: focusNode,
+      inputFormatters: inputFormatters,
+      autofocus: autofocus,
+      onSubmitted: onSubmitted,
+      textInputAction: textInputAction,
     );
   }
 }
@@ -379,6 +465,12 @@ class WotTextarea extends StatelessWidget {
     this.showWordLimit = false,
     this.onFocus,
     this.onBlur,
+    this.controller,
+    this.focusNode,
+    this.inputFormatters,
+    this.autofocus = false,
+    this.onSubmitted,
+    this.textInputAction,
   });
 
   /// 表单字段名；传入后在 [WotFormScope] 中按该名称关联取值。
@@ -417,6 +509,24 @@ class WotTextarea extends StatelessWidget {
   /// 输入框失焦时回调。
   final VoidCallback? onBlur;
 
+  /// 外部文本控制器；**传入后由调用方持有与销毁**，且 [value] 仅作为初始值。
+  final TextEditingController? controller;
+
+  /// 外部焦点节点；传入后由调用方销毁。
+  final FocusNode? focusNode;
+
+  /// 输入格式化器。
+  final List<TextInputFormatter>? inputFormatters;
+
+  /// 是否自动聚焦，默认 false。
+  final bool autofocus;
+
+  /// 提交（键盘完成键）回调。
+  final ValueChanged<String>? onSubmitted;
+
+  /// 键盘动作按钮类型。
+  final TextInputAction? textInputAction;
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
@@ -440,6 +550,12 @@ class WotTextarea extends StatelessWidget {
         onFocus: onFocus,
         onBlur: onBlur,
         autosize: autosize,
+        controller: controller,
+        focusNode: focusNode,
+        inputFormatters: inputFormatters,
+        autofocus: autofocus,
+        onSubmitted: onSubmitted,
+        textInputAction: textInputAction,
       ),
     );
   }

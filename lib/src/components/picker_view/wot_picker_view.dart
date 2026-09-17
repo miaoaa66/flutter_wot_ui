@@ -309,10 +309,12 @@ class WotPickerView extends StatelessWidget {
     required this.values,
     required this.onChange,
     this.color,
-    this.height = 200,
+    double? height,
+    this.itemExtent = 40,
+    this.visibleItemCount = 5,
     this.disabled = false,
     this.loading = false,
-  });
+  }) : height = height ?? itemExtent * visibleItemCount;
 
   /// 每列的选项列表（二维数组，按列顺序展示各列滚轮）。
   final List<List<WotColumnOption>> columns;
@@ -326,8 +328,16 @@ class WotPickerView extends StatelessWidget {
   /// 选中高亮/箭头主题色；不传时用主题主色。
   final Color? color;
 
-  /// 滚轮可视高度。
+  /// 滚轮可视高度；未显式传入时按「itemExtent × visibleItemCount」推断。
+  ///
+  /// 默认值与原先硬编码的 200 一致（40 × 5），因此不改变既有调用的效果。
   final double height;
+
+  /// 单行高度；会透传给 [WotPickerViewColumn]。
+  final double itemExtent;
+
+  /// 可见行数；会透传给 [WotPickerViewColumn]。
+  final int visibleItemCount;
 
   /// 是否禁用全部滚轮交互。
   final bool disabled;
@@ -346,6 +356,8 @@ class WotPickerView extends StatelessWidget {
               value: c < values.length ? values[c] : null,
               color: color,
               height: height,
+              itemExtent: itemExtent,
+              visibleItemCount: visibleItemCount,
               disabled: disabled,
               loading: loading,
               onChange: (v) {

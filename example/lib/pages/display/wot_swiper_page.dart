@@ -13,6 +13,10 @@ class WotSwiperPage extends StatefulWidget {
 
 class _WotSwiperPageState extends State<WotSwiperPage> {
   int _index = 0;
+  int _loopIndex = 0;
+  bool _loop = true;
+  bool _indicator = true;
+  int _duration = 300;
 
   Widget _slide(int i, Color c) => Container(
         color: c,
@@ -49,7 +53,55 @@ class _WotSwiperPageState extends State<WotSwiperPage> {
                 ],
               ),
             )),
-        demoSection('指示点位置（indicatorPosition）'),
+
+        demoSection('循环（loop，A 类死参数 #2 已实现）'),
+        demoBlock(
+            'loop: $_loop —— 打开后从最后一页继续右滑应回到第一页；关闭后滑到头就停住。'
+            '现场切换这个开关同时验证 loop 变化时 PageController 的重建'
+            '（原实现切换会崩溃，这点用 analyze 查不出来）',
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Text('loop ', style: TextStyle(fontSize: 12)),
+                WotSwitch(modelValue: _loop, onChange: (v) => setState(() => _loop = v)),
+              ]),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 130,
+                child: WotSwiper(
+                  loop: _loop,
+                  autoplay: false,
+                  onChange: (i) => setState(() => _loopIndex = i),
+                  children: [
+                    for (var i = 0; i < 3; i++)
+                      WotSwiperItem(child: _slide(i, [Colors.red, Colors.orange, Colors.amber][i % 3])),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 6),
+              WotText('对外索引：${_loopIndex + 1} / 3（loop 下仍报 0..n-1 的逻辑索引）',
+                  type: WotTextType.wotDefault),
+            ])),
+
+        demoSection('指示点（indicator / indicatorPosition）'),
+        demoBlock('indicator: $_indicator（关闭后下方指示点应消失）',
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Text('indicator ', style: TextStyle(fontSize: 12)),
+                WotSwitch(modelValue: _indicator, onChange: (v) => setState(() => _indicator = v)),
+              ]),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 120,
+                child: WotSwiper(
+                  autoplay: false,
+                  indicator: _indicator,
+                  children: [
+                    WotSwiperItem(child: _slide(0, Colors.cyan)),
+                    WotSwiperItem(child: _slide(1, Colors.lime)),
+                  ],
+                ),
+              ),
+            ])),
         demoBlock('上排：topLeft / topCenter / topRight',
             Wrap(spacing: 12, runSpacing: 12, children: [
               for (final pos in [WotSwiperIndicatorPosition.topLeft, WotSwiperIndicatorPosition.topCenter, WotSwiperIndicatorPosition.topRight])
@@ -81,6 +133,32 @@ class _WotSwiperPageState extends State<WotSwiperPage> {
                     ],
                   ),
                 ),
+            ])),
+
+        demoSection('切换动画时长（duration）'),
+        demoBlock('当前 ${_duration}ms —— 调到 1200 后手动滑动，能明显看到慢速过渡',
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Wrap(spacing: 8, children: [
+                for (final d in [300, 1200])
+                  ChoiceChip(
+                    label: Text('${d}ms'),
+                    selected: _duration == d,
+                    onSelected: (_) => setState(() => _duration = d),
+                  ),
+              ]),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 120,
+                child: WotSwiper(
+                  autoplay: false,
+                  duration: _duration,
+                  children: [
+                    WotSwiperItem(child: _slide(0, Colors.indigo)),
+                    WotSwiperItem(child: _slide(1, Colors.teal)),
+                    WotSwiperItem(child: _slide(2, Colors.pink)),
+                  ],
+                ),
+              ),
             ])),
       ],
     );

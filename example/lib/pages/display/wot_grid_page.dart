@@ -29,6 +29,7 @@ class _WotGridPageState extends State<WotGridPage> {
   bool _border = false;
   bool _square = false;
   double _gap = 0;
+  bool _reverse = false;
 
   List<WotGridItem> _cells(BuildContext context) => [
         for (final (name, label) in _items)
@@ -230,8 +231,45 @@ class _WotGridPageState extends State<WotGridPage> {
         demoSection('点击事件（onClick）'),
         demoBlock('点击任意格子弹 toast', WotGrid(columnNum: 3, children: _cells(context))),
 
-        // TODO: reverse（内容反向）当前为死参数——WotGrid 声明于 wot_grid.dart:17 但
-        // build 未消费，切换无效果。待组件实现后补此演示，见 COMPONENT_AUDIT.md。
+        demoSection('反向排列（reverse，A 类死参数 #18）'),
+        demoBlock(
+          'reverse: true 时先整体倒序、再按 columnNum 切行——'
+          '所以第一行会变成原来的最后几个。'
+          '修复前该参数只声明不消费，切换无任何变化。',
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              WotButton(
+                text: 'reverse: $_reverse',
+                size: WotButtonSize.small,
+                onClick: () => setState(() => _reverse = !_reverse),
+              ),
+              const SizedBox(height: 8),
+              WotGrid(
+                columnNum: 3,
+                reverse: _reverse,
+                children: _cells(context),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '原始顺序：${_items.map((e) => e.$2).join(' -> ')}',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        demoBlock(
+          'reverse 与「外部手动 .reversed.toList()」的区别：'
+          'reverse 由 WotGrid 内部处理，children 动态变化时不会与外部受控状态打架。',
+          WotGrid(
+            columnNum: 3,
+            reverse: true,
+            children: [
+              for (var i = 1; i <= 6; i++)
+                WotGridItem(text: '第 $i 项', onClick: () {}),
+            ],
+          ),
+        ),
       ],
     );
   }

@@ -68,11 +68,28 @@ class _WotCountToState extends State<WotCountTo> with SingleTickerProviderStateM
     _anim = Tween<double>(begin: _current, end: widget.modelValue.toDouble())
         .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     // 只在初始挂载时加一次监听，避免重复累加导致多次 setState/onChange。
-    _controller.addListener(() {
-      setState(() => _current = _anim.value);
-      widget.onChange?.call(_current);
+    _controller.addListener(_onTick);
+    if (widget.autoplay) _startForward();
+  }
+
+  /// 监听回调：仅在挂载后更新，避免在 build 阶段触发父组件 setState。
+  void _onTick() {
+    if (!mounted) return;
+    setState(() => _current = _anim.value);
+    widget.onChange?.call(_current);
+  }
+
+  /// 延迟到首帧之后启动动画。
+  ///
+  /// [AnimationController.forward] 会同步把 value 设为起始值并立即
+  /// [notifyListeners]，若在 initState / didUpdateWidget 阶段直接调用，
+  /// 回调中的 [State.setState] / onChange 会命中父组件正在 build 的窗口，
+  /// 抛 "setState() called during build"。首帧后再启动即可规避。
+  void _startForward() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _controller.forward(from: 0);
     });
-    if (widget.autoplay) _controller.forward(from: 0);
   }
 
   /// [WotCountTo.speed] 优先：由「每秒递增数值」反推总时长；未指定或非法时用 [WotCountTo.duration]。
@@ -87,9 +104,9 @@ class _WotCountToState extends State<WotCountTo> with SingleTickerProviderStateM
   void _play() {
     _anim = Tween<double>(begin: _current, end: widget.modelValue.toDouble())
         .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
-    _controller
-      ..duration = _effectiveDuration()
-      ..forward(from: 0);
+    _controller.duration = _effectiveDuration();
+    // didUpdateWidget 同样处于更新/构建窗口内，必须延迟到首帧后启动。
+    _startForward();
   }
 
   @override

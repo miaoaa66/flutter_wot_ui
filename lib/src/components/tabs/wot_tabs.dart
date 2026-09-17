@@ -25,6 +25,15 @@ class WotTabBadge {
   final Color? color;
 }
 
+/// 指示器宽度模式，对应 Flutter `TabBar` 的 `indicatorSize`。
+enum WotTabsIndicatorSize {
+  /// 指示器宽度等于整个标签项宽。
+  tab,
+
+  /// 指示器宽度贴合标题文字宽度。
+  label,
+}
+
 /// 标签页切换时的导航信息（index/name/badge/disabled/current）。
 class WotTabsNav {
   const WotTabsNav({
@@ -93,6 +102,10 @@ class WotTab extends StatelessWidget {
 ///
 /// 支持 `type`（line/card）、`grow`（均分）、颜色与指示器样式参数。
 /// 通过 [modelValue]/[onChange] 受控（v-model，索引）。
+///
+/// 也可注入 Flutter 标准 [controller]（[TabController]）以接入
+/// [DefaultTabController] 或与 [PageView]/[TabBarView] 联动：传了 [controller] 后
+/// [modelValue] 失效，选中态以 [controller] 为准（[controller.length] 必须等于子项数）。
 class WotTabs extends StatefulWidget {
   const WotTabs({
     super.key,
@@ -101,6 +114,7 @@ class WotTabs extends StatefulWidget {
     this.onChangeTab,
     this.onClick,
     this.onDisabled,
+    this.onPageChanged,
     this.type = 'line',
     this.color,
     this.inactiveColor,
@@ -108,12 +122,16 @@ class WotTabs extends StatefulWidget {
     this.grow = true,
     this.lineWidth,
     this.lineColor,
+    this.indicatorWeight = 3,
+    this.indicatorPadding = EdgeInsets.zero,
+    this.indicatorSize = WotTabsIndicatorSize.tab,
     this.animated = false,
     this.swipeable = false,
+    this.controller,
     required this.children,
   });
 
-  /// 当前激活索引（v-model:value）。
+  /// 当前激活索引（v-model:value）。注入 [controller] 后本参数失效。
   final int modelValue;
 
   final ValueChanged<int>? onChange;
@@ -126,6 +144,9 @@ class WotTabs extends StatefulWidget {
 
   /// 点击禁用标签时触发的回调，参数为 [WotTabsNav]。
   final ValueChanged<WotTabsNav>? onDisabled;
+
+  /// 内容区因滑动切换页码时触发（来自 [swipeable] 的 PageView），参数为新索引。
+  final ValueChanged<int>? onPageChanged;
 
   /// Tabs 样式：line（下划线）/ card（卡片式高亮）。
   final String type;
@@ -142,17 +163,30 @@ class WotTabs extends StatefulWidget {
   /// 是否均分占满宽度。
   final bool grow;
 
-  /// 指示器宽度。
+  /// 指示器固定宽度（像素）。非空时忽略 [indicatorSize]，直接使用该值。
   final double? lineWidth;
 
-  /// 指示器颜色。
+  /// 指示器颜色（line 样式）。
   final Color? lineColor;
+
+  /// 指示器厚度（像素），默认 3。
+  final double indicatorWeight;
+
+  /// 指示器内边距（四向），默认零。
+  final EdgeInsetsGeometry indicatorPadding;
+
+  /// 指示器宽度模式，默认 [WotTabsIndicatorSize.tab]。
+  final WotTabsIndicatorSize indicatorSize;
 
   /// 是否内容切换动画。
   final bool animated;
 
   /// 是否开启内容区横向滑动切换，默认 false。
   final bool swipeable;
+
+  /// Flutter 标准 [TabController]（可选）。注入后选中态以它为准，
+  /// 可与 [DefaultTabController] 或外部 [TabController] 联动。
+  final TabController? controller;
 
   final List<WotTab> children;
 
@@ -163,11 +197,17 @@ class WotTabs extends StatefulWidget {
 class _WotTabsState extends State<WotTabs> {
   late int _current;
   PageController? _pageController;
+  TabController? _controller;
+
+  /// 合法索引上界（空列表时为 0）。
+  int get _maxIndex => widget.children.isNotEmpty ? widget.children.length - 1 : 0;
 
   @override
   void initState() {
     super.initState();
-    _current = widget.modelValue;
+    _controller = widget.controller;
+    _current = (_controller?.index ?? widget.modelValue).clamp(0, _maxIndex);
+    _controller?.addListener(_onControllerChanged);
     if (widget.swipeable) {
       _pageController = PageController(initialPage: _current);
     }
@@ -176,9 +216,16 @@ class _WotTabsState extends State<WotTabs> {
   @override
   void didUpdateWidget(WotTabs old) {
     super.didUpdateWidget(old);
-    if (old.modelValue != widget.modelValue) {
-      _current = widget.modelValue;
-      // 外部受控变化时同步 PageView 页码。
+    if (widget.controller != old.controller) {
+      old.controller?.removeListener(_onControllerChanged);
+      _controller = widget.controller;
+      _controller?.addListener(_onControllerChanged);
+      if (_controller != null) {
+        _current = _controller!.index.clamp(0, _maxIndex);
+      }
+    }
+    if (widget.controller == null && old.modelValue != widget.modelValue) {
+      _current = widget.modelValue.clamp(0, _maxIndex);
       if (widget.swipeable && _pageController != null) {
         _pageController!.jumpToPage(_current);
       }
@@ -193,8 +240,21 @@ class _WotTabsState extends State<WotTabs> {
 
   @override
   void dispose() {
+    widget.controller?.removeListener(_onControllerChanged);
     _pageController?.dispose();
     super.dispose();
+  }
+
+  /// 外部 / 内部 controller 变化同步到 UI（不在此回发 onChange，避免重复）。
+  void _onControllerChanged() {
+    final idx = (_controller?.index ?? _current).clamp(0, _maxIndex);
+    if (idx == _current) return;
+    _current = idx;
+    if (widget.swipeable && _pageController != null && _pageController!.hasClients) {
+      _pageController!.animateToPage(idx,
+          duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+    }
+    if (mounted) setState(() {});
   }
 
   WotTabsNav _navOf(int index, {bool current = false}) {
@@ -219,10 +279,15 @@ class _WotTabsState extends State<WotTabs> {
       widget.onDisabled?.call(_navOf(index));
       return;
     }
-    setState(() => _current = index);
-    if (widget.swipeable && _pageController != null && _pageController!.hasClients) {
-      _pageController!.animateToPage(index,
-          duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+    // 受 controller 驱动时改走 controller.animateTo，由监听同步 UI。
+    if (_controller != null) {
+      _controller!.animateTo(index);
+    } else {
+      setState(() => _current = index.clamp(0, _maxIndex));
+      if (widget.swipeable && _pageController != null && _pageController!.hasClients) {
+        _pageController!.animateToPage(index,
+            duration: const Duration(milliseconds: 200), curve: Curves.easeOut);
+      }
     }
     final nav = _navOf(index, current: true);
     widget.onChange?.call(index);
@@ -234,10 +299,15 @@ class _WotTabsState extends State<WotTabs> {
   void _onPageChanged(int index) {
     if (index == _current) return;
     if (widget.children[index].disabled) return;
-    setState(() => _current = index);
+    if (_controller != null) {
+      _controller!.animateTo(index);
+    } else {
+      setState(() => _current = index.clamp(0, _maxIndex));
+    }
     final nav = _navOf(index, current: true);
     widget.onChange?.call(index);
     widget.onChangeTab?.call(nav);
+    widget.onPageChanged?.call(index);
   }
 
   Color _textColor(
@@ -248,8 +318,27 @@ class _WotTabsState extends State<WotTabs> {
     return isCard ? Colors.white : activeColor;
   }
 
+  /// 测量第 i 项标题文字宽度（[indicatorSize]==label 时用于指示器宽度）。
+  double _measureTitleWidth(int i, double maxW) {
+    final text = widget.children[i].title ?? widget.children[i].name ?? 'Tab $i';
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          fontSize: 14,
+          fontWeight: i == _current ? FontWeight.w600 : FontWeight.w400,
+        ),
+      ),
+      maxLines: 1,
+      textDirection: TextDirection.ltr,
+    );
+    tp.layout(maxWidth: maxW);
+    return tp.width;
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (widget.children.isEmpty) return const SizedBox.shrink();
     final scheme = context.wotScheme;
     final primary = widget.color ?? scheme.primaryOf(6);
     final activeColor = widget.activeColor ?? primary;
@@ -330,10 +419,17 @@ class _WotTabsState extends State<WotTabs> {
 
         // line 样式：每个 tab 用 Positioned 精确定位 + 底部指示器。
         final lineColor = widget.lineColor ?? primary;
-        final indicatorWidth =
-            widget.lineWidth ?? (itemW(0) * 0.6).clamp(16.0, 48.0);
+        final pad = widget.indicatorPadding.resolve(TextDirection.ltr);
+        final indicatorWidth = widget.lineWidth ??
+            (widget.indicatorSize == WotTabsIndicatorSize.label
+                ? _measureTitleWidth(_current, itemW(_current))
+                : itemW(_current));
+        final indicatorW =
+            (indicatorWidth - pad.horizontal).clamp(0.0, itemW(_current));
+        final indicatorH =
+            (widget.indicatorWeight - pad.vertical).clamp(0.0, widget.indicatorWeight);
         final currentLeft =
-            offset(_current) + (itemW(_current) - indicatorWidth) / 2;
+            offset(_current) + (itemW(_current) - indicatorW) / 2;
 
         final tabs = <Widget>[
           for (var i = 0; i < count; i++)
@@ -363,9 +459,9 @@ class _WotTabsState extends State<WotTabs> {
                       : Duration.zero,
                   curve: Curves.easeOut,
                   left: currentLeft,
-                  bottom: 0,
-                  width: indicatorWidth,
-                  height: 3,
+                  bottom: pad.bottom,
+                  width: indicatorW,
+                  height: indicatorH,
                   child: Container(
                     decoration: BoxDecoration(
                       color: lineColor,
