@@ -145,9 +145,21 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
   void _tap() {
     if (widget.disabled || widget.readonly) return;
     if (_focus.hasFocus) {
-      // 已持焦点时 requestFocus 是 no-op（键盘收起后点击框弹不出键盘的场景），
-      // 直接重连输入连接唤起键盘，对齐真实 TextField 的 onTap 行为。
-      _fieldKey.currentState?.requestKeyboard();
+      final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+      if (keyboardVisible) {
+        // 键盘在、点击已聚焦的格子：保持现状（对齐真实 TextField 行为）。
+        return;
+      }
+      // 焦点残留而键盘已收起（didChangeDependencies 的 viewInsets 检测可能因
+      // 设备差异/时序漏触发）：先释放焦点复位聚焦样式，下一帧重新取焦点并
+      // 强制重连输入连接唤起键盘——保证「再点一次」必然能恢复输入。
+      _focus.unfocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_focus.hasFocus) {
+          _focus.requestFocus();
+          _fieldKey.currentState?.requestKeyboard();
+        }
+      });
     } else {
       _focus.requestFocus();
     }

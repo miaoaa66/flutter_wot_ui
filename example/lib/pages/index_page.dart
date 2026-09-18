@@ -245,7 +245,9 @@ class _WotIndexPageState extends State<WotIndexPage> {
                         : [
                             for (final e in g.entries)
                               ListTile(
-                                leading: const WotIcon(name: 'arrow-right', size: 16),
+                                leading: WotIcon(
+                                    name: _entryIcons[e.name] ?? 'category',
+                                    size: 16),
                                 title: Text(e.name),
                                 subtitle: Text(e.desc),
                                 trailing: const Icon(Icons.chevron_right),
@@ -266,6 +268,95 @@ class _WotIndexPageState extends State<WotIndexPage> {
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
   }
 }
+
+/// 二级菜单（各组件入口）左侧图标：按组件英文名映射到 wot 图标名（Material 兜底渲染）。
+/// 替换原先「所有条目都用 arrow-right」的重复感，按组件语义给出更有辨识度的图标。
+const Map<String, String> _entryIcons = <String, String>{
+  // 基础
+  'Button': 'check',
+  'Icon': 'star',
+  'Text': 'text',
+  'Cell': 'list',
+  'CellGroup': 'category',
+  'Row/Col': 'view',
+  'Gap': 'exchange',
+  'Divider': 'minus',
+  'Overlay': 'eye-close',
+  'Loading': 'loading',
+  'Fab': 'add',
+  // 导航
+  'Navbar': 'view',
+  'Tabs': 'category',
+  'Tabbar': 'home',
+  'Segmented': 'more',
+  'Sidebar': 'list',
+  'Pagination': 'double-right',
+  'IndexBar': 'list',
+  'Backtop': 'arrow-up',
+  'Transition': 'refresh',
+  // 录入
+  'Form': 'edit',
+  'Input/Textarea': 'text',
+  'InputNumber': 'filter',
+  'Search': 'search',
+  'Checkbox': 'check',
+  'Radio': 'check-circle',
+  'Switch': 'exchange',
+  'Rate': 'star',
+  'Slider': 'exchange',
+  'SelectPicker': 'more',
+  'Picker': 'sort',
+  'PickerView': 'sort',
+  'Cascader': 'category',
+  'Calendar': 'calendar',
+  'DatetimePicker': 'clock',
+  'Signature': 'edit',
+  'Upload': 'upload',
+  'PasswordInput': 'eye-close',
+  'SlideVerify': 'exchange',
+  'Keyboard': 'edit',
+  // 反馈
+  'Toast': 'info',
+  'Notify': 'message',
+  'Dialog': 'chat',
+  'ActionSheet': 'more',
+  'Progress': 'view',
+  'Circle': 'check-circle',
+  'Popup': 'more',
+  'NoticeBar': 'newspaper',
+  'CountDown': 'clock',
+  'CountTo': 'sort',
+  'SortButton': 'sort',
+  'Tooltip': 'info',
+  'Popover': 'more',
+  'DropMenu': 'category',
+  'FloatingPanel': 'view',
+  'SwipeAction': 'exchange',
+  'Empty': 'empty',
+  'Tour': 'location',
+  // 展示
+  'Tag': 'star-o',
+  'Badge': 'star',
+  'Avatar': 'person',
+  'Card': 'view',
+  'Grid': 'category',
+  'Collapse': 'down',
+  'Expand': 'down',
+  'Steps': 'view',
+  'Skeleton': 'view',
+  'Loadmore': 'more',
+  'Img': 'image',
+  'ImagePreview': 'image',
+  'Swiper': 'play',
+  'Table': 'list',
+  'Watermark': 'view',
+  'QrCode': 'qrcode',
+  'Barcode': 'qr',
+  'Curtain': 'view',
+  'ImgCropper': 'camera',
+  'VideoPreview': 'video',
+  'ThemeBtn': 'moon',
+};
 
 class _Group {
   const _Group(this.key, this.title, this.entries);

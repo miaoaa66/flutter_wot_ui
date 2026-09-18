@@ -16,6 +16,7 @@ class WotProgressPage extends StatelessWidget {
         demoBlock('默认（showText 默认开）', const WotProgress(modelValue: 60)),
         demoSection('文字位置（textInside / showText）'),
         demoBlock('textInside 内部文字', const WotProgress(modelValue: 45, textInside: true)),
+        demoBlock('textInside 内部文字', const WotProgress(modelValue: 2, textInside: true)),
         demoBlock('showText=false 隐藏文字', const WotProgress(modelValue: 80, showText: false)),
         demoSection('样式（color / trackColor / strokeWidth）'),
         demoBlock('自定义颜色 + 粗细',
