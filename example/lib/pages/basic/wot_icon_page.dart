@@ -93,13 +93,6 @@ class WotIconPage extends StatelessWidget {
             WotIcon(name: 'star', size: 32, onClick: () => demoToast(context, '点击了 star'))),
         demoBlock('对照：不传 onClick 的同款图标，点击应无反应',
             const WotIcon(name: 'star', size: 32)),
-
-        demoSection('已废弃参数'),
-        demoBlock(
-            'classPrefix 已 @Deprecated：wot 的 CSS class 前缀，Flutter 无 class 语义，'
-            '该参数从未参与解析，传任何值都不影响渲染。此处不演示，避免误用。'
-            'classPrefix 将在后续版本移除。',
-            const WotIcon(name: 'info', size: 24)),
       ],
     );
   }

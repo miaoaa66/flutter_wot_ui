@@ -124,7 +124,7 @@ class WotIconResolver {
 
 /// 图标组件，对应 wot `wd-icon`。
 ///
-/// 参数对齐 wot：`name`（图标名）、`size`、`color`、`classPrefix`（兼容保留）。
+/// 参数对齐 wot：`name`（图标名）、`size`、`color`。
 /// 通过 [WotIconResolver] 渲染（Material 兜底）；如需 wot 官方字形，
 /// 请自行注册 `iconfont.ttf` 并用 [WotIconFont.codePointOf] 构造 [IconData]。
 class WotIcon extends StatelessWidget {
@@ -133,7 +133,6 @@ class WotIcon extends StatelessWidget {
     this.name,
     this.size,
     this.color,
-    @Deprecated('classPrefix 从未生效，将在后续版本移除。') this.classPrefix = 'wot-icon',
     this.onClick,
   });
 
@@ -145,10 +144,6 @@ class WotIcon extends StatelessWidget {
 
   /// 图标颜色；为空时取语义图标主色。
   final Color? color;
-
-  /// **已废弃**：wot 的 CSS class 前缀，Flutter 没有 class 概念，该参数从未参与解析。
-  @Deprecated('classPrefix 从未生效（Flutter 无 CSS class 语义），将在后续版本移除。')
-  final String classPrefix;
 
   /// 点击回调。
   final VoidCallback? onClick;

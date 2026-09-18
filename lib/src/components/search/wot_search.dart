@@ -134,6 +134,11 @@ class _WotSearchState extends State<WotSearch> {
         : const BorderRadius.all(Radius.circular(6));
     final bg = widget.background ?? scheme.filledStrong;
 
+    // 行高显式钉死为 20px（配合下方 contentPadding 8×2 恰为容器高 36）。
+    // 不钉行高时 isDense 的 InputDecorator 按「fontSize+padding」算行盒，
+    // 与实际字形行高不一致，文字会偏离垂直中线。
+    final textStyle = TextStyle(fontSize: 14, height: 20 / 14, color: scheme.textMain);
+
     final field = TextField(
       controller: _c,
       focusNode: _focus,
@@ -146,14 +151,15 @@ class _WotSearchState extends State<WotSearch> {
       textInputAction: TextInputAction.search,
       onSubmitted: (_) => _search(),
       onTapOutside: (_) => FocusScope.of(context).unfocus(),
-      style: TextStyle(fontSize: 14, color: scheme.textMain),
+      style: textStyle,
       decoration: InputDecoration(
         hintText: widget.placeholder,
-        hintStyle: TextStyle(fontSize: 14, color: scheme.textPlaceholder),
+        hintStyle: TextStyle(
+            fontSize: 14, height: 20 / 14, color: scheme.textPlaceholder),
         border: InputBorder.none,
         counterText: '',
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8),
       ),
     );
 

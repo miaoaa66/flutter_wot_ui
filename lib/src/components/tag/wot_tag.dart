@@ -140,29 +140,37 @@ class WotTag extends StatelessWidget {
           )
         : BorderRadius.circular(round ? 4 : 2);
 
-    final chip = Container(
-      padding: EdgeInsets.symmetric(horizontal: vPadding == 0 ? 4 : 8, vertical: vPadding),
+    // 注意：这里刻意用 DecoratedBox + Padding，而不是 Container。
+    // Container 会把装饰的边框厚度叠加进 padding（其 _paddingIncludingDecoration
+    // 取 padding.add(decoration.padding)，而 Border.dimensions 取 strokeInset，
+    // 默认 strokeAlignInside 时 strokeInset == width），于是带 1px 边框的 plain
+    // 变体会比 dark/light 等外形各多 2px。DecoratedBox 不参与布局、边框只画在
+    // 盒子内侧，各变体外形尺寸严格一致（与 wot-ui Vue 的覆盖层描边行为对齐）。
+    final chip = DecoratedBox(
       decoration: BoxDecoration(color: bg, border: boxBorder, borderRadius: radius),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null && icon!.isNotEmpty) ...[
-            WotIcon(name: icon!, size: iconSz, color: fg),
-            const SizedBox(width: 2),
-          ],
-          Text(
-            text,
-            style: textStyle ??
-                TextStyle(fontSize: fontSize, color: fg, height: 1.2),
-          ),
-          if (closable) ...[
-            const SizedBox(width: 2),
-            GestureDetector(
-              onTap: onClose,
-              child: Icon(Icons.close, size: fontSize, color: fg),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: vPadding == 0 ? 4 : 8, vertical: vPadding),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null && icon!.isNotEmpty) ...[
+              WotIcon(name: icon!, size: iconSz, color: fg),
+              const SizedBox(width: 2),
+            ],
+            Text(
+              text,
+              style: textStyle ??
+                  TextStyle(fontSize: fontSize, color: fg, height: 1.2),
             ),
+            if (closable) ...[
+              const SizedBox(width: 2),
+              GestureDetector(
+                onTap: onClose,
+                child: Icon(Icons.close, size: fontSize, color: fg),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
 

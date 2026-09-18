@@ -46,7 +46,14 @@ class _WotSlideVerifyState extends State<WotSlideVerify> {
   @override
   void didUpdateWidget(WotSlideVerify old) {
     super.didUpdateWidget(old);
-    if (old.modelValue != widget.modelValue) _success = widget.modelValue;
+    if (old.modelValue != widget.modelValue) {
+      _success = widget.modelValue;
+      if (!_success) {
+        // 程序复位（modelValue true→false）：滑块退回左侧，并清除失败态残留。
+        _clearFailed();
+        _offset = 0;
+      }
+    }
   }
 
   @override
@@ -124,27 +131,28 @@ class _WotSlideVerifyState extends State<WotSlideVerify> {
                     style: TextStyle(fontSize: 14, color: scheme.textSecondary),
                   ),
                 ),
-                // 滑块。
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 100),
-                  left: _offset.clamp(0, _width - widget.height),
-                  top: 0,
-                  bottom: 0,
-                  child: Container(
-                    width: widget.height,
-                    decoration: BoxDecoration(
-                      color: _success ? scheme.successClicked : primary,
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4),
-                      ],
-                    ),
-                    child: Icon(
-                      _success ? Icons.check : Icons.arrow_forward,
-                      size: 20,
-                      color: Colors.white,
+                // 滑块：成功态不显示（整个轨道已是绿底 successText，无需再留滑块）。
+                if (!_success)
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 100),
+                    left: _offset.clamp(0, _width - widget.height),
+                    top: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: widget.height,
+                      decoration: BoxDecoration(
+                        color: primary,
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward,
+                        size: 20,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),

@@ -73,32 +73,67 @@ class _WotSortButtonState extends State<WotSortButton> {
           Text(widget.text,
               style: TextStyle(fontSize: 14, color: widget.disabled ? scheme.textDisabled : fg)),
           const SizedBox(width: 4),
-          // 上下箭头：用 Stack 紧凑叠放，避免固定高内 Column(flex) 溢出。
+          // 上下三角：自绘，尺寸/清晰度可控（Material 的 arrow_drop_* 自带大量留白且偏小）。
           SizedBox(
-            width: 10,
-            height: 14,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Align(
-                  alignment: Alignment.topCenter,
-                  child: Icon(Icons.arrow_drop_up,
-                      size: 12,
-                      color: _dir == WotSortDirection.ascending
-                          ? fg
-                          : (active ? fg.withValues(alpha: 0.4) : scheme.iconDisabled)),
-                ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Icon(Icons.arrow_drop_down,
-                      size: 12,
-                      color: _dir == WotSortDirection.descending ? fg : scheme.iconDisabled),
-                ),
-              ],
+            width: 12,
+            height: 15,
+            child: CustomPaint(
+              painter: _SortArrowsPainter(
+                ascendingActive: _dir == WotSortDirection.ascending,
+                descendingActive: _dir == WotSortDirection.descending,
+                activeColor: fg,
+                inactiveColor: scheme.iconAuxiliary,
+              ),
             ),
           ),
         ],
       ),
     );
   }
+}
+
+/// 排序按钮的上下三角指示器（自绘，保证尺寸与清晰度）。
+class _SortArrowsPainter extends CustomPainter {
+  const _SortArrowsPainter({
+    required this.ascendingActive,
+    required this.descendingActive,
+    required this.activeColor,
+    required this.inactiveColor,
+  });
+
+  final bool ascendingActive;
+  final bool descendingActive;
+  final Color activeColor;
+  final Color inactiveColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final up = Paint()..color = ascendingActive ? activeColor : inactiveColor;
+    final down = Paint()..color = descendingActive ? activeColor : inactiveColor;
+
+    // 上三角：apex 在顶部中央，底边在下。
+    final upPath = Path()
+      ..moveTo(w / 2, 1)
+      ..lineTo(1, 8)
+      ..lineTo(w - 1, 8)
+      ..close();
+    // 下三角：apex 在底部中央，底边在上。
+    final downPath = Path()
+      ..moveTo(w / 2, size.height - 1)
+      ..lineTo(1, size.height - 8)
+      ..lineTo(w - 1, size.height - 8)
+      ..close();
+
+    canvas
+      ..drawPath(upPath, up)
+      ..drawPath(downPath, down);
+  }
+
+  @override
+  bool shouldRepaint(_SortArrowsPainter old) =>
+      old.ascendingActive != ascendingActive ||
+      old.descendingActive != descendingActive ||
+      old.activeColor != activeColor ||
+      old.inactiveColor != inactiveColor;
 }

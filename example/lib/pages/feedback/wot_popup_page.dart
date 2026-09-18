@@ -62,8 +62,11 @@ class _WotPopupPageState extends State<WotPopupPage> {
     );
   }
 
-  // 注意：关闭时本页直接卸载弹层（if 判断），因此只演示入场动画，退场反向动画看不到。
-  // 若要演示退场，需保持弹层常驻挂载、仅切换 visible。
+  // 注意：弹层必须「常驻挂载、仅切换 visible」才看得到动画——
+  // WotPopup 的入场动画由 didUpdateWidget 里 _controller.forward() 驱动、
+  // 遮罩由 AnimatedOpacity 的透明度变化驱动，二者都只在 visible 变化（而非首次挂载）时触发。
+  // 早期这页用 `if (_isOpen)` 按需挂载，导致 initState 直接停在终态、完全看不到动画。
+  // 因此这里保持全部弹层常驻挂载，只让 visible 随 _open 切换（入场/退场动画都可见）。
 
   @override
   Widget build(BuildContext context) {
@@ -126,46 +129,40 @@ class _WotPopupPageState extends State<WotPopupPage> {
           ),
         ),
 
-        // ---- 覆盖层：同一时刻只挂载一个 ----
-        if (_isOpen('bottom'))
-          _layer('bottom',
-              position: WotPopupPosition.bottom,
-              child: const SizedBox(
-                  height: 200, width: double.infinity, child: Center(child: WotText('底部弹出内容')))),
-        if (_isOpen('top'))
-          _layer('top',
-              position: WotPopupPosition.top,
-              child: const SizedBox(
-                  height: 200, width: double.infinity, child: Center(child: WotText('顶部弹出内容')))),
-        if (_isOpen('left'))
-          _layer('left',
-              position: WotPopupPosition.left,
-              child: const SizedBox(
-                  width: 220, height: double.infinity, child: Center(child: WotText('左侧弹出内容')))),
-        if (_isOpen('right'))
-          _layer('right',
-              position: WotPopupPosition.right,
-              child: const SizedBox(
-                  width: 220, height: double.infinity, child: Center(child: WotText('右侧弹出内容')))),
-        if (_isOpen('center'))
-          _layer('center',
-              position: WotPopupPosition.center,
-              child: const Padding(
-                  padding: EdgeInsets.all(24), child: WotText('居中弹出内容'))),
-        if (_isOpen('safe'))
-          Positioned.fill(
-            child: WotPopup(
-              visible: true,
-              position: WotPopupPosition.bottom,
-              round: _round,
-              modal: _modal,
-              closeOnClickOverlay: _closeOnOverlay,
-              safeAreaInsetBottom: true,
-              onClose: () => setState(() => _open = null),
-              child: const SizedBox(
-                  height: 180, width: double.infinity, child: Center(child: WotText('强制底部内缩'))),
-            ),
+        // ---- 覆盖层：全部常驻挂载，仅切换 visible（动画由组件驱动）----
+        _layer('bottom',
+            position: WotPopupPosition.bottom,
+            child: const SizedBox(
+                height: 200, width: double.infinity, child: Center(child: WotText('底部弹出内容')))),
+        _layer('top',
+            position: WotPopupPosition.top,
+            child: const SizedBox(
+                height: 200, width: double.infinity, child: Center(child: WotText('顶部弹出内容')))),
+        _layer('left',
+            position: WotPopupPosition.left,
+            child: const SizedBox(
+                width: 220, height: double.infinity, child: Center(child: WotText('左侧弹出内容')))),
+        _layer('right',
+            position: WotPopupPosition.right,
+            child: const SizedBox(
+                width: 220, height: double.infinity, child: Center(child: WotText('右侧弹出内容')))),
+        _layer('center',
+            position: WotPopupPosition.center,
+            child: const Padding(
+                padding: EdgeInsets.all(24), child: WotText('居中弹出内容'))),
+        Positioned.fill(
+          child: WotPopup(
+            visible: _isOpen('safe'),
+            position: WotPopupPosition.bottom,
+            round: _round,
+            modal: _modal,
+            closeOnClickOverlay: _closeOnOverlay,
+            safeAreaInsetBottom: true,
+            onClose: () => setState(() => _open = null),
+            child: const SizedBox(
+                height: 180, width: double.infinity, child: Center(child: WotText('强制底部内缩'))),
           ),
+        ),
       ],
     );
   }

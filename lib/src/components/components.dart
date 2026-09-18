@@ -82,6 +82,8 @@ export 'watermark/wot_watermark.dart';
 export 'qr_code/wot_qr_code.dart';
 export 'barcode/wot_barcode.dart';
 export 'curtain/wot_curtain.dart';
+// --- 主题切换按钮（颜色硬编码，不跟随组件库主题） ---
+export 'theme_btn/wot_theme_btn.dart';
 // --- 批次 C（缺失组件） ---
 export 'index_bar/wot_index_bar.dart';
 export 'tour/wot_tour.dart';

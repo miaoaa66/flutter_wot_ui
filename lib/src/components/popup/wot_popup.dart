@@ -310,9 +310,10 @@ class _WotPopupState extends State<WotPopup> with SingleTickerProviderStateMixin
     );
   }
 
-  /// 由 0.8 放大到 1.0（居中弹层的入场动画）。
+  /// 由 0 放大到 1.0（居中弹层的入场动画）。
+  /// 起点必须为 0：否则关闭态（controller 停在 0）仍残留 0.8 缩放、内容常驻可见。
   Animation<double> _scale() {
-    return Tween<double>(begin: 0.8, end: 1.0).animate(
+    return Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
     );
   }

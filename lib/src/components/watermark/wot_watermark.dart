@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -98,13 +99,19 @@ class WotWatermark extends StatefulWidget {
   State<WotWatermark> createState() => _WotWatermarkState();
 }
 
-class _WotWatermarkState extends State<WotWatermark> {
+class _WotWatermarkState extends State<WotWatermark>
+    with AutomaticKeepAliveClientMixin {
   ui.Image? _image;
   ImageStream? _stream;
   ImageStreamListener? _listener;
 
   /// 全屏模式下承载水印的浮层；非全屏模式下为 null。
   OverlayEntry? _overlayEntry;
+
+  /// 全屏水印是屏幕级浮层，须随页面存活、不随 ListView 滚动卸载被移除。
+  /// 仅 fullScreen 时保持存活（内嵌模式无关）。
+  @override
+  bool get wantKeepAlive => widget.fullScreen;
 
   @override
   void initState() {
@@ -220,6 +227,7 @@ class _WotWatermarkState extends State<WotWatermark> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin 必要调用。
     // 全屏模式下水印由 Overlay 承载，这里只渲染下层内容。
     // 浮层的插入/刷新/移除统一由 initState、didUpdateWidget、dispose 驱动，
     // 避免在 build 阶段操作 Overlay 触发重入错误。
@@ -315,10 +323,18 @@ class _WatermarkPainter extends CustomPainter {
       if (step <= 0) {
         _drawOne(canvas, Offset(-halfW, -halfH));
       } else {
-        final rows = (size.height / step).ceil() + 2;
-        final cols = (size.width / step).ceil() + 2;
-        for (var r = -rows ~/ 2; r < rows ~/ 2; r++) {
-          for (var c = -cols ~/ 2; c < cols ~/ 2; c++) {
+        // 旋转后必须按「屏幕在旋转坐标系下的半外接矩形」计算行列数，
+        // 否则窄长页面/中大角度旋转时对角会超出未旋转的矩形范围，
+        // 出现未覆盖的空角。
+        final a = (rotate * 3.141592653589793 / 180).abs();
+        final cosA = math.cos(a);
+        final sinA = math.sin(a);
+        final extentX = size.width / 2 * cosA + size.height / 2 * sinA;
+        final extentY = size.width / 2 * sinA + size.height / 2 * cosA;
+        final cols = (extentX / step).ceil() * 2 + 3;
+        final rows = (extentY / step).ceil() * 2 + 3;
+        for (var r = -rows ~/ 2; r <= rows ~/ 2; r++) {
+          for (var c = -cols ~/ 2; c <= cols ~/ 2; c++) {
             _drawOne(canvas, Offset(c * step - halfW, r * step - halfH));
           }
         }

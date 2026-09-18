@@ -70,7 +70,11 @@ class WotPasswordInput extends StatefulWidget {
 class _WotPasswordInputState extends State<WotPasswordInput> {
   late final FocusNode _focus;
   late final TextEditingController _controller;
+  final GlobalKey<EditableTextState> _fieldKey = GlobalKey<EditableTextState>();
   String _value = '';
+
+  /// 上一帧键盘可见高度，用于探测「键盘被系统收起」。
+  double _lastViewInsets = 0;
 
   /// 内部 / 受控聚焦态。
   bool get _isFocused => widget.focused ?? _focus.hasFocus;
@@ -81,6 +85,23 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
     _value = widget.modelValue;
     _focus = FocusNode()..addListener(_onFocusChange);
     _controller = TextEditingController(text: widget.modelValue);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final insets = MediaQuery.of(context).viewInsets.bottom;
+    final wasVisible = _lastViewInsets > 0;
+    final visible = insets > 0;
+    _lastViewInsets = insets;
+    // 系统返回/手势收起键盘不会释放 FocusNode（hasFocus 仍为 true），
+    // 聚焦样式会残留、且后续 requestFocus 成为 no-op 导致键盘唤不起。
+    // 故键盘从可见转隐藏且仍持焦点时主动失焦，复位样式并让下次点击可重新唤起。
+    if (wasVisible && !visible && _focus.hasFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _focus.hasFocus) _focus.unfocus();
+      });
+    }
   }
 
   @override
@@ -123,7 +144,13 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
 
   void _tap() {
     if (widget.disabled || widget.readonly) return;
-    _focus.requestFocus();
+    if (_focus.hasFocus) {
+      // 已持焦点时 requestFocus 是 no-op（键盘收起后点击框弹不出键盘的场景），
+      // 直接重连输入连接唤起键盘，对齐真实 TextField 的 onTap 行为。
+      _fieldKey.currentState?.requestKeyboard();
+    } else {
+      _focus.requestFocus();
+    }
   }
 
   void _onChanged(String text) {
@@ -161,6 +188,7 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
                 width: 1,
                 height: 1,
                 child: TextField(
+                  key: _fieldKey,
                   controller: _controller,
                   focusNode: _focus,
                   keyboardType: TextInputType.number,

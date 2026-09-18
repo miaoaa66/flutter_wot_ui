@@ -25,6 +25,7 @@ class _WotPopoverPageState extends State<WotPopoverPage> {
   bool _mask = false;
   bool _closeOnOverlay = true;
   bool _controlledOpen = false;
+  bool _manualOpen = false;
   String _log = '（暂无）';
 
   void _push(String msg) {
@@ -139,28 +140,32 @@ class _WotPopoverPageState extends State<WotPopoverPage> {
               child: WotButton(text: '悬浮触发', size: WotButtonSize.small),
             )),
         demoBlock('trigger: manual —— 只能由外部 visible 控制，点锚点无效',
-            WotPopover(
-              trigger: 'manual',
-              visible: _controlledOpen,
-              content: const [Text('仅受控显示')],
-              child: WotButton(
-                  text: '点击锚点应无反应', size: WotButtonSize.small, type: WotButtonType.info),
-            )),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              WotPopover(
+                trigger: 'manual',
+                visible: _manualOpen,
+                content: const [Text('仅受控显示')],
+                // 受控用法：onChange 必须回写 state，否则外部 visible 恒为 true，
+                // 关闭后会被重新打开（即「能打开关不掉」）。
+                onChange: (v) => setState(() => _manualOpen = v),
+                child: WotButton(
+                    text: '点击锚点应无反应',
+                    size: WotButtonSize.small,
+                    type: WotButtonType.info),
+              ),
+              const SizedBox(height: 12),
+              WotButton(
+                text: _manualOpen ? '外部关闭（manual）' : '外部打开（manual）',
+                size: WotButtonSize.small,
+                onClick: () => setState(() => _manualOpen = !_manualOpen),
+              ),
+            ])),
 
         demoSection('受控（visible + 外部 setState）'),
         demoBlock(
             '当前 visible: $_controlledOpen —— 外部切换后气泡应随之开合，'
                 '且 onOpen / onClose 回写到日志',
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                WotButton(
-                  text: _controlledOpen ? '外部关闭' : '外部打开',
-                  size: WotButtonSize.small,
-                  type: WotButtonType.primary,
-                  onClick: () => setState(() => _controlledOpen = !_controlledOpen),
-                ),
-              ]),
-              const SizedBox(height: 10),
               WotPopover(
                 trigger: 'manual',
                 visible: _controlledOpen,
@@ -168,8 +173,20 @@ class _WotPopoverPageState extends State<WotPopoverPage> {
                 content: const [Text('受控气泡')],
                 onOpen: () => _push('onOpen'),
                 onClose: () => _push('onClose'),
-                onChange: (v) => _push('onChange: $v'),
+                // 受控用法：onChange 必须回写 state，否则外部 visible 恒为 true，
+                // 点遮罩关闭后会被 didUpdateWidget 重新打开（表现为「能打开关不掉」）。
+                onChange: (v) {
+                  setState(() => _controlledOpen = v);
+                  _push('onChange: $v');
+                },
                 child: WotButton(text: '受控锚点', size: WotButtonSize.small),
+              ),
+              const SizedBox(height: 100),
+              WotButton(
+                text: _controlledOpen ? '外部关闭' : '外部打开',
+                size: WotButtonSize.small,
+                type: WotButtonType.primary,
+                onClick: () => setState(() => _controlledOpen = !_controlledOpen),
               ),
             ])),
       ],

@@ -105,6 +105,9 @@ class _WotPickerColumnState extends State<WotPickerColumn> {
   late FixedExtentScrollController _controller;
   int _current = 0;
 
+  /// 拖动起点索引，用于推算松手时的滚动方向（正向 +1 / 反向 -1）。
+  int _dragStartIndex = 0;
+
   /// 是否处于程序化同步中（初始化初值 / didUpdateWidget 跳转）。此时滚轮触发的
   /// `onSelectedItemChanged` 仅更新样式、不向父级汇报，避免在 build 阶段 setState。
   bool _syncing = true;
@@ -112,7 +115,8 @@ class _WotPickerColumnState extends State<WotPickerColumn> {
   @override
   void initState() {
     super.initState();
-    _current = widget.selectedIndex;
+    _current = widget.selectedIndex.clamp(0, widget.options.length - 1);
+    _dragStartIndex = _current;
     _controller = FixedExtentScrollController(initialItem: _current);
     // 初值对应的首次布局回调在 build 阶段触发，延后到帧末再解除抑制。
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -150,27 +154,46 @@ class _WotPickerColumnState extends State<WotPickerColumn> {
       height: widget.height,
       child: Stack(
         children: [
-          ListWheelScrollView(
-            controller: _controller,
-            itemExtent: widget.itemExtent,
-            physics: widget.disabled
-                ? const NeverScrollableScrollPhysics()
-                : const FixedExtentScrollPhysics(),
-            onSelectedItemChanged: (i) {
-              // 落在禁用项上时吸附到最近的可用项（wot `disabled` 语义）。
-              final target = _nearestEnabled(i);
-              if (target != i) {
-                _controller.animateToItem(
-                  target,
-                  duration: const Duration(milliseconds: 200),
-                  curve: Curves.easeOut,
-                );
-                return;
+          NotificationListener<ScrollNotification>(
+            onNotification: (n) {
+              if (n is ScrollStartNotification) {
+                // 记录拖动起点，供松手时判断滚动方向。
+                _dragStartIndex = _controller.selectedItem;
+              } else if (n is ScrollEndNotification) {
+                // 松手后若停在禁用项，沿滚动方向吸附到最近的可用项
+                // （wot `disabled` 语义：禁止选中禁用项，但允许滚过它）。
+                final settled = _controller.selectedItem;
+                if (!_enabledAt(settled)) {
+                  final dir = settled > _dragStartIndex
+                      ? 1
+                      : (settled < _dragStartIndex ? -1 : 1);
+                  final target = _nearestEnabledFrom(settled, dir);
+                  if (target != settled && _controller.hasClients) {
+                    _controller.animateToItem(
+                      target,
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOut,
+                    );
+                  }
+                }
               }
-              setState(() => _current = i);
-              // 程序化同步时不上报，避免父级在 build 阶段 setState。
-              if (!_syncing) widget.onChange?.call(i);
+              return false;
             },
+            child: ListWheelScrollView(
+              controller: _controller,
+              itemExtent: widget.itemExtent,
+              physics: widget.disabled
+                  ? const NeverScrollableScrollPhysics()
+                  : const FixedExtentScrollPhysics(),
+              onSelectedItemChanged: (i) {
+                // 拖动过程中可能短暂停在禁用项，仅更新显示、不在此时吸附；
+                // 真正的吸附交给 ScrollEndNotification，从而保证能「滚过」
+                // 禁用项到达下一个启用项（而非被拉回上一个启用项）。
+                setState(() => _current = i);
+                // 程序化同步或落在禁用项时不上报，避免父级在 build 阶段 setState
+                // 以及把禁用值回传。
+                if (!_syncing && _enabledAt(i)) widget.onChange?.call(i);
+              },
             useMagnifier: true,
             magnification: 1.1,
             overAndUnderCenterOpacity: 0.4,
@@ -208,6 +231,7 @@ class _WotPickerColumnState extends State<WotPickerColumn> {
                 ),
             ],
           ),
+          ),
         ],
       ),
     );
@@ -218,13 +242,19 @@ class _WotPickerColumnState extends State<WotPickerColumn> {
   bool _enabledAt(int i) =>
       i >= 0 && i < widget.options.length && !widget.options[i].disabled;
 
-  /// 从 [from] 向两侧找最近的未禁用项；整列都禁用时返回 [from]。
-  int _nearestEnabled(int from) {
+  /// 从 [from] 出发，沿滚动方向 [dir]（+1 正向 / -1 反向）优先寻找最近的未禁用项；
+  /// 该方向无可用项时再搜索反方向；整列都禁用时返回 [from]。
+  int _nearestEnabledFrom(int from, int dir) {
     if (_enabledAt(from)) return from;
     final n = widget.options.length;
     for (var d = 1; d < n; d++) {
-      if (_enabledAt(from - d)) return from - d;
-      if (_enabledAt(from + d)) return from + d;
+      if (dir >= 0) {
+        if (_enabledAt(from + d)) return from + d;
+        if (_enabledAt(from - d)) return from - d;
+      } else {
+        if (_enabledAt(from - d)) return from - d;
+        if (_enabledAt(from + d)) return from + d;
+      }
     }
     return from;
   }

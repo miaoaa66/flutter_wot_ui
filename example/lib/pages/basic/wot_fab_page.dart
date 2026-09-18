@@ -49,15 +49,7 @@ class _WotFabPageState extends State<WotFabPage> {
               ),
             )),
         demoSection('类型（type）'),
-        demoBlock('success 类型',
-            SizedBox(
-              height: 120,
-              child: Align(
-                alignment: Alignment.bottomRight,
-                child: WotFab(icon: 'heart', type: WotFabType.success,
-                    onClick: () => demoToast(context, 'success FAB')),
-              ),
-            )),
+        demoBlock('success 类型', WotFab(icon: 'heart', type: WotFabType.success, onClick: () => demoToast(context, 'success FAB'))),
       ],
     );
   }

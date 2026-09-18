@@ -1,3 +1,7 @@
+import 'dart:async';
+
+// defaultTargetPlatform 定义在 foundation.dart，material.dart 不会导出它。
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 // TextInputFormatter / FilteringTextInputFormatter 定义在 services.dart，
 // material.dart 不会导出它们，必须显式引入。
@@ -126,10 +130,39 @@ class _WotTextInputState extends State<_WotTextInput> {
   /// 聚焦/失焦状态变化时触发对应回调。
   void _handleFocusChange() {
     if (_focusNode.hasFocus) {
+      _ensureKeyboardVisible();
       widget.onFocus?.call();
     } else {
       widget.onBlur?.call();
     }
+  }
+
+  /// 获得焦点后补发「弹出软键盘」请求（仅 Android）。
+  ///
+  /// **这是 Android 系统输入法的坑，不是本组件的逻辑问题**：华为 / 荣耀 / 小米 /
+  /// OPPO 等机型的系统设置里默认开启「安全输入 / 安全键盘」，密码框
+  /// （`obscureText: true`，如 `WotInput(password: true)`）被聚焦时，系统会把输入法
+  /// 切换到内置安全键盘。这次输入法切换会**吞掉 Flutter 引擎在聚焦瞬间发出的首次
+  /// `showSoftInput`**，于是表现为：
+  /// 第一次点击输入框时「已经有聚焦样式（下划线高亮 + 光标）但键盘不弹出」，
+  /// 必须再点一次才出现；一页有多个输入框、来回切换焦点时同样容易触发。
+  /// 参见 flutter/flutter#68571、flutter/flutter#160582（均为开放中的框架问题）。
+  ///
+  /// 兜底做法：焦点落到本框后先在**下一帧**补发一次 `TextInput.show`；考虑到输入法
+  /// 切换可能慢于一帧、首帧补发仍被吞掉，再在 160ms 后补一次。两次都以「本框仍持有
+  /// 焦点」为前提，键盘已正常弹出时该调用是幂等的（平台侧对已显示的软键盘无副作用），
+  /// 因此不会造成重复弹出或闪烁。仅 Android 生效，不影响 iOS / 桌面 / Web 既有行为。
+  void _ensureKeyboardVisible() {
+    if (defaultTargetPlatform != TargetPlatform.android) return;
+    void retry() {
+      if (!mounted || !_focusNode.hasFocus) return;
+      // 静态 `TextInput.show()` 在新版本 Flutter 中已移除，这里走原始通道；
+      // 引擎侧仍是同一个 'TextInput.show' 处理器（等价于 TextInputConnection.show()）。
+      SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => retry());
+    Future<void>.delayed(const Duration(milliseconds: 160), retry);
   }
 
   /// 文本被程序化修改时刷新依赖 [TextEditingController.text] 的后置区。

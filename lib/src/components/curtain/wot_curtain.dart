@@ -32,7 +32,7 @@ class WotCurtain extends StatefulWidget {
   /// 是否显示幕布（v-model）。
   final bool modelValue;
 
-  /// 是否支持点击遮罩关闭，默认 true。
+  /// 是否支持点击遮罩关闭，默认 false（仅 × 可关闭）。
   final bool maskClose;
 
   /// 关闭按钮图标名，默认 `close`。
@@ -153,34 +153,34 @@ class _WotCurtainState extends State<WotCurtain> {
             onTap: widget.maskClose ? _close : null,
             child: Container(color: scheme.opacMainCover),
           ),
-          // 面板。
+          // 面板。外层 6 + 内层 18 = 面板距屏幕边缘 24，与旧实现一致。
+          // 关闭按钮悬出面板 18px：Flutter 命中测试不会到达父级边界之外
+          // （Clip.none 只影响绘制），故把悬出量做进本 Stack 的尺寸——
+          // 内层 Padding 预留 18px，按钮 Positioned 落在边界内，命中可达。
           Align(
             alignment: align,
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(6),
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  panel,
-                  // 关闭按钮。
+                  Padding(padding: const EdgeInsets.all(18), child: panel),
+                  // 关闭按钮：中心恰在面板右上角（悬出 18px 的视觉效果不变）。
                   Positioned(
                     top: 0,
                     right: 0,
-                    child: Transform.translate(
-                      offset: const Offset(18, -18),
-                      child: GestureDetector(
-                        onTap: _close,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: WotIcon(
-                            name: widget.closeIcon,
-                            size: widget.closeIconSize,
-                            color: widget.closeIconColor ?? Colors.white,
-                          ),
+                    child: GestureDetector(
+                      onTap: _close,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: WotIcon(
+                          name: widget.closeIcon,
+                          size: widget.closeIconSize,
+                          color: widget.closeIconColor ?? Colors.white,
                         ),
                       ),
                     ),
