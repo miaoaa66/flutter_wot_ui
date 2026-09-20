@@ -355,8 +355,11 @@ class _WotSliderState extends State<WotSlider> {
       value: widget.range ? '${_label(_low)} - ${_label(_high)}' : _label(cur),
       increasedValue: widget.range ? null : _label(cur + widget.step),
       decreasedValue: widget.range ? null : _label(cur - widget.step),
-      onIncrease: locked ? null : () => semanticStep(1),
-      onDecrease: locked ? null : () => semanticStep(-1),
+      // 区间模式不提供单步增减动作（双端调节语义不同）——
+      // 且框架断言要求「有 increase 动作的节点，value / increasedValue 必须成对」，
+      // 区间模式下 increasedValue 为空、value 非空，必须把动作一并去掉。
+      onIncrease: (locked || widget.range) ? null : () => semanticStep(1),
+      onDecrease: (locked || widget.range) ? null : () => semanticStep(-1),
       enabled: !locked,
       child: sliderView,
     );
