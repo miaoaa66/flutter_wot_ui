@@ -86,14 +86,18 @@ class WotSwitch extends StatelessWidget {
             decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
           );
 
-    return GestureDetector(
+    final semanticOnTap = (disabled || readonly || loading)
+        ? null
+        : () {
+            wotFormPushValue(context, name, !on);
+            onChange?.call(!on);
+          };
+
+    // 无障碍：裸 GestureDetector 不产生语义节点，屏幕阅读器读不出「开 / 关」。
+    // switch 语义用 checked 表达（与 Flutter 官方 Switch 一致）。
+    final toggle = GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: disabled || readonly || loading
-          ? null
-          : () {
-              wotFormPushValue(context, name, !on);
-              onChange?.call(!on);
-            },
+      onTap: semanticOnTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: width,
@@ -129,6 +133,13 @@ class WotSwitch extends StatelessWidget {
           ],
         ),
       ),
+    );
+
+    return Semantics(
+      checked: on,
+      enabled: !disabled,
+      onTap: semanticOnTap,
+      child: toggle,
     );
   }
 }

@@ -189,7 +189,7 @@ class _WotSliderState extends State<WotSlider> {
     // 区间模式渲染高值圆点要用 _high（区间逻辑只更新 _high）；单滑块才用 _value。
     final highFrac = _fraction(widget.range ? _high : _value);
 
-    return LayoutBuilder(
+    final sliderView = LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
 
@@ -334,6 +334,31 @@ class _WotSliderState extends State<WotSlider> {
           ),
         );
       },
+    );
+
+    // 无障碍：裸 GestureDetector 不产生语义节点，屏幕阅读器读不出当前值 / 可增减。
+    // 增减复用内部拖动路径（_dragMove + _dragEnd），与手动拖动一样走对齐吸附和 onChange。
+    void semanticStep(int dir) {
+      final cur = widget.range ? _high : _value;
+      num next = cur + dir * widget.step;
+      final steps = ((next - widget.min) / widget.step).round();
+      next = widget.min + steps * widget.step;
+      if (next < widget.min) next = widget.min;
+      if (next > widget.max) next = widget.max;
+      _dragMove(((next - widget.min) / _range).toDouble());
+      _dragEnd();
+    }
+
+    final cur = widget.range ? _high : _value;
+    return Semantics(
+      slider: true,
+      value: widget.range ? '${_label(_low)} - ${_label(_high)}' : _label(cur),
+      increasedValue: widget.range ? null : _label(cur + widget.step),
+      decreasedValue: widget.range ? null : _label(cur - widget.step),
+      onIncrease: locked ? null : () => semanticStep(1),
+      onDecrease: locked ? null : () => semanticStep(-1),
+      enabled: !locked,
+      child: sliderView,
     );
   }
 

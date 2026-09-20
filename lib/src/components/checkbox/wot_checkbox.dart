@@ -258,9 +258,11 @@ class _WotCheckboxState extends State<WotCheckbox> {
     final boxColor =
         disabled ? scheme.filledExtraStrong : (widget.checkColor ?? scheme.primaryOf(6));
 
+    final semanticOnTap = disabled || widget.readonly || locked ? null : _toggle;
+
     final icon = GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: disabled || widget.readonly || locked ? null : _toggle,
+      onTap: semanticOnTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: widget.size,
@@ -280,21 +282,35 @@ class _WotCheckboxState extends State<WotCheckbox> {
       ),
     );
 
-    if (widget.label == null) return icon;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: disabled || widget.readonly || locked ? null : _toggle,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          icon,
-          const SizedBox(width: 6),
-          Text(
-            widget.label!,
-            style: TextStyle(fontSize: 14, color: style.label),
-          ),
-        ],
-      ),
+    Widget result;
+    if (widget.label == null) {
+      result = icon;
+    } else {
+      result = GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: semanticOnTap,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            icon,
+            const SizedBox(width: 6),
+            Text(
+              widget.label!,
+              style: TextStyle(fontSize: 14, color: style.label),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 无障碍：裸 GestureDetector 不产生语义节点，屏幕阅读器读不出「选中 / 未选中」。
+    // checked 采用 Flutter 官方 checkbox 同款标志（switch 语义同样用 checked 表达）。
+    return Semantics(
+      checked: checked,
+      enabled: !disabled,
+      onTap: semanticOnTap,
+      label: widget.label,
+      child: result,
     );
   }
 }

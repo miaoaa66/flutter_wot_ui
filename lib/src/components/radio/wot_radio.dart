@@ -219,9 +219,11 @@ class _WotRadioState extends State<WotRadio> {
     final color =
         disabled ? scheme.filledExtraStrong : (widget.color ?? scheme.primaryOf(6));
 
+    final semanticOnTap = disabled || widget.readonly ? null : _toggle;
+
     final icon = GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: disabled || widget.readonly ? null : _toggle,
+      onTap: semanticOnTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: 18,
@@ -251,21 +253,36 @@ class _WotRadioState extends State<WotRadio> {
       ),
     );
 
-    if (widget.label == null) return icon;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: disabled || widget.readonly ? null : _toggle,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          icon,
-          const SizedBox(width: 6),
-          Text(
-            widget.label!,
-            style: TextStyle(fontSize: 14, color: style.label),
-          ),
-        ],
-      ),
+    Widget result;
+    if (widget.label == null) {
+      result = icon;
+    } else {
+      result = GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: semanticOnTap,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            icon,
+            const SizedBox(width: 6),
+            Text(
+              widget.label!,
+              style: TextStyle(fontSize: 14, color: style.label),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // 无障碍：裸 GestureDetector 不产生语义节点，屏幕阅读器读不出「已选中 / 未选中」。
+    // 组内时声明互斥组，读屏可感知「这些选项同一时间只能选一个」。
+    return Semantics(
+      checked: selected,
+      inMutuallyExclusiveGroup: group != null,
+      enabled: !disabled,
+      onTap: semanticOnTap,
+      label: widget.label,
+      child: result,
     );
   }
 }

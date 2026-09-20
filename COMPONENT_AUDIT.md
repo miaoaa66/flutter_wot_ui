@@ -822,7 +822,12 @@ flutter test             :: example 的 widget 测试
 
 **Stage 1 无障碍**
 - [ ] T1.1 建 `test/a11y_baseline_test.dart` 输出语义节点基线表（必须有数字）
-- [ ] T1.2 交互类第一批：button / checkbox / radio / switch / slider / input
+- [x] T1.2 交互类第一批 —— ✅ 已完成（2026-09-20）：`checkbox` / `radio` / `switch` / `slider` 四个
+  **自绘裸 GestureDetector** 组件补齐 Semantics（`checked` / `slider` / `value` / `increasedValue` /
+  `decreasedValue` / `onIncrease` / `onDecrease` / `enabled` / `onTap`；radio 组内加 `inMutuallyExclusiveGroup`），
+  slider 的语义增减复用内部拖动路径（与拖动一致走 step 对齐 + onChange）。
+  `button` 用 InkWell、`input` 用 TextField，Flutter 已内建语义（审计确认无需包装）。
+  遗留：`input` 的「必填 / 错误」语义未关联。
 - [ ] T1.3 交互类第二批：tabs / segmented / pagination / icon / rate / input_number / sidebar / cell
 - [ ] T1.4 展示类降噪：divider / gap / skeleton / watermark / progress / loading
 

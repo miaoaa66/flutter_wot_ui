@@ -58,6 +58,15 @@
 - `WotCalendar.show` 改为回落到 `WotCalendar` 本体：原先直接构造 `_CalendarSheet`，
   会**绕过** `WotCalendar.build` 里的三态包裹，使 disabled / readonly 失效。
 
+### 无障碍（T1.2，2026-09-20）
+
+- `WotCheckbox` / `WotRadio` / `WotSwitch` / `WotSlider` 四个自绘组件补齐 Semantics ——
+  此前全部是裸 GestureDetector，**屏幕阅读器读不出「选中状态 / 当前值」**。
+  - checkbox / radio / switch：`checked` 状态 + `onTap` 语义动作；radio 组内声明互斥组
+  - slider：`slider` 角色 + 当前值 / 增减后值；`onIncrease` / `onDecrease` 复用内部拖动路径
+    （与手动拖动一致走 step 对齐吸附和 onChange）
+- `WotButton`（InkWell）与 `WotInput`（TextField）由 Flutter 内建语义覆盖，无需包装。
+
 ### Fixed（T3.2）
 
 - `checkbox` / `radio` 的 `name` 此前是**死参数**（声明但从未登记），导致表单 `validate()` / `values`
