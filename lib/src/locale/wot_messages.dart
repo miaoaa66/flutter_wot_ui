@@ -136,24 +136,36 @@ class WotMessages {
 
 /// 组件内取文案的统一入口。
 ///
+/// [params] 用于占位符替换：文案中的 `{name}` 会被替换为 [params] 中同名键的字符串形式。
+/// 例如内置文案「共 {total} 条，共 {pages} 页」配合
+/// `tr(context, 'wot.pagination.total', params: {'total': 120, 'pages': 6})` 使用。
+/// 占位符替换对自定义语言包同样生效。
+///
 /// 取值优先级：**自定义语言包（[WotConfigProvider.localeMessages]） >
 /// 内置表（按当前 locale）> 内置默认语言表 > [fallback] > key 本身**。
 ///
 /// 不依赖 [WotConfigProvider] 时（无 Provider 包裹）按默认语言 `zh_CN` 取值，
 /// 因此组件内可以放心直接调用、不需要判空。
-String tr(BuildContext context, String key, {String? fallback}) {
+String tr(BuildContext context, String key,
+    {String? fallback, Map<String, Object?> params = const {}}) {
   final scope = WotConfigProvider.of(context);
   final locale = WotMessages.normalize(scope.locale);
 
   // 1) 用户自定义语言包优先（可只覆盖个别 key）。
-  final custom = scope.messages;
-  final customValue = custom?[key];
-  if (customValue != null && customValue.isNotEmpty) return customValue;
+  var result = scope.messages?[key] ?? '';
 
   // 2) 内置表按当前 locale，缺 key 回退默认语言表。
-  final builtin = WotMessages.builtinValue(locale, key);
-  if (builtin != null) return builtin;
+  if (result.isEmpty) result = WotMessages.builtinValue(locale, key) ?? '';
 
   // 3) 显式回退 / key 本身（方便发现漏配的 key）。
-  return fallback ?? key;
+  if (result.isEmpty) result = fallback ?? key;
+
+  // 4) 占位符替换：文案中的 {name} 替换为 params 同名键的值。
+  //    对自定义语言包与 fallback 同样生效（无对应占位符时原样保留）。
+  if (params.isNotEmpty) {
+    params.forEach((name, value) {
+      result = result.replaceAll('{$name}', '$value');
+    });
+  }
+  return result;
 }
