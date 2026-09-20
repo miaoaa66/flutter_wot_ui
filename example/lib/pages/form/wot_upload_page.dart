@@ -18,6 +18,7 @@ class WotUploadPage extends StatefulWidget {
 
 class _WotUploadPageState extends State<WotUploadPage> {
   bool _disabled = false;
+  bool _readonly = false;
   bool _failNext = true;
 
   /// 演示用的自定义上传：模拟分段上报进度。
@@ -113,12 +114,16 @@ class _WotUploadPageState extends State<WotUploadPage> {
               uploadMethod: _demoUpload,
               onChange: (_) => demoToast(context, '已选文件'),
             )),
-        demoSection('状态（disabled）'),
-        Row(children: [
-          Flexible(child: FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled'))),
+        demoSection('三态（disabled / readonly）'),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled')),
+          FilledButton.tonal(onPressed: () => setState(() => _readonly = !_readonly), child: Text('readonly: $_readonly')),
         ]),
         const SizedBox(height: 8),
-        demoBlock('disabled 禁用', WotUpload(disabled: _disabled, onChange: (_) {})),
+        demoBlock('disabled 禁用（锁增删 + 整体淡化）',
+            WotUpload(disabled: _disabled, onChange: (_) {})),
+        demoBlock('readonly 只读（锁增删、**预览仍可用** —— 配色不变）',
+            WotUpload(readonly: _readonly, onChange: (_) {})),
       ],
     );
   }

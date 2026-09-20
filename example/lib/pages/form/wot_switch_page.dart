@@ -19,6 +19,7 @@ class _WotSwitchPageState extends State<WotSwitchPage> {
   bool _on5 = false;
   bool _loading = false;
   bool _disabled = false;
+  bool _readonly = false;
 
   @override
   Widget build(BuildContext context) {
@@ -42,14 +43,17 @@ class _WotSwitchPageState extends State<WotSwitchPage> {
               const SizedBox(width: 16),
               WotSwitch(modelValue: _on5, size: 40, onChange: (v) => setState(() => _on5 = v)),
             ])),
-        demoSection('状态（disabled / loading）'),
-        Row(children: [
-          Flexible(child: FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled'))),
-          const SizedBox(width: 8),
-          Flexible(child: FilledButton.tonal(onPressed: () => setState(() => _loading = !_loading), child: Text('loading: $_loading'))),
+        demoSection('状态（disabled / readonly / loading）'),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled')),
+          FilledButton.tonal(onPressed: () => setState(() => _readonly = !_readonly), child: Text('readonly: $_readonly')),
+          FilledButton.tonal(onPressed: () => setState(() => _loading = !_loading), child: Text('loading: $_loading')),
         ]),
         const SizedBox(height: 8),
-        demoBlock('disabled 禁用', Row(children: [const Expanded(child: Text('禁用')), WotSwitch(modelValue: _on1, disabled: _disabled, onChange: (v) => setState(() => _on1 = v))])),
+        demoBlock('disabled 禁用（轨道整体灰化，不可切换）',
+            Row(children: [const Expanded(child: Text('禁用')), WotSwitch(modelValue: _on1, disabled: _disabled, onChange: (v) => setState(() => _on1 = v))])),
+        demoBlock('readonly 只读（锁切换、保持正常配色 —— 区别于 disabled 的灰化）',
+            Row(children: [const Expanded(child: Text('只读')), WotSwitch(modelValue: _on1, readonly: _readonly, onChange: (v) => setState(() => _on1 = v))])),
         demoBlock('loading 异步加载',
             Row(children: [
               const Expanded(child: Text('确认切换')), WotSwitch(modelValue: _on2, loading: _loading, onChange: (v) {}),

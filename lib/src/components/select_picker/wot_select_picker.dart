@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/wot_scheme.dart';
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../empty/wot_empty.dart';
 import '../icon/wot_icon.dart';
@@ -61,6 +62,8 @@ class WotSelectPicker extends StatefulWidget {
     this.title,
     this.placeholder = '请选择',
     this.disabled = false,
+    this.readonly = false,
+    this.error = false,
     this.loading = false,
     this.color,
     this.name,
@@ -125,8 +128,14 @@ class WotSelectPicker extends StatefulWidget {
   /// 未选择任何项时的占位文本，默认「请选择」。
   final String placeholder;
 
-  /// 是否禁用整组件（不可点击弹出），默认 false。
+  /// 是否禁用整组件（不可点击弹出），默认 false。禁用时触发区灰化。
   final bool disabled;
+
+  /// 是否只读：不可弹出选择，但触发区保持正常配色（只读展示当前值），默认 false。
+  final bool readonly;
+
+  /// 是否处于校验失败态（error 态）。命中时触发区描红边。
+  final bool error;
 
   /// 弹层内是否显示加载中状态（覆盖选项区域并禁用交互）。
   final bool loading;
@@ -297,14 +306,33 @@ class _WotSelectPickerState extends State<WotSelectPicker> {
     final display = widget._display(widget.modelValue);
     final hasValue = widget._hasValue;
 
+    // 触发区是框类形态，套用框类三态规则：显式传参 > WotFieldScope 下发 > 默认。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = widget.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final readonly = widget.readonly || (fieldScope?.state == WotFieldState.readonly);
+    final hasError = widget.error || (fieldScope?.error ?? false);
+    final state = disabled
+        ? WotFieldState.disabled
+        : readonly
+            ? WotFieldState.readonly
+            : WotFieldState.editable;
+    final style = wotFieldStyle(
+      scheme,
+      state,
+      error: hasError,
+      baseBorder: scheme.borderMain,
+    );
+    // 禁用给浅灰底；只读 / 可编辑保持透明（只读额外去掉边框，表达非输入区）。
+    final bg = disabled ? style.background : scheme.borderZero;
+    final auxIconColor = disabled ? scheme.iconDisabled : scheme.iconAuxiliary;
+
     return InkWell(
-      onTap: widget.disabled ? null : _present,
+      onTap: (disabled || readonly) ? null : _present,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          border: Border.all(
-            color: widget.disabled ? scheme.borderLight : scheme.borderMain,
-          ),
+          color: bg,
+          border: Border.all(color: style.border),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
@@ -316,27 +344,25 @@ class _WotSelectPickerState extends State<WotSelectPicker> {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 14,
-                  color: display.isEmpty
-                      ? scheme.textPlaceholder
-                      : scheme.textMain,
+                  color: display.isEmpty ? style.placeholder : style.text,
                 ),
               ),
             ),
-            if (hasValue && widget.clearable && !widget.disabled)
+            if (hasValue && widget.clearable && !disabled && !readonly)
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: _clear,
                 child: WotIcon(
                   name: 'close-circle',
                   size: 14,
-                  color: scheme.iconAuxiliary,
+                  color: auxIconColor,
                 ),
               ),
             const SizedBox(width: 8),
             WotIcon(
               name: 'arrow-down',
               size: 14,
-              color: scheme.iconAuxiliary,
+              color: auxIconColor,
             ),
           ],
         ),

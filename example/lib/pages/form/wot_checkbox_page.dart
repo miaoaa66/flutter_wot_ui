@@ -17,6 +17,9 @@ class _WotCheckboxPageState extends State<WotCheckboxPage> {
   List<Object?> _square = const [];
   List<Object?> _limited = const [];
   List<Object?> _disabled = const [];
+  bool _tDisabled = false;
+  bool _tReadonly = false;
+  bool _tError = false;
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +78,19 @@ class _WotCheckboxPageState extends State<WotCheckboxPage> {
               ],
               onChange: (v) => setState(() => _disabled = v),
             )),
+        demoSection('三态（disabled / readonly / error）'),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          FilledButton.tonal(onPressed: () => setState(() => _tDisabled = !_tDisabled), child: Text('disabled: $_tDisabled')),
+          FilledButton.tonal(onPressed: () => setState(() => _tReadonly = !_tReadonly), child: Text('readonly: $_tReadonly')),
+          FilledButton.tonal(onPressed: () => setState(() => _tError = !_tError), child: Text('error: $_tError')),
+        ]),
+        const SizedBox(height: 8),
+        demoBlock('disabled 整项灰化（勾选块 / 边框 / 标签一并变灰）',
+            WotCheckbox(label: '禁用复选', modelValue: true, disabled: _tDisabled)),
+        demoBlock('readonly 只读（锁切换、保持正常配色 —— 区别于 disabled 的灰化）',
+            WotCheckbox(label: '只读复选', modelValue: true, readonly: _tReadonly)),
+        demoBlock('error 校验失败（未选中描边与标签转红）',
+            WotCheckbox(label: '校验失败', modelValue: false, error: _tError)),
       ],
     );
   }

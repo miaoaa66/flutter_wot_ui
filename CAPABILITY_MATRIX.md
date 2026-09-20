@@ -59,7 +59,7 @@
 | 能力项 | 标准要求 | 本库现状 | 评级 |
 |---|---|---|---|
 | 受控与非受控 | 外部传值受控 + 内部自管；外部变更须 `didUpdateWidget` 响应 | 40 个文件实现 didUpdateWidget；picker / swipe_action / count_down 三处受控失效已修复 | 基本达标 |
-| 状态完整性 | default / loading / disabled / readonly / error / focus / empty 语义清晰 | disabled 与 loading 覆盖较全；**readonly 与 error 态缺失较多**，存在「以 disabled 代 readonly」倾向 | 部分 |
+| 状态完整性 | default / loading / disabled / readonly / error / focus / empty 语义清晰 | 已建立 **disabled / readonly / error 三态语义规范**（`wot_state.dart`，单一真相源），并在 input / textarea / cell / form_item 试点落地；其余组件待按规范推广 | 部分（规范已立，覆盖待扩） |
 | 类型安全 | 外观类参数用枚举而非字符串 | Button / Tour 已枚举化；`tabs.type`、`segmented.shape`、`select_picker.type` 仍为字符串 | 部分 |
 | 自定义插槽 | 提供 `(context, item, index) => Widget` 型 builder | 扩展点以 `child`/`children` 为主，builder 型插槽仅 `WotTable` 一处 | 弱 |
 | 控制器暴露 | 可注入 controller / focusNode，支持编程控制 | Input 已补 controller / focusNode / inputFormatters；Tabs 支持 TabController；Navbar 实现 PreferredSizeWidget；Picker / Cascader / Signature 尚不完整 | 部分 |
@@ -97,7 +97,7 @@ Flutter 的无障碍依赖 Semantics 树，自绘 Widget 不会自动生成语�
 
 | 优先级 | 内容 |
 |---|---|
-| **P0** | 交互类组件补 Semantics；建立 disabled / readonly / error 三态语义规范（当前业务中最易混淆的一点） |
+| **P0** | 交互类组件补 Semantics；disabled / readonly / error 三态语义规范 —— ✅ **规范已建并试点**（2026-09-20，`wot_state.dart` + input / textarea / cell / form_item），待推广至其余录入/展示组件 |
 | **P1** | 抽 `WotMessages` + `tr()` 接通 locale 管道；Checkbox / Radio 接入 Form 值登记；字符串外观参数枚举化 |
 | **P2** | Golden 测试覆盖 Top 20 组件；接入 CI；补 Sticky、Resize 等源库缺口组件 |
 | **P3** | 魔数主题化为 `WotXxxTheme`；builder 型插槽体系化；Sliver / ScrollController / Hero 生态适配 |

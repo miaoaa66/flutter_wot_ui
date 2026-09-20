@@ -4,6 +4,99 @@
 
 ---
 
+## Unreleased — 2026-09-20
+
+三态语义规范（disabled / readonly / error）落地，试点 input / textarea / cell / form_item。
+
+### Added
+
+- **三态语义规范**（`lib/src/theme/wot_state.dart`，全新）：
+  - `WotFieldState` 枚举：`editable` / `readonly` / `disabled`。
+  - `wotFieldStyle(scheme, state, {error, baseBorder})`：三态 + 校验态的取色**单一真相源**
+    （底色 / 文字 / 图标 / 边框 / 标签 / 占位符）。
+  - `WotFieldScope`：`InheritedWidget`，把三态下发到子控件，实现「整项一处配置、内部跟随」。
+  - 核心规则：**readonly 保持正常字色（内容有效可读）且无边框；disabled 才灰化**
+    （浅灰底 + 灰字 + 保留边框）。这是「以 disabled 代 readonly」长期歧义的解药。
+- `WotInput` / `WotTextarea` / `WotCell` / `WotFormItem` 新增 `error` 参数（校验失败态）。
+- `WotCell` 新增 `disabled` 参数；`WotFormItem` 新增 `disabled` / `readonly` 参数。
+- 三态相关 API 经 `package:flutter_wot_ui/flutter_wot_ui.dart` 统一导出。
+
+### ⚠️ BREAKING CHANGES
+
+- `WotInput.readonly: true` 现在渲染为**无下划线**（此前与可编辑态完全同形、无任何视觉区分）。
+  依赖旧「只读仍显示下划线」观感的页面，需自行包裹边框或显式为其提供容器。
+- `WotFormItem` 现在会**向下下发** `disabled` / `readonly` / `error`（经 `WotFieldScope`）：
+  `WotFormItem(disabled: true, child: WotInput())` 的输入框会自动进入禁用态。
+  子控件若显式传参则以显式值为准，故既有显式写法不受影响。
+- `WotCell` 的 `value` 在 `error` 时转危险色、`title` 转标签三态色；两项新参数默认关闭，不影响既有调用。
+- `WotSwitch` / `WotSlider` / `WotRate` 的 `disabled` 现在会**灰化控件**（原先仅禁交互、配色不变）。
+- `WotPicker` 的 `disabled` 现在会**整体淡化弹层**（原先仅锁滚动、不改配色）。
+- `WotSearch` 的 `disabled` 现在会**灰化底色与文字**（原先仅禁编辑、不改配色）。
+
+### 验证
+
+- ✅ `flutter analyze` 已由用户在组件库根目录复验通过（2026-09-20）。
+- ✅ `dart analyze` 自检：改动的 4 个文件 + `lib` + `test` + `example` 全部 `No issues found`。
+
+### 示例页
+
+- ✅ 第 1 轮：`wot_input_page`（含 WotTextarea）、`wot_cell_page`、`wot_form_page`（含 `WotFieldScope` 下发对照）。
+  `demoBlock` 数：`input` 18→22、`cell` 6→9、`form` 5→7。
+- ✅ 第 2 轮：`wot_checkbox_page` / `wot_radio_page` / `wot_switch_page` / `wot_slider_page` / `wot_rate_page` /
+  `wot_input_number_page` 补三态 section（含现场切换）。`demoBlock` 数：`checkbox` 6→9、`radio` 3→6、
+  `slider` 7→9、`switch` 6→7、`rate` 7→8、`input_number` 10→11。
+- ✅ 第 3 轮：`select_picker` / `cascader` / `picker` / `datetime_picker` / `calendar` / `search` /
+  `password_input` / `signature` / `keyboard` / `upload` 十个页面补三态演示。`demoBlock` 数：
+  `select_picker` 10→12、`cascader` 3→5、`picker` 3→4、`datetime_picker` 5→6、`calendar` 22→24、
+  `search` 8→9、`password_input` 6→8、`signature` 7→9、`keyboard` 4→7、`upload` 8→9。
+- ✅ **三态推广的示例页覆盖至此全部完成**（16 个推广组件 + 3 个试点组件）。
+
+### 三态 API 补充（补示例时发现）
+
+- `WotPicker.show` / `WotDatetimePicker.show` / `WotCalendar.show` 新增 `disabled` / `readonly` 参数 ——
+  原先只有构造函数有、命令式入口未透传，导致**弹层三态无法从 `show` 使用**。
+- `WotCalendar.show` 改为回落到 `WotCalendar` 本体：原先直接构造 `_CalendarSheet`，
+  会**绕过** `WotCalendar.build` 里的三态包裹，使 disabled / readonly 失效。
+
+### 三态推广（第 1 批，2026-09-20）
+
+- `WotForm` 新增表单级 `disabled`：经 `WotFieldScope` 下发给全部 `WotFormItem` 及其内部控件，
+  提交按钮同步禁用（对齐 Vue `wd-form`）。
+- `WotSwitch` 新增 `readonly`；`disabled` 现在会灰化轨道（原先只禁交互、配色不变）。
+- `WotCheckbox` 新增 `error`；`disabled` 现在连选中态一并灰化。
+- `WotRadio` 新增 `readonly` + `error`；修复「组禁用时 label 不灰化」（原按 `widget.disabled` 判断，未含组合禁用）。
+- `WotSlider` 新增 `readonly` + `error`；`disabled` 灰化激活段。
+- `WotRate` 新增 `error`；`disabled` 灰化已选中图标。
+- `WotInputNumber` 新增 `error`；`disabled` 现灰化文字并给浅灰底（此前文字色未处理）。
+
+### 三态推广（第 2 批，2026-09-20）
+
+本轮为**选择器类**。经调研分为两形态：两个带「触发区」（框类），三个是**纯弹层**（无显示区）。
+
+- `WotSelectPicker`（触发区）：新增 `readonly` + `error`；触发区套用框类三态
+  （readonly 去边框 / disabled 浅灰底 + 灰字 / error 红边框），并接入 `WotFieldScope` 下发。
+- `WotCascader`（触发区）：同上。
+- `WotPicker`（纯弹层）：新增 `readonly`（锁滚轮、配色不变）；`disabled` 现额外整体淡化
+  （原先只锁滚动、不改配色）。
+- `WotDatetimePicker`（纯弹层）：新增 `disabled` + `readonly`（原先两者都缺）。
+- `WotCalendar`（纯弹层）：新增 `disabled` + `readonly`。
+
+> 弹层类的 `readonly` = 锁内部交互、**配色不变**；`disabled` = 锁交互 + `Opacity(0.5)` 淡化。
+> 弹层没有「输入框边框」，故不套用框类的「readonly 去边框」策略。
+
+### 三态推广（第 3 批，2026-09-20）
+
+- `WotSearch`：新增 `error`（搜索框本身无边框，错误时补一圈红边）；`disabled` 现灰底 + 灰字 + 图标灰。
+- `WotPasswordInput`：新增 `error`（格子边框转危险色）；`disabled` 现浅灰底 + 灰点 / 字 + 边框灰；
+  锁定时不再显示聚焦光标态。
+- `WotSignature`：新增 `readonly` + `error`（画板描红边）；readonly 锁书写 / 清空 / 撤销（保留「确认」导出），
+  disabled 额外淡化。
+- `WotKeyboard`：新增 `readonly`（锁全部按键、配色不变）；disabled 额外淡化。
+  **键盘无校验语义，故不提供 error**（错误由配套的密码框 / 单元格表达）。
+- `WotUpload`：新增 `readonly`（锁添加 / 删除，**预览仍可用**）；disabled 额外淡化。
+
+---
+
 ## 0.2.0 — 2026-09-16 ~ 2026-09-17
 
 ### ⚠️ BREAKING CHANGES（除默认值外）

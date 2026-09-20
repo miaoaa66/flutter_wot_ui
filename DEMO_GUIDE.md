@@ -108,21 +108,26 @@ WotDemoScaffold(
 |---|---|
 | **1（最紧急）** | `sidebar`、`index_bar`、`img_cropper`、`curtain` |
 | **2** | `backtop`、`card`、`cell_group`、`collapse`、`empty`、`drop_menu`、`notify`、`floating_panel`、`qr_code`、`video_preview` |
-| **3** | `segmented`、`transition`、`action_sheet`、`count_down`、`cascader`、`fab`、`overlay`、`picker`、`radio`、`sort_button`、`swipe_action`、`toast`、`loadmore` |
-| **4** | `badge`、`avatar`、`gap`、`circle`、`keyboard`、`image_preview`、`picker_view`、`tooltip`、`tour` |
-| **5** | `tabs`、`datetime_picker`、`divider`、`form`、`notice_bar`、`popup`、`table`、`theme_btn` |
-| **6** | `cell`、`checkbox`、`expand`、`row_col`、`password_input`、`progress`、`skeleton`、`steps`、`switch`、`watermark` |
-| **7** | `navbar`、`pagination`、`dialog`、`text`、`loading`、`rate`、`signature`、`swiper`、`slider`、`slide_verify`、`tag` |
-| **8** | `barcode`、`icon`、`popover`、`search`、`upload` |
-| **9** | `tabbar`、`button`、`count_to` |
-| **10** | `input_number`、`select_picker` |
-| **14+** | `grid` 14、`img` 15、`input` 18、`calendar` 22 |
+| **3** | `segmented`、`transition`、`action_sheet`、`count_down`、`fab`、`overlay`、`sort_button`、`swipe_action`、`toast`、`loadmore` |
+| **4** | `badge`、`avatar`、`gap`、`circle`、`image_preview`、`picker_view`、`tooltip`、`tour`、`picker` |
+| **5** | `tabs`、`divider`、`notice_bar`、`popup`、`table`、`theme_btn`、`cascader` |
+| **6** | `expand`、`row_col`、`progress`、`skeleton`、`steps`、`watermark`、`radio`、`datetime_picker` |
+| **7** | `form`、`navbar`、`pagination`、`dialog`、`text`、`loading`、`swiper`、`slide_verify`、`tag`、`switch`、`keyboard` |
+| **8** | `barcode`、`icon`、`popover`、`rate`、`password_input` |
+| **9** | `cell`、`tabbar`、`button`、`count_to`、`checkbox`、`slider`、`search`、`upload`、`signature` |
+| **10+** | `select_picker` 12、`input_number` 11、`grid` 14、`img` 15、`input` 22、`calendar` 24 |
 
 > 2026-09-20 重测：共 **79 个**示例页含 `demoBlock`。相比 09-16 基线，
 > `skeleton`(1→6)、`tabbar`(2→9)、`steps`(2→6)、`popover`(2→8)、`count_to`(2→9)、
 > `icon`(4→8)、`watermark`(3→6)、`input`(15→18)、`grid`(12→14) 等十余页已大幅补齐；
 > 新增 `theme_btn`(5) 与 `image_preview`(4) 两个独立示例页。
 > 仍待补的最紧急组（1 块）为：`sidebar`、`index_bar`、`img_cropper`、`curtain`。
+>
+> 2026-09-20 三态语义推广配套（三轮）：第一轮 `input` 18→22、`cell` 6→9、`form` 5→7；
+> 第二轮 `checkbox` 6→9、`radio` 3→6、`slider` 7→9、`switch` 6→7、`rate` 7→8、`input_number` 10→11；
+> 第三轮 `select_picker` 10→12、`cascader` 3→5、`picker` 3→4、`datetime_picker` 5→6、`calendar` 22→24、
+> `search` 8→9、`password_input` 6→8、`signature` 7→9、`keyboard` 4→7、`upload` 8→9。
+> **至此 16 个三态推广组件 + 3 个试点组件的示例页全部覆盖完成。**
 
 **均值参考**：原「整体 48%」基于失真分母，不再引用。
 

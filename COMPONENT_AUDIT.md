@@ -655,13 +655,90 @@ typedef WotFormRule = Object? Function(dynamic value);
 
 ---
 
+## 十一、三态语义规范（2026-09-20 试点落地）
+
+> 目的：统一 disabled / readonly / error 三态的视觉语义，消除「以 disabled 代 readonly」的长期歧义。
+> 代码位置：`lib/src/theme/wot_state.dart`（规范的**单一真相源**）。
+> 试点范围：`input` / `textarea` / `cell` / `form_item`；后续按同一规范推广到全库。
+
+### 11.1 三态定义
+
+| 态 | 业务语义 | 典型场景 |
+|---|---|---|
+| `editable`（默认） | 可编辑 | 正常录入 |
+| `readonly` | 有值、**内容有效可读**、不可改 | 展示已确定的值、详情页回填 |
+| `disabled` | 整体**失效**、不可交互 | 无权限、流程已归档、条件未满足 |
+| `error`（叠加维度） | 校验失败 | 必填未填、格式错误 |
+
+**最关键的一条**：`readonly` 保持正常字色，只有 `disabled` 才灰化。
+只读内容本身是有效的、用户需要正常阅读；禁用内容是失效的、才应灰掉。
+这正是「以 disabled 代 readonly」长期混用的根因所在。
+
+### 11.2 视觉规范（映射到语义令牌）
+
+| 态 | 底色 | 文字 | 边框 / 下划线 | 标签 |
+|---|---|---|---|---|
+| editable | 常规（组件自身底色） | `textMain` | `baseBorder`（组件常规边框） | `textMain` |
+| readonly | 常规 | **`textMain`（不灰化）** | **`borderZero`（无边框）** | `textMain` |
+| disabled | **`filledContent`（浅灰）** | **`textDisabled`（灰）** | `baseBorder`（**保留结构**） | `textDisabled` |
+| + error | 不变 | 不变 | **`dangerMain`（红）** | **`dangerMain`（红）** |
+
+优先级：**disabled > error > readonly > editable**
+（禁用字段通常不参与校验，故 disabled 不吃 error 视觉。）
+
+### 11.3 组件落地要点
+
+| 组件 | 形态 | 三态实现 |
+|---|---|---|
+| `WotInput` | 下划线式 | readonly → 去掉下划线；disabled → 浅灰底（`filled`）+ 灰字 + 保留下划线；error → 下划线转红 |
+| `WotTextarea` | 框式（圆角底色） | readonly → 白底无边框；disabled → 浅灰底 + 灰字；error → 描红边 |
+| `WotCell` | 展示行 | disabled → 标题/值/图标/箭头整体灰化且不可点；error → 标题与值转危险色 |
+| `WotFormItem` | 表单容器 | 标签随三态变色（error 红 / disabled 灰）；经 `WotFieldScope` **下发** disabled / readonly / error 给内部控件 |
+| `WotForm` | 表单容器 | 表单级 `disabled`，经 `WotFieldScope` 下发整表；提交按钮同步禁用 |
+| `WotCheckbox` / `WotRadio` | 勾选类 | disabled → 勾选块 / 边框 / 标签一并灰化；error → 未选中描边与标签转红；readonly → 仅锁交互 |
+| `WotSwitch` / `WotSlider` / `WotRate` | 开关 / 滑块 / 评分 | disabled → 关键色（轨道 / 激活段 / 已选图标）转灰；readonly → 仅锁交互、配色不变 |
+| `WotInputNumber` | 数字步进 | disabled → 文字灰 + 浅灰底；error → 输入框描红边 |
+| `WotSelectPicker` / `WotCascader` | 触发区（框类）+ 弹层 | 触发区套框类三态（readonly 去边框 / disabled 浅灰底 / error 红边）；弹层内容不受影响 |
+| `WotPicker` / `WotDatetimePicker` / `WotCalendar` | 纯弹层（无显示区） | 无触发区，三态应施加在**调用方的触发区**；组件内 readonly 锁交互（配色不变）、disabled 额外 `Opacity(0.5)` |
+| `WotSearch` | 无边框浅灰底 | disabled → 浅灰底 + 灰字 + 图标灰；error → 补一圈红边；readonly → 仅锁编辑 |
+| `WotPasswordInput` | 格状 PIN | disabled → 浅灰底 + 灰点 / 字 + 边框灰；error → 格子描红边；readonly → 仅锁输入 |
+| `WotSignature` | 画板 + 操作栏 | readonly → 锁书写 / 清空 / 撤销（保留「确认」导出）；disabled → 额外淡化；error → 画板描红边 |
+| `WotKeyboard` | 虚拟键盘面板 | readonly → 锁全部按键（配色不变）；disabled → 额外淡化。**无 error**（键盘无校验语义） |
+| `WotUpload` | 文件列表 | readonly → 锁添加 / 删除（**预览仍可用**）；disabled → 额外淡化 |
+
+> **非框类控件（勾选 / 开关 / 滑块 / 评分）**没有「输入框边框」，故 readonly 只锁交互、**配色不变**；
+> disabled 通过关键色转灰表达（`filledExtraStrong` / `textDisabled`）。与框类的「去边框」策略不同，但语义一致。
+>
+> **纯弹层组件**（picker / datetime_picker / calendar）没有可编辑的「显示区」——
+> 其 readonly / disabled 只作用于**弹层内部交互**；真正的三态应施加在调用方提供的触发区上。
+
+### 11.4 下发机制与优先级
+
+`WotFormItem` 通过 `WotFieldScope`（InheritedWidget）包裹子控件，内部录入控件读取时遵循：
+
+**显式传参 > `WotFieldScope` 下发 > 默认可编辑**
+
+例：`WotFormItem(disabled: true, child: WotInput())` → 输入框自动禁用；
+写成 `WotInput(disabled: false)` 则显式值胜出。
+
+### 11.5 推广待办
+
+- [x] `flutter analyze` **用户复验通过**（2026-09-20）；`dart analyze` 自检 `lib` + `test` + `example` 全部 `No issues found`
+- [x] 示例页补三态演示（`input` / `cell` / `form_item`），见 `DEMO_GUIDE.md` checklist
+- [x] **推广第 1 批**（2026-09-20）：`WotForm` 表单级 `disabled` + `checkbox` / `radio` / `switch` / `slider` / `rate` / `input_number`
+- [x] **推广第 2 批**（2026-09-20）：`select_picker` / `cascader`（触发区三态）+ `picker` / `datetime_picker` / `calendar`（弹层 readonly / disabled）
+- [x] **推广第 3 批**（2026-09-20）：`upload` / `search` / `password_input` / `keyboard` / `signature`
+- [ ] 推广到展示类（可选）：`tag` / `badge` / `steps` / `collapse` / `grid` / `table`
+
+---
+
 ## 附录 G：静态检查待办（flutter analyze）
 
 > 来源：原 `ANALYZE_REPORT.md`（已并入本附录）。执行方式：在**组件库根目录**执行 `flutter analyze`，
 > 覆盖范围 `lib/` + `example/` + `test/`。基线共 **11 条**（0 error / 3 warning / 8 info）。
 > 注意：在 `example/` 子目录执行只会分析 example 工程（实测仅 1 条 info），**不能替代**根目录执行。
 >
-> **状态（2026-09-20）：11 条已由用户处理完毕，待 `flutter analyze` 复验归零；复验通过后可归档本附录。**
+> **状态（2026-09-20）：11 条已由用户处理完毕，并经 `flutter analyze` 复验**归零**；本附录归档（保留供追溯）。**
 
 ### Warning（3 条，需人工判断）
 
@@ -753,7 +830,8 @@ flutter test             :: example 的 widget 测试
 - [ ] T2.4 提供 en_US 包并验证
 
 **Stage 3 组件能力**
-- [ ] T3.1 disabled / readonly / error 三态语义规范 + 试点（input / cell / form_item）
+- [x] T3.1 disabled / readonly / error 三态语义规范 + 试点（input / cell / form_item）—— ✅ 已完成并**超额推广**：
+  规范落于 `lib/src/theme/wot_state.dart`，覆盖 **16 个组件 + 19 个示例页**，详见第十一节（2026-09-20）
 - [ ] T3.2 checkbox / radio 接入 Form 值登记
 - [ ] T3.3 外观参数枚举化（tabs.type / segmented.shape / select_picker.type）
 - [ ] T3.4 D 类 P1 补齐（cell / switch / notify / badge / fab / count_down / img / qr_code）

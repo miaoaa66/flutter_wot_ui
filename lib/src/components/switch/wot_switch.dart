@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../form/wot_form.dart';
 
@@ -10,6 +11,7 @@ class WotSwitch extends StatelessWidget {
     this.modelValue = false,
     this.onChange,
     this.disabled = false,
+    this.readonly = false,
     this.loading = false,
     this.activeColor,
     this.inactiveColor,
@@ -25,8 +27,11 @@ class WotSwitch extends StatelessWidget {
   /// 开关状态变化时触发的回调，参数为最新状态。
   final ValueChanged<bool>? onChange;
 
-  /// 是否禁用，默认 false。
+  /// 是否禁用，默认 false。禁用时轨道灰化且不可切换。
   final bool disabled;
+
+  /// 是否只读：不可切换，但保持正常配色（内容有效可读），默认 false。
+  final bool readonly;
 
   /// 是否为加载中状态，加载中不可点击切换，默认 false。
   final bool loading;
@@ -52,9 +57,13 @@ class WotSwitch extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
+    // 三态：显式 disabled 优先，其次取父级 WotFieldScope 下发；
+    // readonly 仅禁切换、保持正常配色（区别于 disabled 的灰化）。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = this.disabled || (fieldScope?.state == WotFieldState.disabled);
     final on = modelValue;
     final trackColor = on
-        ? (activeColor ?? scheme.primaryOf(6))
+        ? (disabled ? scheme.filledExtraStrong : (activeColor ?? scheme.primaryOf(6)))
         : (inactiveColor ?? scheme.filledStrong);
     final width = size * 2;
     final height = size;
@@ -79,7 +88,7 @@ class WotSwitch extends StatelessWidget {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: disabled || loading
+      onTap: disabled || readonly || loading
           ? null
           : () {
               wotFormPushValue(context, name, !on);

@@ -18,6 +18,7 @@ class _WotInputNumberPageState extends State<WotInputNumberPage> {
   num _n4 = 5;
   bool _disabled = false;
   bool _readonly = false;
+  bool _error = false;
 
   // 边界 / 步进演示用值。
   num _lo1 = 1;
@@ -38,15 +39,19 @@ class _WotInputNumberPageState extends State<WotInputNumberPage> {
             WotInputNumber(modelValue: _n3, inputWidth: 80, buttonSize: 36, onChange: (v) => setState(() => _n3 = v))),
         demoBlock('longPress 长按连续增减',
             WotInputNumber(modelValue: _n4, longPress: true, onChange: (v) => setState(() => _n4 = v))),
-        demoSection('状态'),
-        Row(children: [
-          Flexible(child: FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled'))),
-          const SizedBox(width: 8),
-          Flexible(child: FilledButton.tonal(onPressed: () => setState(() => _readonly = !_readonly), child: Text('readonly: $_readonly'))),
+        demoSection('状态（disabled / readonly / error）'),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled')),
+          FilledButton.tonal(onPressed: () => setState(() => _readonly = !_readonly), child: Text('readonly: $_readonly')),
+          FilledButton.tonal(onPressed: () => setState(() => _error = !_error), child: Text('error: $_error')),
         ]),
         const SizedBox(height: 8),
-        demoBlock('disabled 禁用', WotInputNumber(modelValue: _n1, disabled: _disabled, onChange: (v) => setState(() => _n1 = v))),
-        demoBlock('readonly 只读（仅按钮可操作）', WotInputNumber(modelValue: _n1, readonly: _readonly, onChange: (v) => setState(() => _n1 = v))),
+        demoBlock('disabled 禁用（文字灰 + 浅灰底）',
+            WotInputNumber(modelValue: _n1, disabled: _disabled, onChange: (v) => setState(() => _n1 = v))),
+        demoBlock('readonly 只读（输入框不可编辑，加减按钮仍可用）',
+            WotInputNumber(modelValue: _n1, readonly: _readonly, onChange: (v) => setState(() => _n1 = v))),
+        demoBlock('error 校验失败（输入框描红边）',
+            WotInputNumber(modelValue: _n1, error: _error, onChange: (v) => setState(() => _n1 = v))),
         demoSection('边界（min / max）——含破坏性变更提醒'),
         demoBlock(
           '⚠️ min 默认值曾从 0 改为 1（对齐 wot）。'

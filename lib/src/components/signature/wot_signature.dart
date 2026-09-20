@@ -4,6 +4,7 @@ import 'dart:ui' show ImageByteFormat;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 
 /// 导出图片类型，对应 wot `wd-signature` 的 `file-type`。
@@ -40,6 +41,8 @@ class WotSignature extends StatefulWidget {
     this.bgColor,
     this.height = 200,
     this.disabled = false,
+    this.readonly = false,
+    this.error = false,
     this.fileType = WotSignatureFileType.png,
     this.quality = 1,
     this.exportScale = 1,
@@ -68,8 +71,14 @@ class WotSignature extends StatefulWidget {
   /// 画板高度，默认 200。
   final double height;
 
-  /// 是否禁用书写，默认 false。
+  /// 是否禁用书写，默认 false。禁用时整体淡化且不可交互。
   final bool disabled;
+
+  /// 是否只读：不可书写 / 清空 / 撤销（保持正常配色），默认 false。
+  final bool readonly;
+
+  /// 是否处于校验失败态（error 态）。命中时画板描红边。
+  final bool error;
 
   /// 导出图片类型，默认 [WotSignatureFileType.png]。
   final WotSignatureFileType fileType;
@@ -196,10 +205,17 @@ class _WotSignatureState extends State<WotSignature> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = widget.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final readonly = widget.readonly || (fieldScope?.state == WotFieldState.readonly);
+    final hasError = widget.error || (fieldScope?.error ?? false);
+    // 锁定书写 / 清空 / 撤销 / 恢复（只读与禁用都锁，区别在是否淡化）。
+    final locked = disabled || readonly;
+
     final bg = widget.bgColor ?? scheme.filledStrong;
     final pen = widget.penColor ?? scheme.textMain;
 
-    return Column(
+    final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Container(
@@ -207,6 +223,10 @@ class _WotSignatureState extends State<WotSignature> {
           decoration: BoxDecoration(
             color: bg,
             borderRadius: const BorderRadius.all(Radius.circular(8)),
+            // 仅在 error（且未禁用）时描红边，其余态保持原有的无边框圆角观感。
+            border: hasError && !disabled
+                ? Border.all(color: scheme.dangerMain)
+                : null,
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
@@ -215,9 +235,9 @@ class _WotSignatureState extends State<WotSignature> {
               RepaintBoundary(
                 key: _boundaryKey,
                 child: GestureDetector(
-                  onPanStart: _start,
-                  onPanUpdate: _update,
-                  onPanEnd: _end,
+                  onPanStart: locked ? null : _start,
+                  onPanUpdate: locked ? null : _update,
+                  onPanEnd: locked ? null : _end,
                   child: CustomPaint(
                     size: Size.infinite,
                     painter: _SignaturePainter(
@@ -232,11 +252,12 @@ class _WotSignatureState extends State<WotSignature> {
                 right: 0,
                 bottom: 0,
                 child: GestureDetector(
-                  onTap: clear,
+                  onTap: locked ? null : clear,
                   child: Padding(
                     padding: const EdgeInsets.all(8),
                     child: Icon(Icons.delete_outline,
-                        size: 18, color: scheme.iconAuxiliary),
+                        size: 18,
+                        color: disabled ? scheme.iconDisabled : scheme.iconAuxiliary),
                   ),
                 ),
               ),
@@ -244,32 +265,34 @@ class _WotSignatureState extends State<WotSignature> {
           ),
         ),
         const SizedBox(height: 8),
-        _buildFooter(),
+        _buildFooter(locked: locked, disabled: disabled),
       ],
     );
+    return disabled ? Opacity(opacity: 0.5, child: content) : content;
   }
 
-  Widget _buildFooter() {
+  Widget _buildFooter({required bool locked, required bool disabled}) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
         TextButton(
-          onPressed: clear,
+          onPressed: locked ? null : clear,
           child: const Text('清空'),
         ),
         if (widget.enableHistory) ...[
           TextButton(
-            onPressed: _strokes.isEmpty ? null : revoke,
+            onPressed: (locked || _strokes.isEmpty) ? null : revoke,
             child: const Text('撤销'),
           ),
           TextButton(
-            onPressed: _redoStack.isEmpty ? null : restore,
+            onPressed: (locked || _redoStack.isEmpty) ? null : restore,
             child: const Text('恢复'),
           ),
         ],
         FilledButton(
-          onPressed: _hasInk ? () => confirm() : null,
+          // 只读仍允许「确认」导出当前签名；禁用则整体不可用。
+          onPressed: (!disabled && _hasInk) ? () => confirm() : null,
           child: const Text('确认'),
         ),
       ],

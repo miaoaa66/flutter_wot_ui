@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 
 /// 单选选项数据，对齐 wot `WotRadioOption`。
@@ -118,8 +119,10 @@ class WotRadio extends StatefulWidget {
     this.label,
     this.value,
     this.disabled = false,
+    this.readonly = false,
     this.color,
     this.shape = 'circle',
+    this.error = false,
     this.name,
   });
 
@@ -135,8 +138,11 @@ class WotRadio extends StatefulWidget {
   /// 选项值，用于组模式（[WotRadioGroup]）下的选中匹配。
   final Object? value;
 
-  /// 是否禁用，默认 false。
+  /// 是否禁用，默认 false。禁用时选中 / 未选中均灰化且不可交互。
   final bool disabled;
+
+  /// 是否只读：不可切换，但保持正常配色（内容有效可读），默认 false。
+  final bool readonly;
 
   /// 选中时的主题色，默认使用主题主色。
   final Color? color;
@@ -144,6 +150,9 @@ class WotRadio extends StatefulWidget {
   /// 单选框形状：`circle`（圆形）或 `square`（方形），默认 `circle`；
   /// 作为 [WotRadioGroup] 成员时默认取组配置。
   final String shape;
+
+  /// 是否处于校验失败态（error 态）。未显式传入时取父级 [WotFieldScope] 下发的值。
+  final bool error;
 
   /// 表单字段名（用于原生表单提交示例）。
   final String? name;
@@ -168,7 +177,7 @@ class _WotRadioState extends State<WotRadio> {
   }
 
   void _toggle() {
-    if (widget.disabled) return;
+    if (widget.disabled || widget.readonly) return;
     final group = _WotRadioScope.of(context);
     if (group != null) {
       if (group.groupDisabled) return;
@@ -185,13 +194,26 @@ class _WotRadioState extends State<WotRadio> {
     final scheme = context.wotScheme;
     final group = _WotRadioScope.of(context);
     final selected = group != null ? group.value == widget.value : _selected;
-    final color = widget.color ?? scheme.primaryOf(6);
     final shape = group?.shape ?? widget.shape;
-    final disabled = widget.disabled || (group?.groupDisabled ?? false);
+    // 三态：显式 disabled / 组合禁用优先，其次取父级 WotFieldScope 下发。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = widget.disabled ||
+        (group?.groupDisabled ?? false) ||
+        (fieldScope?.state == WotFieldState.disabled);
+    final hasError = widget.error || (fieldScope?.error ?? false);
+    final style = wotFieldStyle(
+      scheme,
+      disabled ? WotFieldState.disabled : WotFieldState.editable,
+      error: hasError,
+      baseBorder: scheme.borderStrong,
+    );
+    // 选中色：禁用转灰；其余用自定义色 / 主色（错误只体现在未选中描边与标签）。
+    final color =
+        disabled ? scheme.filledExtraStrong : (widget.color ?? scheme.primaryOf(6));
 
     final icon = GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: disabled ? null : _toggle,
+      onTap: disabled || widget.readonly ? null : _toggle,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: 18,
@@ -201,7 +223,7 @@ class _WotRadioState extends State<WotRadio> {
           borderRadius: shape == 'circle' ? null : BorderRadius.circular(3),
           color: Colors.transparent,
           border: Border.all(
-            color: selected ? color : (disabled ? scheme.textDisabled : scheme.borderStrong),
+            color: selected ? color : style.border,
             width: 1,
           ),
         ),
@@ -224,7 +246,7 @@ class _WotRadioState extends State<WotRadio> {
     if (widget.label == null) return icon;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: disabled ? null : _toggle,
+      onTap: disabled || widget.readonly ? null : _toggle,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -232,10 +254,7 @@ class _WotRadioState extends State<WotRadio> {
           const SizedBox(width: 6),
           Text(
             widget.label!,
-            style: TextStyle(
-              fontSize: 14,
-              color: widget.disabled ? scheme.textDisabled : scheme.textMain,
-            ),
+            style: TextStyle(fontSize: 14, color: style.label),
           ),
         ],
       ),

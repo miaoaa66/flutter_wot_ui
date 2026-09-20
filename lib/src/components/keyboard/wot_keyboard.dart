@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 
 /// 键盘模式。
@@ -33,6 +34,7 @@ class WotKeyboard extends StatefulWidget {
     this.showDeleteKey = true,
     this.color,
     this.disabled = false,
+    this.readonly = false,
   });
 
   /// 点击数字（含小数点）键时回调，参数为按键文本。
@@ -74,8 +76,11 @@ class WotKeyboard extends StatefulWidget {
   /// 确定键高亮色；不传时用主题主色。
   final Color? color;
 
-  /// 是否禁用整个键盘（点击不触发任何回调）。
+  /// 是否禁用整个键盘（点击不触发任何回调，并整体淡化）。
   final bool disabled;
+
+  /// 是否只读：点击不触发任何回调，但保持正常配色，默认 false。
+  final bool readonly;
 
   @override
   State<WotKeyboard> createState() => _WotKeyboardState();
@@ -131,7 +136,14 @@ class _WotKeyboardState extends State<WotKeyboard> {
     final scheme = context.wotScheme;
     final primary = widget.color ?? scheme.primaryOf(6);
 
-    return Container(
+    // 三态：readonly 锁全部按键、配色不变；disabled 额外整体淡化。
+    // 键盘无「校验语义」，故不提供 error 态（错误由配套的密码框 / 单元格表达）。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = widget.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final readonly = widget.readonly || (fieldScope?.state == WotFieldState.readonly);
+    final locked = disabled || readonly;
+
+    final panel = Container(
       color: scheme.filledBottom,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -164,6 +176,8 @@ class _WotKeyboardState extends State<WotKeyboard> {
         ],
       ),
     );
+    final wrapped = locked ? IgnorePointer(child: panel) : panel;
+    return disabled ? Opacity(opacity: 0.5, child: wrapped) : wrapped;
   }
 
   List<Widget> _keysForRow(int row) {

@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 
 import '../../theme/wot_scheme.dart';
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
 
@@ -30,6 +31,8 @@ class WotCascader extends StatelessWidget {
     this.onChange,
     this.placeholder = '请选择',
     this.disabled = false,
+    this.readonly = false,
+    this.error = false,
     this.color,
     this.name,
     this.options = const [],
@@ -44,8 +47,14 @@ class WotCascader extends StatelessWidget {
   /// 未选择时展示的占位文案，默认「请选择」。
   final String placeholder;
 
-  /// 是否禁用，禁用后不可点击，默认 false。
+  /// 是否禁用，禁用后不可点击，默认 false。禁用时触发区灰化。
   final bool disabled;
+
+  /// 是否只读：不可弹出选择，但触发区保持正常配色（只读展示当前值），默认 false。
+  final bool readonly;
+
+  /// 是否处于校验失败态（error 态）。命中时触发区描红边。
+  final bool error;
 
   /// 主题色。
   final Color? color;
@@ -79,14 +88,34 @@ class WotCascader extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
     final display = _display();
+
+    // 触发区是框类形态，套用框类三态规则：显式传参 > WotFieldScope 下发 > 默认。
+    final fieldScope = WotFieldScope.of(context);
+    final isDisabled = disabled || (fieldScope?.state == WotFieldState.disabled);
+    final isReadonly = readonly || (fieldScope?.state == WotFieldState.readonly);
+    final hasError = error || (fieldScope?.error ?? false);
+    final state = isDisabled
+        ? WotFieldState.disabled
+        : isReadonly
+            ? WotFieldState.readonly
+            : WotFieldState.editable;
+    final style = wotFieldStyle(
+      scheme,
+      state,
+      error: hasError,
+      baseBorder: scheme.borderMain,
+    );
+    // 禁用给浅灰底；只读 / 可编辑透明（只读额外去掉边框）。
+    final bg = isDisabled ? style.background : scheme.borderZero;
+    final auxIconColor = isDisabled ? scheme.iconDisabled : scheme.iconAuxiliary;
+
     return InkWell(
-      onTap: disabled
-          ? null
-          : () => _open(context),
+      onTap: (isDisabled || isReadonly) ? null : () => _open(context),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          border: Border.all(color: disabled ? scheme.borderLight : scheme.borderMain),
+          color: bg,
+          border: Border.all(color: style.border),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
@@ -96,11 +125,11 @@ class WotCascader extends StatelessWidget {
                 display.isEmpty ? placeholder : display,
                 style: TextStyle(
                   fontSize: 14,
-                  color: display.isEmpty ? scheme.textPlaceholder : scheme.textMain,
+                  color: display.isEmpty ? style.placeholder : style.text,
                 ),
               ),
             ),
-            WotIcon(name: 'arrow-down', size: 14, color: scheme.iconAuxiliary),
+            WotIcon(name: 'arrow-down', size: 14, color: auxIconColor),
           ],
         ),
       ),

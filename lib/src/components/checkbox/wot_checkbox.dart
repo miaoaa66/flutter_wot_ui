@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 
 /// 复选框选项数据，对齐 wot `WotCheckboxOption`。
@@ -155,6 +156,7 @@ class WotCheckbox extends StatefulWidget {
     this.size = 18,
     this.shape = 'square',
     this.readonly = false,
+    this.error = false,
     this.name,
   });
 
@@ -185,6 +187,9 @@ class WotCheckbox extends StatefulWidget {
 
   /// 是否只读（展示但不可点击切换），默认 false。
   final bool readonly;
+
+  /// 是否处于校验失败态（error 态）。未显式传入时取父级 [WotFieldScope] 下发的值。
+  final bool error;
 
   /// 组件名称（表单标识，可选）。
   final String? name;
@@ -227,12 +232,25 @@ class _WotCheckboxState extends State<WotCheckbox> {
         ? (group.values ?? []).any((e) => e == widget.value)
         : _checked;
     final shape = group?.shape ?? widget.shape;
-    final disabled = widget.disabled || (group?.groupDisabled ?? false);
+    // 三态：显式 disabled / 组合禁用优先，其次取父级 WotFieldScope 下发。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = widget.disabled ||
+        (group?.groupDisabled ?? false) ||
+        (fieldScope?.state == WotFieldState.disabled);
+    final hasError = widget.error || (fieldScope?.error ?? false);
+    final style = wotFieldStyle(
+      scheme,
+      disabled ? WotFieldState.disabled : WotFieldState.editable,
+      error: hasError,
+      baseBorder: scheme.borderStrong,
+    );
     // 在组中受 min/max 限制：已达上限且未选中、或已达下限且已选中时不可操作。
     final locked = group != null &&
         ((group.max != null && !checked && (group.values ?? []).length >= group.max!) ||
             (group.min != null && checked && (group.values ?? []).length <= group.min!));
-    final boxColor = widget.checkColor ?? scheme.primaryOf(6);
+    // 勾选块：禁用转灰；其余用自定义色 / 主色（错误只体现在未选中描边与标签）。
+    final boxColor =
+        disabled ? scheme.filledExtraStrong : (widget.checkColor ?? scheme.primaryOf(6));
 
     final icon = GestureDetector(
       behavior: HitTestBehavior.opaque,
@@ -247,7 +265,7 @@ class _WotCheckboxState extends State<WotCheckbox> {
             shape == 'circle' ? widget.size / 2 : widget.size * 0.2,
           ),
           border: Border.all(
-            color: checked ? boxColor : (disabled ? scheme.textDisabled : scheme.borderStrong),
+            color: checked ? boxColor : style.border,
           ),
         ),
         child: checked
@@ -267,10 +285,7 @@ class _WotCheckboxState extends State<WotCheckbox> {
           const SizedBox(width: 6),
           Text(
             widget.label!,
-            style: TextStyle(
-              fontSize: 14,
-              color: disabled ? scheme.textDisabled : scheme.textMain,
-            ),
+            style: TextStyle(fontSize: 14, color: style.label),
           ),
         ],
       ),

@@ -14,6 +14,8 @@ class WotKeyboardPage extends StatefulWidget {
 class _WotKeyboardPageState extends State<WotKeyboardPage> {
   String _pw = '';
   bool _random = false;
+  bool _disabled = false;
+  bool _readonly = false;
 
   void _keypress(String k) {
     if (_pw.length >= 6) return;
@@ -62,6 +64,30 @@ class _WotKeyboardPageState extends State<WotKeyboardPage> {
               onKeypress: (k) => demoToast(context, '按键：$k'),
               onDelete: () {},
             )),
+        demoSection('三态（disabled / readonly）'),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          FilledButton.tonal(
+              onPressed: () => setState(() => _disabled = !_disabled),
+              child: Text('disabled: $_disabled')),
+          FilledButton.tonal(
+              onPressed: () => setState(() => _readonly = !_readonly),
+              child: Text('readonly: $_readonly')),
+        ]),
+        const SizedBox(height: 8),
+        demoBlock('disabled 禁用（锁全部按键 + 整体淡化）',
+            WotKeyboard(
+              disabled: _disabled,
+              onKeypress: (k) => demoToast(context, '按键：$k'),
+              onDelete: () {},
+            )),
+        demoBlock('readonly 只读（锁全部按键、保持正常配色 —— 区别于 disabled 的淡化）',
+            WotKeyboard(
+              readonly: _readonly,
+              onKeypress: (k) => demoToast(context, '按键：$k'),
+              onDelete: () {},
+            )),
+        demoBlock('说明：键盘无校验语义，故不提供 error 态（错误由配套的密码框 / 单元格表达）',
+            const Text('见 COMPONENT_AUDIT 第十一节「三态语义规范」。', style: TextStyle(fontSize: 12))),
       ],
     );
   }

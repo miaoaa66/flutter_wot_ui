@@ -20,6 +20,8 @@ class _WotSelectPickerPageState extends State<WotSelectPickerPage> {
   Object? _auto;
   Object? _objVal;
   bool _disabled = false;
+  bool _readonly = false;
+  bool _error = false;
   bool _loading = false;
 
   @override
@@ -113,14 +115,20 @@ class _WotSelectPickerPageState extends State<WotSelectPickerPage> {
               placeholder: '选择城市（值存 id）',
               onChange: (v) => setState(() => _objVal = v),
             )),
-        demoSection('状态（disabled / loading / clearable）'),
-        Row(children: [
-          Flexible(child: FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled'))),
-          const SizedBox(width: 8),
-          Flexible(child: FilledButton.tonal(onPressed: () => setState(() => _loading = !_loading), child: Text('loading: $_loading'))),
+        demoSection('三态与状态（disabled / readonly / error / loading / clearable）'),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled')),
+          FilledButton.tonal(onPressed: () => setState(() => _readonly = !_readonly), child: Text('readonly: $_readonly')),
+          FilledButton.tonal(onPressed: () => setState(() => _error = !_error), child: Text('error: $_error')),
+          FilledButton.tonal(onPressed: () => setState(() => _loading = !_loading), child: Text('loading: $_loading')),
         ]),
         const SizedBox(height: 8),
-        demoBlock('disabled 禁用', WotSelectPicker(type: 'radio', modelValue: _fruit, columns: ['苹果'], disabled: _disabled)),
+        demoBlock('disabled 禁用（浅灰底 + 灰字，不可弹出）',
+            WotSelectPicker(type: 'radio', modelValue: _fruit, columns: ['苹果'], disabled: _disabled)),
+        demoBlock('readonly 只读（去边框、正常字色，不可弹出 —— 区别于 disabled 的灰化）',
+            WotSelectPicker(type: 'radio', modelValue: _fruit, columns: ['苹果'], readonly: _readonly)),
+        demoBlock('error 校验失败（触发区描红边）',
+            WotSelectPicker(type: 'radio', modelValue: _fruit, columns: ['苹果'], error: _error)),
         demoBlock('loading 加载态弹层', WotSelectPicker(type: 'radio', modelValue: _fruit, columns: ['苹果'], loading: _loading)),
         demoBlock('clearable=false 不可清除', WotSelectPicker(type: 'radio', modelValue: _fruit, columns: ['苹果'], clearable: false)),
       ],

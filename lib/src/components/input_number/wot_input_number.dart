@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../form/wot_form.dart';
 
@@ -18,6 +19,7 @@ class WotInputNumber extends StatefulWidget {
     this.precision,
     this.disabled = false,
     this.readonly = false,
+    this.error = false,
     this.inputWidth = 40,
     this.buttonSize = 28,
     this.longPress = false,
@@ -42,11 +44,14 @@ class WotInputNumber extends StatefulWidget {
   /// 数值精度（保留的小数位数），为空表示不限制小数位数。
   final int? precision;
 
-  /// 是否禁用（按钮与输入框均不可操作）。
+  /// 是否禁用（按钮与输入框均不可操作），禁用时输入框灰化。
   final bool disabled;
 
   /// 是否只读（仅按钮可操作，输入框不可编辑）。
   final bool readonly;
+
+  /// 是否处于校验失败态（error 态）。命中时输入框描红边。
+  final bool error;
 
   /// 输入框宽度（逻辑像素）。
   final double inputWidth;
@@ -135,9 +140,17 @@ class _WotInputNumberState extends State<WotInputNumber> {
     widget.onChange?.call(v);
   }
 
+  /// 是否锁定交互：显式 disabled / readonly，或父级 WotFieldScope 下发的禁用 / 只读。
+  /// 用 [WotFieldScope.read]（不建立依赖），以便在回调中安全调用。
+  bool get _isLocked {
+    if (widget.disabled || widget.readonly) return true;
+    final s = WotFieldScope.read(context)?.state;
+    return s == WotFieldState.disabled || s == WotFieldState.readonly;
+  }
+
   /// 步进一次；返回数值是否真的发生变化（到边界时为 false）。
   bool _step(num delta) {
-    if (widget.disabled || widget.readonly) return false;
+    if (_isLocked) return false;
     final next = _round((_value + delta * widget.step).clamp(widget.min, widget.max).toDouble());
     if (next == _value) return false;
     setState(() {
@@ -166,29 +179,43 @@ class _WotInputNumberState extends State<WotInputNumber> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
-    final btnColor = widget.disabled ? scheme.textDisabled : scheme.primaryOf(6);
+    // 三态：显式 disabled / readonly 优先，其次取父级 WotFieldScope 下发。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = widget.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final readonly = widget.readonly || (fieldScope?.state == WotFieldState.readonly);
+    final hasError = widget.error || (fieldScope?.error ?? false);
+    final locked = disabled || readonly;
+    final style = wotFieldStyle(
+      scheme,
+      disabled ? WotFieldState.disabled : WotFieldState.editable,
+      error: hasError,
+      baseBorder: scheme.borderLight,
+    );
+    final btnColor = disabled ? scheme.textDisabled : scheme.primaryOf(6);
     final disableMinus = _value <= widget.min;
     final disablePlus = _value >= widget.max;
 
-    final minus = _button(Icons.remove, disableMinus, -1, btnColor);
-    final plus = _button(Icons.add, disablePlus, 1, btnColor);
+    final minus = _button(Icons.remove, disableMinus || disabled, -1, btnColor);
+    final plus = _button(Icons.add, disablePlus || disabled, 1, btnColor);
 
     final field = SizedBox(
       width: widget.inputWidth,
       child: TextField(
         controller: _c,
-        enabled: !widget.disabled && !widget.readonly,
+        enabled: !locked,
         textAlign: TextAlign.center,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        style: TextStyle(fontSize: 14, color: scheme.textMain),
+        style: TextStyle(fontSize: 14, color: style.text),
         onSubmitted: _parseAndEmit,
         onChanged: (s) => setState(() {}),
         decoration: InputDecoration(
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 6),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: scheme.borderLight)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: scheme.primaryOf(6))),
-          disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: scheme.borderLight)),
+          filled: disabled,
+          fillColor: style.background,
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: style.border)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: hasError ? scheme.dangerMain : scheme.primaryOf(6))),
+          disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: style.border)),
         ),
       ),
     );

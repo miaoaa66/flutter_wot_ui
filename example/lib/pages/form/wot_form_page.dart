@@ -227,6 +227,48 @@ class _WotFormPageState extends State<WotFormPage> {
               ],
             )),
 
+        demoSection('三态下发（disabled / readonly / error）'),
+        demoBlock(
+            'WotFormItem 的 disabled / readonly 经 WotFieldScope 下发到内部控件——一处配置、内部跟随；'
+            '标签也随三态变色（disabled 灰 / error 红）',
+            WotForm(
+              showSubmitButton: false,
+              children: const [
+                WotFormItem(
+                  label: '禁用整项',
+                  name: 't_disabled',
+                  disabled: true,
+                  child: WotInput(value: '项 disabled → 输入框自动禁用 + 标签灰化'),
+                ),
+                WotFormItem(
+                  label: '只读整项',
+                  name: 't_readonly',
+                  readonly: true,
+                  child: WotInput(value: '项 readonly → 正常字色、无下划线'),
+                ),
+                WotFormItem(
+                  label: '未配置，子控件单独禁用',
+                  name: 't_child',
+                  child: WotInput(value: '仅输入框禁用，标签保持正常', disabled: true),
+                ),
+              ],
+            )),
+        demoBlock(
+            'error 联动：校验失败时标签与提示转危险色',
+            WotForm(
+              rules: {'e': (v) => v != null && v.toString().isNotEmpty},
+              submitButtonText: '提交校验',
+              showSubmitButton: true,
+              onSubmit: (_) => demoToast(context, '通过'),
+              children: const [
+                WotFormItem(
+                  label: '必填（失败时标签转红）',
+                  name: 'e',
+                  required: true,
+                  child: WotInput(name: 'e', placeholder: '留空提交，观察标签与提示变红'),
+                ),
+              ],
+            )),
         demoSection('动态表单（可增删地址行，均登记取值/校验）'),
         demoBlock(
             '动态增删字段',

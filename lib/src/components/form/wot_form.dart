@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../toast/wot_toast.dart';
 
@@ -247,6 +248,7 @@ class WotForm extends StatefulWidget {
     this.showSubmitButton = false,
     this.onSubmit,
     this.children = const [],
+    this.disabled = false,
   });
 
   /// 校验规则：`{ 'field': (value) => ... }`。
@@ -277,6 +279,10 @@ class WotForm extends StatefulWidget {
 
   /// 子组件列表。
   final List<Widget> children;
+
+  /// 是否禁用整个表单。命中时经 [WotFieldScope] 下发，令所有 `WotFormItem`
+  /// 及其内部录入控件一并进入禁用态（对齐 Vue `wd-form` 的 disabled）。
+  final bool disabled;
 
   @override
   State<WotForm> createState() => WotFormState();
@@ -343,31 +349,36 @@ class WotFormState extends State<WotForm> {
     final scheme = context.wotScheme;
     return WotFormScope(
       control: _control,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          ...widget.children,
-          if (widget.showSubmitButton && widget.submitButtonText != null) ...[
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SizedBox(
-                height: 44,
-                child: TextButton(
-                  style: TextButton.styleFrom(
-                    backgroundColor: scheme.primaryOf(6),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+      // 表单级三态下发：disabled 时整表（含内部录入控件）自动进入禁用态。
+      child: WotFieldScope(
+        state: widget.disabled ? WotFieldState.disabled : WotFieldState.editable,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ...widget.children,
+            if (widget.showSubmitButton && widget.submitButtonText != null) ...[
+              const SizedBox(height: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SizedBox(
+                  height: 44,
+                  child: TextButton(
+                    style: TextButton.styleFrom(
+                      backgroundColor:
+                          widget.disabled ? scheme.filledExtraStrong : scheme.primaryOf(6),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
+                    onPressed: widget.disabled ? null : _onSubmit,
+                    child: Text(widget.submitButtonText!),
                   ),
-                  onPressed: _onSubmit,
-                  child: Text(widget.submitButtonText!),
                 ),
               ),
-            ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

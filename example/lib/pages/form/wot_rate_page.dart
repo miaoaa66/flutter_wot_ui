@@ -33,10 +33,14 @@ class _WotRatePageState extends State<WotRatePage> {
         demoSection('颜色（color / activeColor）'),
         demoBlock('自定义未选中/选中颜色',
             WotRate(modelValue: _v4, color: Colors.grey, activeColor: const Color(0xFF12B886), onChange: (v) => setState(() => _v4 = v))),
-        demoSection('特性（allowHalf / disabled / readonly）'),
+        demoSection('特性（allowHalf / disabled / readonly / error）'),
         demoBlock('allowHalf 允许半选（当前${_v2.toStringAsFixed(1)}）', WotRate(modelValue: _v2, size: 55, allowHalf: true, onChange: (v) => setState(() => _v2 = v))),
-        demoBlock('disabled 禁用', WotRate(modelValue: _v1, disabled: true, onChange: (v) => setState(() => _v1 = v))),
-        demoBlock('readonly 只读', WotRate(modelValue: _v3, readonly: true, onChange: (v) => setState(() => _v3 = v))),
+        demoBlock('disabled 禁用（已选中图标灰化）',
+            WotRate(modelValue: _v1, disabled: true, onChange: (v) => setState(() => _v1 = v))),
+        demoBlock('readonly 只读（锁交互、保持正常配色 —— 区别于 disabled 的灰化）',
+            WotRate(modelValue: _v3, readonly: true, onChange: (v) => setState(() => _v3 = v))),
+        demoBlock('error 校验失败（已选中图标转危险色）',
+            WotRate(modelValue: _v3, error: true, onChange: (v) => setState(() => _v3 = v))),
       ],
     );
   }

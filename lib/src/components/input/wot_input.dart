@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 // material.dart 不会导出它们，必须显式引入。
 import 'package:flutter/services.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../form/wot_form.dart';
 import '../icon/wot_icon.dart';
@@ -25,6 +26,7 @@ class _WotTextInput extends StatefulWidget {
     this.password = false,
     this.disabled = false,
     this.readonly = false,
+    this.error = false,
     this.maxLength,
     this.maxLines = 1,
     this.inputType,
@@ -54,6 +56,9 @@ class _WotTextInput extends StatefulWidget {
   final bool password;
   final bool disabled;
   final bool readonly;
+
+  /// 是否处于校验失败态（error 态）。由外部显式传入或父级 [WotFieldScope] 下发。
+  final bool error;
   final int? maxLength;
   final int maxLines;
   final TextInputType? inputType;
@@ -215,12 +220,32 @@ class _WotTextInputState extends State<_WotTextInput> {
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
 
+    // 三态解析：显式 disabled / readonly 优先，其次取父级 WotFieldScope 下发，
+    // 最后回退可编辑；error 为叠加维度（父级或本组件任一命中即生效）。
+    final fieldScope = WotFieldScope.of(context);
+    final state = widget.disabled
+        ? WotFieldState.disabled
+        : widget.readonly
+            ? WotFieldState.readonly
+            : (fieldScope?.state ?? WotFieldState.editable);
+    final hasError = widget.error || (fieldScope?.error ?? false);
+    final style = wotFieldStyle(
+      scheme,
+      state,
+      error: hasError,
+      baseBorder: scheme.borderLight,
+    );
+    // 辅助图标（前后缀 / 清空 / 密码显隐）沿用较浅的辅助色，仅禁用态灰化。
+    final auxIconColor = state == WotFieldState.disabled
+        ? scheme.iconDisabled
+        : scheme.iconAuxiliary;
+
     final Widget? prefix = widget.prefix ??
         (widget.prefixIcon == null
             ? null
             : Padding(
                 padding: const EdgeInsets.only(right: 4),
-                child: WotIcon(name: widget.prefixIcon, size: 16, color: scheme.iconAuxiliary),
+                child: WotIcon(name: widget.prefixIcon, size: 16, color: auxIconColor),
               ));
 
     // 后置图标组，可同时展示密码/清除/后置图标/字数统计/自定义后缀。
@@ -228,28 +253,28 @@ class _WotTextInputState extends State<_WotTextInput> {
     if (widget.password) {
       suffixWidgets.add(GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: widget.disabled ? null : _togglePw,
+        onTap: state == WotFieldState.disabled ? null : _togglePw,
         child: WotIcon(
           name: _obscure ? 'eye-close' : 'eye',
           size: 16,
-          color: scheme.iconAuxiliary,
+          color: auxIconColor,
         ),
       ));
     }
     if (!widget.password && widget.suffixIcon != null) {
-      suffixWidgets.add(WotIcon(name: widget.suffixIcon, size: 16, color: scheme.iconAuxiliary));
+      suffixWidgets.add(WotIcon(name: widget.suffixIcon, size: 16, color: auxIconColor));
     }
     if (!widget.password && widget.suffixIcon == null && widget.clearable && _c.text.isNotEmpty) {
       suffixWidgets.add(GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: widget.disabled ? null : _clear,
-        child: WotIcon(name: 'close-circle', size: 16, color: scheme.iconAuxiliary),
+        onTap: state == WotFieldState.disabled ? null : _clear,
+        child: WotIcon(name: 'close-circle', size: 16, color: auxIconColor),
       ));
     }
-    if (showWordLimitEnabled()) {
+    if (showWordLimitEnabled() && state != WotFieldState.disabled) {
       suffixWidgets.add(Text(
         '${_c.text.characters.length}/${widget.maxLength}',
-        style: TextStyle(fontSize: 12, color: scheme.textPlaceholder),
+        style: TextStyle(fontSize: 12, color: style.placeholder),
       ));
     }
     if (widget.suffix != null) {
@@ -257,17 +282,27 @@ class _WotTextInputState extends State<_WotTextInput> {
     }
 
     final border = widget.decorated
-        ? UnderlineInputBorder(borderSide: BorderSide(color: scheme.borderLight))
+        ? UnderlineInputBorder(borderSide: BorderSide(color: style.border))
         : InputBorder.none;
+    // 聚焦态：有 error 时维持红（错误未消除不该被聚焦高亮掩盖）；
+    // 只读态本就无边框，聚焦也不显示。
     final focusBorder = widget.decorated
-        ? UnderlineInputBorder(borderSide: BorderSide(color: scheme.primaryOf(6)))
+        ? UnderlineInputBorder(
+            borderSide: BorderSide(
+              color: hasError
+                  ? scheme.dangerMain
+                  : state == WotFieldState.readonly
+                      ? scheme.borderZero
+                      : scheme.primaryOf(6),
+            ),
+          )
         : InputBorder.none;
 
     final field = TextField(
       controller: _c,
       focusNode: _focusNode,
-      enabled: !widget.disabled,
-      readOnly: widget.readonly,
+      enabled: state != WotFieldState.disabled,
+      readOnly: state == WotFieldState.readonly,
       obscureText: _obscure,
       maxLines: widget.autosize ? null : widget.maxLines,
       minLines: widget.autosize ? widget.maxLines : null,
@@ -283,15 +318,15 @@ class _WotTextInputState extends State<_WotTextInput> {
         if (widget.clearable || showWordLimitEnabled()) setState(() {});
       },
       onTapOutside: (_) => FocusScope.of(context).unfocus(),
-      style: TextStyle(
-        fontSize: 14,
-        color: widget.disabled ? scheme.textDisabled : scheme.textMain,
-      ),
+      style: TextStyle(fontSize: 14, color: style.text),
       decoration: InputDecoration(
         hintText: widget.placeholder,
-        hintStyle: TextStyle(fontSize: 14, color: scheme.textPlaceholder),
+        hintStyle: TextStyle(fontSize: 14, color: style.placeholder),
         counterText: '',
         isDense: true,
+        // 三态规范：禁用态给浅灰底（可编辑 / 只读保持透明，不动组件原有底色）。
+        filled: state == WotFieldState.disabled,
+        fillColor: style.background,
         contentPadding: const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
         border: border,
         enabledBorder: border,
@@ -327,6 +362,7 @@ class WotInput extends StatelessWidget {
     this.password = false,
     this.disabled = false,
     this.readonly = false,
+    this.error = false,
     this.maxlength,
     this.maxLines = 1,
     this.type,
@@ -374,8 +410,12 @@ class WotInput extends StatelessWidget {
   /// 是否禁用输入。
   final bool disabled;
 
-  /// 是否只读（不可编辑但保留展示样式）。
+  /// 是否只读。只读态内容**有效可读**（保持正常字色），仅渲染为无边框以区别于
+  /// 可编辑态；与 [disabled] 的「灰化」明确区分，详见三态语义规范。
   final bool readonly;
+
+  /// 是否处于校验失败态（error 态）。未显式传入时取父级 [WotFormItem] 下发的值。
+  final bool error;
 
   /// 最大输入长度。
   final int? maxlength;
@@ -460,6 +500,7 @@ class WotInput extends StatelessWidget {
       password: password,
       disabled: disabled,
       readonly: readonly,
+      error: error,
       maxLength: maxlength,
       maxLines: maxLines,
       inputType: number
@@ -494,6 +535,7 @@ class WotTextarea extends StatelessWidget {
     this.rows = 3,
     this.disabled = false,
     this.readonly = false,
+    this.error = false,
     this.autosize = false,
     this.showWordLimit = false,
     this.onFocus,
@@ -527,8 +569,12 @@ class WotTextarea extends StatelessWidget {
   /// 是否禁用输入。
   final bool disabled;
 
-  /// 是否只读（不可编辑但保留展示样式）。
+  /// 是否只读。只读态内容**有效可读**（保持正常字色），渲染为白底无边框；
+  /// 与 [disabled] 的「浅灰底 + 灰字」明确区分，详见三态语义规范。
   final bool readonly;
+
+  /// 是否处于校验失败态（error 态）。未显式传入时取父级 [WotFormItem] 下发的值。
+  final bool error;
 
   /// 是否随内容自动调整高度（以 [rows] 为最小行数，高度随内容增高）。
   final bool autosize;
@@ -563,11 +609,42 @@ class WotTextarea extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
+
+    // 三态解析（同 WotInput）：显式 disabled / readonly 优先，其次父级 WotFieldScope。
+    final fieldScope = WotFieldScope.of(context);
+    final state = disabled
+        ? WotFieldState.disabled
+        : readonly
+            ? WotFieldState.readonly
+            : (fieldScope?.state ?? WotFieldState.editable);
+    final hasError = error || (fieldScope?.error ?? false);
+    final style = wotFieldStyle(
+      scheme,
+      state,
+      error: hasError,
+      baseBorder: scheme.borderMain,
+    );
+
+    // 框式文本域底色：可编辑沿用原有浅灰（filledStrong）；只读转白底（内容有效、非输入区）；
+    // 禁用转更浅的填充底，配合灰字表达失效。
+    final Color bg;
+    if (state == WotFieldState.disabled) {
+      bg = style.background;
+    } else if (state == WotFieldState.readonly) {
+      bg = scheme.filledOppo;
+    } else {
+      bg = scheme.filledStrong;
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: scheme.filledStrong,
+        color: bg,
         borderRadius: BorderRadius.circular(8),
+        // 仅 error（且非禁用）时描红边；其余态保持「无边框 + 圆角底色」的原有观感。
+        border: hasError && state != WotFieldState.disabled
+            ? Border.all(color: style.border)
+            : null,
       ),
       child: _WotTextInput(
         name: name,
@@ -578,6 +655,7 @@ class WotTextarea extends StatelessWidget {
         maxLines: rows,
         disabled: disabled,
         readonly: readonly,
+        error: error,
         decorated: false,
         showWordLimit: showWordLimit,
         onFocus: onFocus,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../form/wot_form.dart';
 
@@ -18,6 +19,7 @@ class WotRate extends StatelessWidget {
     this.activeIcon,
     this.readonly = false,
     this.disabled = false,
+    this.error = false,
     this.allowHalf = false,
     this.name,
   });
@@ -49,11 +51,14 @@ class WotRate extends StatelessWidget {
   /// 已选中图标（`activeIcon`），缺省使用星形图标。
   final IconData? activeIcon;
 
-  /// 是否只读，默认 false。
+  /// 是否只读，默认 false。只读仅锁交互，保持正常配色。
   final bool readonly;
 
-  /// 是否禁用，默认 false。
+  /// 是否禁用，默认 false。禁用时已选中图标灰化。
   final bool disabled;
+
+  /// 是否处于校验失败态（error 态）。命中时已选中图标转危险色。
+  final bool error;
 
   /// 是否允许半选（半星显示），默认 false。
   final bool allowHalf;
@@ -64,7 +69,14 @@ class WotRate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
-    final active = activeColor ?? scheme.warningMain;
+    // 三态：显式 disabled 优先，其次取父级 WotFieldScope 下发；
+    // readonly 由 _StarTapArea 锁交互、配色不变（区别于 disabled 的灰化）。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = this.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final hasError = error || (fieldScope?.error ?? false);
+    final active = disabled
+        ? scheme.filledExtraStrong
+        : (hasError ? scheme.dangerMain : (activeColor ?? scheme.warningMain));
     final inactive = color ?? scheme.borderLight;
     final voidIcon = icon ?? Icons.star;
     final activeIconData = activeIcon ?? Icons.star;

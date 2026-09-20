@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
 // 内置上传走 dart:io（native）；web 平台降级为占位实现，需用 uploadMethod。
@@ -129,6 +130,7 @@ class WotUpload extends StatefulWidget {
     this.multiple = true,
     this.accept,
     this.disabled = false,
+    this.readonly = false,
     this.size = 80,
     this.gutter = 10,
     this.addText = '添加',
@@ -180,6 +182,9 @@ class WotUpload extends StatefulWidget {
   final bool multiple;
   final String? accept;
   final bool disabled;
+
+  /// 是否只读：不可添加 / 删除文件（预览仍可用），保持正常配色。
+  final bool readonly;
   final double size;
   final double gutter;
   final String addText;
@@ -231,8 +236,18 @@ class _WotUploadState extends State<WotUpload> {
 
   bool get _canAdd => widget.maxCount == null || _files.length < widget.maxCount!;
 
+  /// 是否禁用（显式或父级 WotFieldScope 下发）。
+  bool get _isDisabled =>
+      widget.disabled || WotFieldScope.read(context)?.state == WotFieldState.disabled;
+
+  /// 是否锁定编辑（禁用或只读）——锁添加 / 删除，但允许预览。
+  bool get _locked {
+    if (_isDisabled || widget.readonly) return true;
+    return WotFieldScope.read(context)?.state == WotFieldState.readonly;
+  }
+
   Future<void> _pick() async {
-    if (widget.disabled || !_canAdd) return;
+    if (_locked || !_canAdd) return;
 
     // 提供自定义 onAdd 时交给宿主。
     if (widget.onAdd != null) {
@@ -433,7 +448,7 @@ class _WotUploadState extends State<WotUpload> {
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
     final files = _display;
-    return Column(
+    final panel = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Wrap(
@@ -442,7 +457,7 @@ class _WotUploadState extends State<WotUpload> {
           children: [
             for (final f in files)
               _item(context, f),
-            if (_canAdd && !widget.disabled)
+            if (_canAdd && !_locked)
               _addButton(context),
           ],
         ),
@@ -454,6 +469,8 @@ class _WotUploadState extends State<WotUpload> {
           ),
       ],
     );
+    // disabled 额外整体淡化；readonly 仅锁添加 / 删除，配色不变。
+    return _isDisabled ? Opacity(opacity: 0.5, child: panel) : panel;
   }
 
   Widget _item(BuildContext context, WotUploadFile f) {
@@ -515,7 +532,7 @@ class _WotUploadState extends State<WotUpload> {
                   ),
                 ),
               ),
-            if (!widget.disabled)
+            if (!_locked)
               Positioned(
                 right: 0,
                 top: 0,

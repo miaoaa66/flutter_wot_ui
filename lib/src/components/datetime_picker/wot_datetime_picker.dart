@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../picker_view/wot_picker_view.dart';
 
@@ -274,6 +275,8 @@ class WotDatetimePicker extends StatefulWidget {
     this.maxYear = 2100,
     this.onConfirm,
     this.onCancel,
+    this.disabled = false,
+    this.readonly = false,
   });
 
   /// 初始选中时间；为空时取当前时间。
@@ -293,6 +296,12 @@ class WotDatetimePicker extends StatefulWidget {
 
   /// 选择器类型，可选 [WotDatetimePickerType]，默认 datetime（对齐 wot）。
   final WotDatetimePickerType type;
+
+  /// 是否禁用（锁滚轮交互并整体淡化），默认 false。
+  final bool disabled;
+
+  /// 是否只读：锁滚轮交互但保持正常配色（仅供查看当前值），默认 false。
+  final bool readonly;
 
   /// 确认按钮高亮颜色；为空时取主题主色。
   final Color? color;
@@ -339,6 +348,8 @@ class WotDatetimePicker extends StatefulWidget {
     int maxHour = 23,
     int minMinute = 0,
     int maxMinute = 59,
+    bool disabled = false,
+    bool readonly = false,
   }) {
     return showModalBottomSheet<DateTime>(
       context: context,
@@ -355,6 +366,8 @@ class WotDatetimePicker extends StatefulWidget {
         maxHour: maxHour,
         minMinute: minMinute,
         maxMinute: maxMinute,
+        disabled: disabled,
+        readonly: readonly,
       ),
     );
   }
@@ -376,7 +389,31 @@ class _WotDatetimePickerState extends State<WotDatetimePicker> {
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
     final primary = widget.color ?? scheme.primaryOf(6);
-    return Column(
+    // 弹层形态三态：readonly 锁滚轮交互、配色不变；disabled 额外整体淡化。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = widget.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final readonly = widget.readonly || (fieldScope?.state == WotFieldState.readonly);
+    final locked = disabled || readonly;
+
+    final view = WotDatetimePickerView(
+      modelValue: _value,
+      type: widget.type,
+      color: primary,
+      minYear: widget.minYear,
+      maxYear: widget.maxYear,
+      minDate: widget.minDate,
+      maxDate: widget.maxDate,
+      minHour: widget.minHour,
+      maxHour: widget.maxHour,
+      minMinute: widget.minMinute,
+      maxMinute: widget.maxMinute,
+      onChange: (v) {
+        setState(() => _value = v);
+        widget.onChange?.call(v);
+      },
+    );
+
+    final content = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
@@ -410,25 +447,10 @@ class _WotDatetimePickerState extends State<WotDatetimePicker> {
             ],
           ),
         ),
-        WotDatetimePickerView(
-          modelValue: _value,
-          type: widget.type,
-          color: primary,
-          minYear: widget.minYear,
-          maxYear: widget.maxYear,
-          minDate: widget.minDate,
-          maxDate: widget.maxDate,
-          minHour: widget.minHour,
-          maxHour: widget.maxHour,
-          minMinute: widget.minMinute,
-          maxMinute: widget.maxMinute,
-          onChange: (v) {
-            setState(() => _value = v);
-            widget.onChange?.call(v);
-          },
-        ),
+        locked ? IgnorePointer(child: view) : view,
         Container(height: MediaQuery.of(context).padding.bottom, color: scheme.filledContent),
       ],
     );
+    return disabled ? Opacity(opacity: 0.5, child: content) : content;
   }
 }

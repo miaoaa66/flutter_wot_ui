@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../picker_view/wot_picker_view.dart';
 
@@ -20,6 +21,7 @@ class WotPicker extends StatefulWidget {
     this.cancelText = '取消',
     this.color,
     this.disabled = false,
+    this.readonly = false,
     this.loading = false,
     this.showCancel = true,
   });
@@ -51,8 +53,11 @@ class WotPicker extends StatefulWidget {
   /// 选中高亮/确认按钮颜色；不传时用主题主色。
   final Color? color;
 
-  /// 是否禁用全部滚轮交互。
+  /// 是否禁用全部滚轮交互，并整体淡化。
   final bool disabled;
+
+  /// 是否只读：锁滚轮交互但保持正常配色（仅供查看当前值），默认 false。
+  final bool readonly;
 
   /// 是否显示加载中状态（覆盖选项区域并禁用交互）。
   final bool loading;
@@ -69,6 +74,8 @@ class WotPicker extends StatefulWidget {
     Color? color,
     bool loading = false,
     bool showCancel = true,
+    bool disabled = false,
+    bool readonly = false,
     ValueChanged<List<Object?>>? onConfirm,
     VoidCallback? onCancel,
   }) {
@@ -83,6 +90,8 @@ class WotPicker extends StatefulWidget {
         color: color,
         loading: loading,
         showCancel: showCancel,
+        disabled: disabled,
+        readonly: readonly,
         onConfirm: onConfirm,
         onCancel: onCancel,
       ),
@@ -151,7 +160,13 @@ class _WotPickerState extends State<WotPicker> {
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
     final primary = widget.color ?? scheme.primaryOf(6);
-    return Column(
+    // 弹层形态三态：readonly 锁滚轮交互、配色不变；disabled 额外整体淡化。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = widget.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final readonly = widget.readonly || (fieldScope?.state == WotFieldState.readonly);
+    final locked = disabled || readonly;
+
+    final content = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
@@ -187,7 +202,7 @@ class _WotPickerState extends State<WotPicker> {
             columns: widget.columns,
             values: _values,
             color: primary,
-            disabled: widget.disabled,
+            disabled: locked,
             loading: widget.loading,
             onChange: (v) => setState(() => _values = v),
           ),
@@ -195,6 +210,7 @@ class _WotPickerState extends State<WotPicker> {
         Container(height: MediaQuery.of(context).padding.bottom, color: scheme.filledContent),
       ],
     );
+    return disabled ? Opacity(opacity: 0.5, child: content) : content;
   }
 }
 

@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 
 /// 密码输入框，对应 wot `wd-password-input`。
@@ -18,6 +19,7 @@ class WotPasswordInput extends StatefulWidget {
     this.focusColor,
     this.disabled = false,
     this.readonly = false,
+    this.error = false,
     this.gutter = 8,
     this.obscure = true,
     this.maskable,
@@ -50,6 +52,9 @@ class WotPasswordInput extends StatefulWidget {
 
   /// 是否只读（不可聚焦输入）。
   final bool readonly;
+
+  /// 是否处于校验失败态（error 态）。命中时格子边框转危险色。
+  final bool error;
 
   /// 格子之间的间距（逻辑像素）；默认 8。
   final double gutter;
@@ -181,12 +186,25 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
-    final focus = _isFocused;
+
+    // 三态：显式传参 > WotFieldScope 下发 > 默认。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = widget.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final readonly = widget.readonly || (fieldScope?.state == WotFieldState.readonly);
+    final hasError = widget.error || (fieldScope?.error ?? false);
+    final style = wotFieldStyle(
+      scheme,
+      disabled ? WotFieldState.disabled : WotFieldState.editable,
+      error: hasError,
+      baseBorder: scheme.borderStrong,
+    );
+    // 锁定时不再显示聚焦光标态。
+    final focus = _isFocused && !disabled && !readonly;
     final mask = widget.maskable ?? widget.obscure;
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: _tap,
+      onTap: (disabled || readonly) ? null : _tap,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -204,7 +222,7 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
                   controller: _controller,
                   focusNode: _focus,
                   keyboardType: TextInputType.number,
-                  enabled: !widget.disabled && !widget.readonly,
+                  enabled: !disabled && !readonly,
                   maxLength: widget.maxLength,
                   onChanged: _onChanged,
                   inputFormatters: [
@@ -228,10 +246,11 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
               height: 48,
               alignment: Alignment.center,
               decoration: BoxDecoration(
+                color: disabled ? style.background : null,
                 border: Border.all(
                   color: (focus && i == _value.length)
                       ? (widget.focusColor ?? scheme.primaryOf(6))
-                      : scheme.borderStrong,
+                      : style.border,
                 ),
                 borderRadius: BorderRadius.circular(6),
               ),
@@ -241,21 +260,19 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
                           width: 10,
                           height: 10,
                           decoration: BoxDecoration(
-                            color: scheme.textMain,
+                            color: style.text,
                             shape: BoxShape.circle,
                           ),
                         )
                       : Text(
                           _value[i],
-                          style: TextStyle(fontSize: 16, color: scheme.textMain),
+                          style: TextStyle(fontSize: 16, color: style.text),
                         ))
                   : Text(
                       i == _value.length && focus ? '|' : '',
                       style: TextStyle(
                         fontSize: 16,
-                        color: focus
-                            ? (widget.focusColor ?? scheme.primaryOf(6))
-                            : scheme.borderStrong,
+                        color: focus ? (widget.focusColor ?? scheme.primaryOf(6)) : style.border,
                       ),
                     ),
             ),

@@ -27,6 +27,18 @@ class _WotPickerPageState extends State<WotPickerPage> {
     if (res != null) setState(() => _city = res);
   }
 
+  /// 以三态打开弹层，演示弹层内部的锁交互效果。
+  Future<void> _openWithState({bool disabled = false, bool readonly = false}) {
+    return WotPicker.show(
+      context,
+      columns: wotSingleColumn(['北京', '广州', '上海', '深圳']),
+      values: _city,
+      title: disabled ? 'disabled 弹层' : 'readonly 弹层',
+      disabled: disabled,
+      readonly: readonly,
+    );
+  }
+
   Future<void> _pickRegion() async {
     final res = await WotPicker.show(
       context,
@@ -77,6 +89,20 @@ class _WotPickerPageState extends State<WotPickerPage> {
         const SizedBox(height: 8),
         demoBlock('配置后重试上方按钮查看「取消」按钮显隐',
             Text('title / showCancel / onConfirm 等由 show 参数控制。', style: TextStyle(fontSize: 12, color: Colors.grey))),
+        demoSection('三态（disabled / readonly —— 作用于弹层内部交互）'),
+        demoBlock(
+            '弹层没有「显示区」，三态应施加在调用方的触发区；这里演示弹层内部的锁交互差异：'
+            'disabled = 锁滚轮 + 整体淡化；readonly = 锁滚轮 + 配色不变',
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              FilledButton.tonal(
+                onPressed: () => _openWithState(disabled: true),
+                child: const Text('打开 disabled 弹层'),
+              ),
+              FilledButton.tonal(
+                onPressed: () => _openWithState(readonly: true),
+                child: const Text('打开 readonly 弹层'),
+              ),
+            ])),
       ],
     );
   }

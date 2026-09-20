@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/wot_scheme.dart';
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../picker_view/wot_picker_view.dart';
 
@@ -148,10 +149,18 @@ class WotCalendar extends StatelessWidget {
     this.confirmLeft,
     this.confirmRight,
     this.switchMode = WotCalendarSwitchMode.none,
+    this.disabled = false,
+    this.readonly = false,
   });
 
   /// 当前选中日期（v-model，仅对单选 [WotCalendarType.single] 生效）。
   final DateTime? modelValue;
+
+  /// 是否禁用（锁选择交互并整体淡化），默认 false。
+  final bool disabled;
+
+  /// 是否只读：锁选择交互但保持正常配色（仅供查看），默认 false。
+  final bool readonly;
 
   /// 确定选中单日时触发的回调。
   final ValueChanged<DateTime>? onChange;
@@ -243,25 +252,34 @@ class WotCalendar extends StatelessWidget {
     DateTime? minDate,
     DateTime? maxDate,
     Color? color,
+    bool disabled = false,
+    bool readonly = false,
   }) {
     return showModalBottomSheet<DateTime>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      builder: (_) => _CalendarSheet(
+      // 回落到 WotCalendar 本体，使三态（disabled / readonly）的包裹生效。
+      builder: (_) => WotCalendar(
         modelValue: modelValue,
         title: title ?? '选择日期',
         minDate: minDate,
         maxDate: maxDate,
         color: color,
+        disabled: disabled,
+        readonly: readonly,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return _CalendarSheet(
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = this.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final readonly = this.readonly || (fieldScope?.state == WotFieldState.readonly);
+
+    final sheet = _CalendarSheet(
       modelValue: modelValue,
       title: title,
       confirmText: confirmText,
@@ -291,6 +309,12 @@ class WotCalendar extends StatelessWidget {
       confirmRight: confirmRight,
       switchMode: switchMode,
     );
+
+    // 弹层形态三态：readonly 锁选择交互、配色不变；disabled 额外整体淡化。
+    // 锁住整片 sheet（关闭仍可点蒙层）。
+    final locked = disabled || readonly;
+    final wrapped = locked ? IgnorePointer(child: sheet) : sheet;
+    return disabled ? Opacity(opacity: 0.5, child: wrapped) : wrapped;
   }
 }
 

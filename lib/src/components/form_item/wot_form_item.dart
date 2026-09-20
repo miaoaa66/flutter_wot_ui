@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../form/wot_form.dart';
 import '../icon/wot_icon.dart';
@@ -23,6 +24,8 @@ class WotFormItem extends StatefulWidget {
     this.clickable = false,
     this.isLink = false,
     this.onTap,
+    this.disabled = false,
+    this.readonly = false,
     required this.child,
   });
 
@@ -61,6 +64,14 @@ class WotFormItem extends StatefulWidget {
 
   /// 点击整行的回调；需要 [clickable] 为 true 才会触发。
   final VoidCallback? onTap;
+
+  /// 是否禁用整项。命中时标签灰化，并通过 [WotFieldScope] 下发，令内部录入控件
+  /// （如 `WotInput`）自动进入禁用态。
+  final bool disabled;
+
+  /// 是否只读整项。内部控件保持正常字色（内容有效可读），仅去除输入区边框——
+  /// 与 [disabled] 的灰化明确区分，详见三态语义规范。
+  final bool readonly;
 
   /// 表单项内容（录入控件）。
   final Widget child;
@@ -117,6 +128,16 @@ class _WotFormItemState extends State<WotFormItem> {
         (control?.errorType ?? WotFormErrorType.message) !=
             WotFormErrorType.none;
 
+    // 三态：显式 disabled / readonly 优先，其次继承外层 WotFieldScope。
+    final parentScope = WotFieldScope.of(context);
+    final state = widget.disabled
+        ? WotFieldState.disabled
+        : widget.readonly
+            ? WotFieldState.readonly
+            : (parentScope?.state ?? WotFieldState.editable);
+    final style = wotFieldStyle(scheme, state, error: showErr);
+    final isDisabled = state == WotFieldState.disabled;
+
     final labelWidget = widget.label == null
         ? null
         : SizedBox(
@@ -127,63 +148,75 @@ class _WotFormItemState extends State<WotFormItem> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (widget.required) ...[
-                    Text('*', style: TextStyle(color: scheme.dangerMain, fontSize: 14)),
+                    Text(
+                      '*',
+                      style: TextStyle(
+                        color: isDisabled ? scheme.textDisabled : scheme.dangerMain,
+                        fontSize: 14,
+                      ),
+                    ),
                     const SizedBox(width: 2),
                   ],
                   Text(
                     widget.label!,
-                    style: TextStyle(fontSize: 14, color: scheme.textMain),
+                    style: TextStyle(fontSize: 14, color: style.label),
                   ),
                 ],
               ),
             ),
           );
 
-    return Container(
-      padding: widget.childrenPadding,
-      decoration: widget.border
-          ? BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: scheme.borderLight, width: 0.5),
-              ),
-            )
-          : null,
-      child: _wrapTappable(
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (labelWidget != null) ...[
-              Padding(padding: const EdgeInsets.only(bottom: 6), child: labelWidget),
-            ],
-            Row(
-              children: [
-                Expanded(child: widget.child),
-                if (widget.isLink) ...[
-                  const SizedBox(width: 6),
-                  WotIcon(
-                    name: 'arrow-right',
-                    size: 16,
-                    color: scheme.iconAuxiliary,
-                  ),
-                ],
+    // 把三态下发到内部录入控件（如 WotInput）：一处配置、内部跟随。
+    return WotFieldScope(
+      state: state,
+      error: showErr,
+      child: Container(
+        padding: widget.childrenPadding,
+        decoration: widget.border
+            ? BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: scheme.borderLight, width: 0.5),
+                ),
+              )
+            : null,
+        child: _wrapTappable(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (labelWidget != null) ...[
+                Padding(padding: const EdgeInsets.only(bottom: 6), child: labelWidget),
               ],
-            ),
-            if (showErr) ...[
-              const SizedBox(height: 6),
-              Text(
-                err,
-                style: TextStyle(fontSize: 12, color: scheme.dangerMain),
+              Row(
+                children: [
+                  Expanded(child: widget.child),
+                  if (widget.isLink) ...[
+                    const SizedBox(width: 6),
+                    WotIcon(
+                      name: 'arrow-right',
+                      size: 16,
+                      color: isDisabled ? scheme.iconDisabled : scheme.iconAuxiliary,
+                    ),
+                  ],
+                ],
               ),
+              if (showErr) ...[
+                const SizedBox(height: 6),
+                Text(
+                  err,
+                  style: TextStyle(fontSize: 12, color: scheme.dangerMain),
+                ),
+              ],
             ],
-          ],
+          ),
+          disabled: isDisabled,
         ),
       ),
     );
   }
 
-  /// [clickable] 为 true 时给整行加点击手势与水波纹。
-  Widget _wrapTappable(Widget content) {
-    if (!widget.clickable) return content;
+  /// [clickable] 为 true 且未禁用时，给整行加点击手势与水波纹。
+  Widget _wrapTappable(Widget content, {required bool disabled}) {
+    if (!widget.clickable || disabled) return content;
     return InkWell(onTap: widget.onTap, child: content);
   }
 

@@ -31,6 +31,20 @@ class WotCellPage extends StatelessWidget {
               WotCell(title: '带箭头', isLink: true, onClick: () => demoToast(context, '点击了 Cell')),
               const WotCell(title: '必填项', value: '请输入', required: true),
             ])),
+        demoSection('三态（disabled / error）'),
+        demoBlock(
+            'disabled：整体灰化且不可点（标题 / 值 / 图标 / 箭头 / 必填星号一并灰化）',
+            const Column(children: [
+              WotCell(title: '禁用单元格', value: '不可用', icon: 'info', disabled: true),
+              WotCell(title: '禁用 + 箭头（不可点）', value: '值', isLink: true, disabled: true),
+              WotCell(title: '禁用 + 必填', value: '值', required: true, disabled: true),
+            ])),
+        demoBlock('error：标题与值转危险色',
+            const Column(children: [
+              WotCell(title: '校验失败', value: '格式不正确', error: true),
+              WotCell(title: 'error + 必填', value: '', required: true, error: true),
+            ])),
+        demoBlock('对照：正常态', const WotCell(title: '正常', value: '内容', icon: 'info')),
         demoSection('样式（center / border / titleWidth）'),
         demoBlock('垂直居中 center',
             const WotCell(title: '居中标题', value: '值', center: true, label: '多行 label 用来测居中')),

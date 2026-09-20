@@ -14,6 +14,9 @@ class WotRadioPage extends StatefulWidget {
 class _WotRadioPageState extends State<WotRadioPage> {
   Object? _v1 = 1;
   Object? _v2 = 'a';
+  bool _tDisabled = false;
+  bool _tReadonly = false;
+  bool _tError = false;
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +55,19 @@ class _WotRadioPageState extends State<WotRadioPage> {
               ],
               onChange: (v) => setState(() => _v1 = v),
             )),
+        demoSection('三态（disabled / readonly / error）'),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          FilledButton.tonal(onPressed: () => setState(() => _tDisabled = !_tDisabled), child: Text('disabled: $_tDisabled')),
+          FilledButton.tonal(onPressed: () => setState(() => _tReadonly = !_tReadonly), child: Text('readonly: $_tReadonly')),
+          FilledButton.tonal(onPressed: () => setState(() => _tError = !_tError), child: Text('error: $_tError')),
+        ]),
+        const SizedBox(height: 8),
+        demoBlock('disabled 整项灰化（圆点 / 边框 / 标签一并变灰）',
+            WotRadio(label: '禁用单选', modelValue: true, disabled: _tDisabled)),
+        demoBlock('readonly 只读（锁切换、保持正常配色 —— 区别于 disabled 的灰化）',
+            WotRadio(label: '只读单选', modelValue: true, readonly: _tReadonly)),
+        demoBlock('error 校验失败（未选中描边与标签转红）',
+            WotRadio(label: '校验失败', modelValue: false, error: _tError)),
       ],
     );
   }

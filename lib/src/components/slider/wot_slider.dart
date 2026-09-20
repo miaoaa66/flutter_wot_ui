@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../form/wot_form.dart';
 
@@ -17,6 +18,8 @@ class WotSlider extends StatefulWidget {
     this.valueStart,
     this.onChangeRange,
     this.disabled = false,
+    this.readonly = false,
+    this.error = false,
     this.activeColor,
     this.inactiveColor,
     this.showTip = false,
@@ -53,8 +56,14 @@ class WotSlider extends StatefulWidget {
   /// 双向滑块模式下区间变化回调，参数为 `[低值, 高值]`。
   final ValueChanged<List<num>>? onChangeRange;
 
-  /// 是否禁用，默认 false。
+  /// 是否禁用，默认 false。禁用时轨道灰化且不可拖动。
   final bool disabled;
+
+  /// 是否只读：不可拖动，但保持正常配色（内容有效可读），默认 false。
+  final bool readonly;
+
+  /// 是否处于校验失败态（error 态）。命中时激活段转危险色。
+  final bool error;
 
   /// 已激活段颜色，默认使用主题主色。
   final Color? activeColor;
@@ -166,9 +175,16 @@ class _WotSliderState extends State<WotSlider> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
-    final active = widget.activeColor ?? scheme.primaryOf(6);
+    // 三态：显式 disabled 优先，其次取父级 WotFieldScope 下发；
+    // readonly 仅锁交互、保持正常配色（区别于 disabled 的灰化）。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = widget.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final hasError = widget.error || (fieldScope?.error ?? false);
+    final locked = disabled || widget.readonly;
+    final active = disabled
+        ? scheme.filledExtraStrong
+        : (hasError ? scheme.dangerMain : (widget.activeColor ?? scheme.primaryOf(6)));
     final inactive = widget.inactiveColor ?? scheme.borderLight;
-    final disabled = widget.disabled;
     final lowFrac = widget.range ? _fraction(_low) : 0.0;
     // 区间模式渲染高值圆点要用 _high（区间逻辑只更新 _high）；单滑块才用 _value。
     final highFrac = _fraction(widget.range ? _high : _value);
@@ -233,7 +249,7 @@ class _WotSliderState extends State<WotSlider> {
 
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTapDown: disabled
+          onTapDown: locked
               ? null
               : (d) {
                   final f = d.localPosition.dx / width;
@@ -242,7 +258,7 @@ class _WotSliderState extends State<WotSlider> {
                   _dragMove(f);
                   _dragEnd();
                 },
-          onHorizontalDragStart: disabled
+          onHorizontalDragStart: locked
               ? null
               : (d) {
                   final f = d.localPosition.dx / width;
@@ -250,9 +266,9 @@ class _WotSliderState extends State<WotSlider> {
                   setState(() => _dragging = true);
                   _dragMove(f);
                 },
-          onHorizontalDragUpdate: disabled ? null : (d) => _dragMove(d.localPosition.dx / width),
-          onHorizontalDragEnd: disabled ? null : (_) => _dragEnd(),
-          onHorizontalDragCancel: disabled ? null : _dragEnd,
+          onHorizontalDragUpdate: locked ? null : (d) => _dragMove(d.localPosition.dx / width),
+          onHorizontalDragEnd: locked ? null : (_) => _dragEnd(),
+          onHorizontalDragCancel: locked ? null : _dragEnd,
           child: SizedBox(
             height: 56,
             width: double.infinity,

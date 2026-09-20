@@ -83,6 +83,22 @@ class _WotDatetimePickerPageState extends State<WotDatetimePickerPage> {
                 if (d != null) setState(() => _scoped = d);
               },
             )),
+        demoSection('三态（disabled / readonly —— 作用于弹层内部交互）'),
+        demoBlock(
+            '弹层没有「显示区」，三态应施加在调用方的触发区；这里演示弹层内部的锁交互差异：'
+            'disabled = 锁滚轮 + 整体淡化；readonly = 锁滚轮 + 配色不变',
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              WotButton(
+                text: '打开 disabled 弹层',
+                size: WotButtonSize.small,
+                onClick: () => WotDatetimePicker.show(context, type: WotDatetimePickerType.date, modelValue: _date, disabled: true),
+              ),
+              WotButton(
+                text: '打开 readonly 弹层',
+                size: WotButtonSize.small,
+                onClick: () => WotDatetimePicker.show(context, type: WotDatetimePickerType.date, modelValue: _date, readonly: true),
+              ),
+            ])),
       ],
     );
   }

@@ -388,6 +388,19 @@ class _WotCalendarPageState extends State<WotCalendarPage> {
               switchMode: WotCalendarSwitchMode.month,
               onChange: (d) => setState(() => _date = d),
             )),
+        demoSection('三态（disabled / readonly）'),
+        demoBlock('readonly 只读（锁选择、保持正常配色 —— 区别于 disabled 的淡化）',
+            WotCalendar(
+              type: WotCalendarType.single,
+              modelValue: _date,
+              readonly: true,
+            )),
+        demoBlock('disabled 禁用（锁选择 + 整体淡化）',
+            WotCalendar(
+              type: WotCalendarType.single,
+              modelValue: _date,
+              disabled: true,
+            )),
       ],
     );
   }

@@ -15,6 +15,8 @@ class WotSignaturePage extends StatefulWidget {
 
 class _WotSignaturePageState extends State<WotSignaturePage> {
   bool _disabled = false;
+  bool _readonly = false;
+  bool _error = false;
 
   // 图片导出回显（基础用法里的确认导出）。
   Uint8List? _exportedBytes;
@@ -97,15 +99,25 @@ class _WotSignaturePageState extends State<WotSignaturePage> {
         demoBlock('lineWidth=6 粗笔 + penColor 蓝色',
             WotSignature(height: 160, lineWidth: 6, penColor: Colors.blue)),
         demoBlock('bgColor 浅蓝底', WotSignature(height: 120, bgColor: const Color(0xFFE9F4FF))),
-        demoSection('状态（disabled）'),
-        Row(children: [
-          Flexible(
-              child: FilledButton.tonal(
-                  onPressed: () => setState(() => _disabled = !_disabled),
-                  child: Text('disabled: $_disabled'))),
+        demoSection('三态（disabled / readonly / error）'),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          FilledButton.tonal(
+              onPressed: () => setState(() => _disabled = !_disabled),
+              child: Text('disabled: $_disabled')),
+          FilledButton.tonal(
+              onPressed: () => setState(() => _readonly = !_readonly),
+              child: Text('readonly: $_readonly')),
+          FilledButton.tonal(
+              onPressed: () => setState(() => _error = !_error),
+              child: Text('error: $_error')),
         ]),
         const SizedBox(height: 8),
-        demoBlock('disabled 禁用书写', WotSignature(height: 160, disabled: _disabled)),
+        demoBlock('disabled 禁用书写（锁交互 + 整体淡化）',
+            WotSignature(height: 160, disabled: _disabled)),
+        demoBlock('readonly 只读（锁书写 / 清空 / 撤销，保留「确认」导出 —— 配色不变）',
+            WotSignature(height: 160, enableHistory: true, readonly: _readonly)),
+        demoBlock('error 校验失败（未签名 / 校验不过时画板描红边）',
+            WotSignature(height: 160, error: _error)),
       ],
     );
   }
