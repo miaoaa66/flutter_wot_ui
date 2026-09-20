@@ -86,8 +86,10 @@
 - T2.5 全库闭环·批次 1（同日）：`WotSignature`（清空 / 撤销 / 恢复 / 确认 4 处接入 tr + 画板
   Semantics「手写签名区域」+ 清空图标 button 角色）、`WotKeyboard`（title / ensureText 字段
   可空化 + 接入 tr，key 复用既有）；新增 key `wot.signature.area`。
-  待做：`password_input` / `slide_verify`（a11y）、`keyboard` 按键 button 角色、
-  `tour` / `upload` / `select_picker` 参数可空化、纯展示类批量豁免归档。
+  批次 1 续（同日）：`WotPasswordInput` 补 a11y——自绘格子对读屏报「密码输入框 + 已输入 N/M 位」
+  （新增 key `wot.passwordInput.field`；value 用纯数字避免语言问题，隐藏 TextField 本无可读语义）。
+  `slide_verify` 审计：轨道文案是真实 Text（读屏可读），slider 角色为低优先级补项。
+  待做：`tour` / `upload` / `select_picker` 参数可空化、纯展示类批量豁免归档。
 
 ### 无障碍（T1.2，2026-09-20）
 

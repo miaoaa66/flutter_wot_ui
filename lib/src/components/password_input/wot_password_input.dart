@@ -2,6 +2,7 @@
 import 'package:flutter/services.dart';
 
 import '../../theme/wot_state.dart';
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 
 /// 密码输入框，对应 wot `wd-password-input`。
@@ -202,7 +203,7 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
     final focus = _isFocused && !disabled && !readonly;
     final mask = widget.maskable ?? widget.obscure;
 
-    return GestureDetector(
+    final field = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: (disabled || readonly) ? null : _tap,
       child: Row(
@@ -279,6 +280,15 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
           ],
         ],
       ),
+    );
+
+    // 无障碍：可见格子是自绘的，隐藏 TextField 不产生可读语义；
+    // 读屏需要知道这是密码框、当前已输入几位（value 用纯数字避免语言问题）。
+    return Semantics(
+      label: tr(context, 'wot.passwordInput.field'),
+      value: '${_value.length} / ${widget.maxLength}',
+      onTap: (disabled || readonly) ? null : _tap,
+      child: field,
     );
   }
 }
