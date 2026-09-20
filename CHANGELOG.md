@@ -69,6 +69,10 @@
 - 导航类（第二批）：`WotTabs` / `WotSidebarItem` 逐项补 `button` + `selected` 标志（sidebar 另含
   enabled 与标题 label）；`WotSegmented` 整段读出「当前选中：X」。`WotCell` / `WotPagination`
   用 InkWell，内建语义已覆盖。
+- 交互第二批收尾：`WotRate`（`slider` 角色 + 「N / M 星」）、`WotIcon`（可点时 button + 图标名，
+  装饰性图标不进语义树）、`WotInputNumber`（加减按钮 button + 「增加 / 减少」）。
+- 展示类降噪审计结论：**无需改动** —— `divider` / `gap` / `skeleton` 无文本无交互、`watermark` 用
+  CustomPaint（均不产生语义节点）；`loading` / `divider` 的文本是有用信息，不应排除。
 
 ### Fixed（T3.2）
 

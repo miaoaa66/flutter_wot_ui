@@ -236,7 +236,8 @@ class _WotInputNumberState extends State<WotInputNumber> {
     final scheme = context.wotScheme;
     final border = disabled ? scheme.borderLight : scheme.borderMain;
     final canLongPress = !disabled && widget.longPress;
-    return GestureDetector(
+    // 无障碍：加减是圆形图标按钮，读屏需读出「增加 / 减少」与可用性。
+    final btn = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: disabled ? null : () => _step(delta),
       onLongPressStart: canLongPress ? (_) => _startRepeat(delta) : null,
@@ -252,6 +253,14 @@ class _WotInputNumberState extends State<WotInputNumber> {
         alignment: Alignment.center,
         child: Icon(icon, size: 16, color: disabled ? border : color),
       ),
+    );
+
+    return Semantics(
+      button: true,
+      enabled: !disabled,
+      label: delta > 0 ? '增加' : '减少',
+      onTap: disabled ? null : () => _step(delta),
+      child: btn,
     );
   }
 }

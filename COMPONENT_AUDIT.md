@@ -828,12 +828,15 @@ flutter test             :: example 的 widget 测试
   slider 的语义增减复用内部拖动路径（与拖动一致走 step 对齐 + onChange）。
   `button` 用 InkWell、`input` 用 TextField，Flutter 已内建语义（审计确认无需包装）。
   遗留：`input` 的「必填 / 错误」语义未关联。
-- [ ] T1.3 交互类第二批 —— **部分完成**（2026-09-20）：
-  ✅ `tabs`（逐项 button + selected）、`sidebar`（逐项 button + selected + enabled + label）、
-  `segmented`（整段 value「当前选中：X」，逐项标志待细化）；
-  ✔ 无需改：`cell` / `pagination` 用 InkWell（内建 button 语义，审计确认）；
-  ⏳ 待做：`rate` / `icon` / `input_number`（加减按钮语义）
-- [ ] T1.4 展示类降噪：divider / gap / skeleton / watermark / progress / loading
+- [x] T1.3 交互类第二批 —— ✅ 已完成（2026-09-20）：
+  `tabs`（逐项 button + selected）、`sidebar`（逐项 button + selected + enabled + label）、
+  `segmented`（整段 value「当前选中：X」，逐项标志待细化）、`rate`（slider 角色 + 「N / M 星」）、
+  `icon`（可点时 button + 图标名；装饰性不进语义树无噪声）、`input_number`（加减按钮 button + 「增加/减少」）；
+  ✔ 无需改：`cell` / `pagination` 用 InkWell（内建 button 语义，审计确认）
+- [x] T1.4 展示类降噪 —— ✅ 审计结论：**无需改动**（2026-09-20）：
+  `divider` / `gap` / `skeleton` 无文本无交互（本就不产生语义节点）、`watermark` 用 CustomPaint（不进语义树）、
+  `loading` / `divider` 的文本（「加载中…」/ 分割线文案）是有用信息，不应排除。
+  原计划按「统一 ExcludeSemantics」处理，实测审计后确认全部不需要。
 
 **Stage 2 国际化**
 - [ ] T2.1 定义 `WotMessages` + `tr()`，接通 `localeMessages` 管道（本卡不动任何组件）

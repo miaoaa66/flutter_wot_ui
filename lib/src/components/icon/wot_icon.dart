@@ -157,10 +157,16 @@ class WotIcon extends StatelessWidget {
       color: color ?? scheme.iconMain,
     );
     if (onClick == null) return icon;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    // 无障碍：可点图标补 button 角色 + 图标名（装饰性图标不进语义树，无噪声）。
+    return Semantics(
+      button: true,
+      label: name,
       onTap: onClick,
-      child: icon,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onClick,
+        child: icon,
+      ),
     );
   }
 }

@@ -81,7 +81,8 @@ class WotRate extends StatelessWidget {
     final voidIcon = icon ?? Icons.star;
     final activeIconData = activeIcon ?? Icons.star;
 
-    return Row(
+    // 无障碍：读屏读出「当前评了几星 / 满分几星」，锁定时不宣称可用。
+    final stars = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var i = 1; i <= count; i++) ...[
@@ -108,6 +109,15 @@ class WotRate extends StatelessWidget {
           ),
         ],
       ],
+    );
+
+    return Semantics(
+      slider: true,
+      value: allowHalf
+          ? '${modelValue.toStringAsFixed(1)} / $count 星'
+          : '${modelValue.toStringAsFixed(0)} / $count 星',
+      enabled: !disabled && !readonly,
+      child: stars,
     );
   }
 }
