@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 
 import '../../theme/wot_state.dart';
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 import '../picker_view/wot_picker_view.dart';
 
@@ -261,8 +262,8 @@ class WotDatetimePicker extends StatefulWidget {
     this.modelValue,
     this.onChange,
     this.title,
-    this.confirmText = '确定',
-    this.cancelText = '取消',
+    this.confirmText,
+    this.cancelText,
     this.type = WotDatetimePickerType.datetime,
     this.color,
     this.minDate,
@@ -289,10 +290,10 @@ class WotDatetimePicker extends StatefulWidget {
   final String? title;
 
   /// 确认按钮文案，默认“确定”。
-  final String confirmText;
+  final String? confirmText;
 
   /// 取消按钮文案，默认“取消”。
-  final String cancelText;
+  final String? cancelText;
 
   /// 选择器类型，可选 [WotDatetimePickerType]，默认 datetime（对齐 wot）。
   final WotDatetimePickerType type;
@@ -426,7 +427,7 @@ class _WotDatetimePickerState extends State<WotDatetimePicker> {
                   widget.onCancel?.call();
                   Navigator.of(context).pop();
                 },
-                child: Text(widget.cancelText,
+                child: Text(widget.cancelText ?? tr(context, 'wot.common.cancel'),
                     style: TextStyle(fontSize: 14, color: scheme.textSecondary)),
               ),
               Expanded(
@@ -441,7 +442,7 @@ class _WotDatetimePickerState extends State<WotDatetimePicker> {
                   widget.onChange?.call(_value);
                   Navigator.of(context).pop(_value);
                 },
-                child: Text(widget.confirmText,
+                child: Text(widget.confirmText ?? tr(context, 'wot.common.confirm'),
                     style: TextStyle(fontSize: 14, color: primary, fontWeight: FontWeight.w600)),
               ),
             ],

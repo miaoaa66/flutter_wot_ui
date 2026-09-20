@@ -95,6 +95,10 @@
   CustomPaint 此前读屏不可感知；新增 key `wot.sort.ascending` / `descending` / `unsorted`）。
   待做：`fab`（2 处 GestureDetector 需确认语义）、`tour` / `picker` / `datetime_picker` 可空化、
   纯展示类批量豁免归档。
+- T2.5 全库闭环·批次 3（同日）：`WotPicker` / `WotDatetimePicker` 的 confirmText / cancelText
+  字段可空化（String -> String?，API 放宽）并接入 tr，key 复用 `wot.common.confirm` / `cancel`。
+  `WotTour` 遗留：4 个按钮文案经 show() -> _TourSheet -> step 三层透传（step 级可空、sheet 级非空），
+  可空化链路复杂，单独一轮处理。
 
 ### 无障碍（T1.2，2026-09-20）
 
