@@ -839,7 +839,13 @@ flutter test             :: example 的 widget 测试
   原计划按「统一 ExcludeSemantics」处理，实测审计后确认全部不需要。
 
 **Stage 2 国际化**
-- [ ] T2.1 定义 `WotMessages` + `tr()`，接通 `localeMessages` 管道（本卡不动任何组件）
+- [x] T2.1 定义 `WotMessages` + `tr()`，接通 `localeMessages` 管道 —— ✅ 已完成（2026-09-20）：
+  新增 `lib/src/locale/wot_messages.dart` 并导出。取值优先级：**自定义语言包 > 内置表（按 locale）>
+  默认语言表 > fallback > key 本身**；locale 归一化兼容 `zh-CN` / `zh_CN` 写法；
+  无 Provider 包裹时安全回退默认语言（组件内可直接调用，无需判空）。
+  **未动任何组件**（硬编码文案替换在 T2.2 / T2.3）。
+  内置 key：common 系列（confirm / cancel / done / clear / add / revoke / restore / loading /
+  increase / decrease / search）+ calendar.title + keyboard.title（zh_CN + en_US）
 - [ ] T2.2 首批替换：calendar / table / input / video_preview / img_cropper
 - [ ] T2.3 第二批：tour / tabs / form / upload / index_bar / select_picker
 - [ ] T2.4 提供 en_US 包并验证

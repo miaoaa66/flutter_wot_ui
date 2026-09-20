@@ -1,0 +1,109 @@
+import 'package:flutter/material.dart';
+
+import '../components/config_provider/wot_config_provider.dart';
+
+/// 内置多语言文案表（对齐 wot 的 locale 机制）。
+///
+/// key 采用 `wot.<组件>.<条目>` 命名；`zh_CN` 为默认语言（缺 key 时回退），
+/// `en_US` 为第二语言。自定义语言包通过 [WotConfigProvider.localeMessages]
+/// 传入，**覆盖优先级高于内置表**（即可只覆盖个别 key 做微调）。
+///
+/// 用法（组件内）：
+/// ```dart
+/// Text(tr(context, 'wot.common.confirm'))
+/// ```
+///
+/// 应用侧切换语言 / 自定义文案：
+/// ```dart
+/// WotConfigProvider(
+///   locale: 'en_US',
+///   localeMessages: {'wot.common.confirm': 'OK'}, // 覆盖任意 key
+///   child: app,
+/// )
+/// ```
+///
+/// 本卡（T2.1）只定义表与取值函数，**不改任何组件**；组件内硬编码文案的
+/// 替换见后续批次（T2.2 首批：calendar / table / input / video_preview / img_cropper）。
+class WotMessages {
+  const WotMessages._();
+
+  /// 默认语言（缺失 key 的最终回退）。
+  static const String defaultLocale = 'zh_CN';
+
+  /// 语言代码归一化：兼容 `zh-CN` / `zh_CN` / `en-US` 等写法。
+  static String normalize(String? locale) {
+    if (locale == null || locale.isEmpty) return defaultLocale;
+    final l = locale.replaceAll('-', '_');
+    if (_builtin.containsKey(l)) return l;
+    // 只匹配语言主码（zh-CN-TW -> zh_CN 也可能没有，再退主码）。
+    final main = l.split('_').first;
+    for (final key in _builtin.keys) {
+      if (key.split('_').first == main) return key;
+    }
+    return defaultLocale;
+  }
+
+  /// 内置文案：locale -> key -> 文案。
+  static const Map<String, Map<String, String>> _builtin = {
+    'zh_CN': {
+      'wot.common.confirm': '确定',
+      'wot.common.cancel': '取消',
+      'wot.common.done': '完成',
+      'wot.common.clear': '清空',
+      'wot.common.add': '添加',
+      'wot.common.revoke': '撤销',
+      'wot.common.restore': '恢复',
+      'wot.common.loading': '加载中...',
+      'wot.common.increase': '增加',
+      'wot.common.decrease': '减少',
+      'wot.common.search': '搜索',
+      'wot.calendar.title': '选择日期',
+      'wot.keyboard.title': '安全键盘',
+    },
+    'en_US': {
+      'wot.common.confirm': 'Confirm',
+      'wot.common.cancel': 'Cancel',
+      'wot.common.done': 'Done',
+      'wot.common.clear': 'Clear',
+      'wot.common.add': 'Add',
+      'wot.common.revoke': 'Undo',
+      'wot.common.restore': 'Redo',
+      'wot.common.loading': 'Loading...',
+      'wot.common.increase': 'Increase',
+      'wot.common.decrease': 'Decrease',
+      'wot.common.search': 'Search',
+      'wot.calendar.title': 'Select Date',
+      'wot.keyboard.title': 'Secure Keyboard',
+    },
+  };
+
+  /// 按 locale 与 key 取内置文案（供测试 / 自定义语言包派生使用）。
+  static String? builtinValue(String? locale, String key) {
+    final table = _builtin[normalize(locale)];
+    return table?[key];
+  }
+}
+
+/// 组件内取文案的统一入口。
+///
+/// 取值优先级：**自定义语言包（[WotConfigProvider.localeMessages]） >
+/// 内置表（按当前 locale）> 内置默认语言表 > [fallback] > key 本身**。
+///
+/// 不依赖 [WotConfigProvider] 时（无 Provider 包裹）按默认语言 `zh_CN` 取值，
+/// 因此组件内可以放心直接调用、不需要判空。
+String tr(BuildContext context, String key, {String? fallback}) {
+  final scope = WotConfigProvider.of(context);
+  final locale = WotMessages.normalize(scope.locale);
+
+  // 1) 用户自定义语言包优先（可只覆盖个别 key）。
+  final custom = scope.messages;
+  final customValue = custom?[key];
+  if (customValue != null && customValue.isNotEmpty) return customValue;
+
+  // 2) 内置表按当前 locale，缺 key 回退默认语言表。
+  final builtin = WotMessages.builtinValue(locale, key);
+  if (builtin != null) return builtin;
+
+  // 3) 显式回退 / key 本身（方便发现漏配的 key）。
+  return fallback ?? key;
+}

@@ -58,6 +58,15 @@
 - `WotCalendar.show` 改为回落到 `WotCalendar` 本体：原先直接构造 `_CalendarSheet`，
   会**绕过** `WotCalendar.build` 里的三态包裹，使 disabled / readonly 失效。
 
+### 国际化（T2.1，2026-09-20）
+
+- 新增 `WotMessages`（内置 zh_CN / en_US 文案表）与 `tr(context, key, {fallback})` 取值函数，
+  接通 `WotConfigProvider` 既有的 `locale` / `localeMessages` 管道。
+- 取值优先级：**自定义语言包 > 内置表（按 locale）> 默认语言表 > fallback > key 本身**；
+  locale 归一化兼容 `zh-CN` / `zh_CN` 写法；无 Provider 包裹时安全回退默认语言。
+- **本批未改任何组件**——组件内硬编码文案的替换在 T2.2（calendar / table / input /
+  video_preview / img_cropper）与 T2.3 批次进行。
+
 ### 无障碍（T1.2，2026-09-20）
 
 - `WotCheckbox` / `WotRadio` / `WotSwitch` / `WotSlider` 四个自绘组件补齐 Semantics ——
