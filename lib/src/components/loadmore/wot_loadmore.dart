@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 
 /// 加载更多状态。
@@ -17,11 +18,11 @@ class WotLoadmore extends StatelessWidget {
     super.key,
     this.state,
     this.loading,
-    this.loadingText = '加载中...',
+    this.loadingText,
     this.loadingSpinner = true,
-    this.loadingFailedText = '加载失败，重新加载',
-    this.noMoreText = '没有更多了',
-    this.finishedText = '已完成',
+    this.loadingFailedText,
+    this.noMoreText,
+    this.finishedText,
     this.line = false,
     this.onLoadmore,
     this.loadMoreText,
@@ -36,19 +37,19 @@ class WotLoadmore extends StatelessWidget {
   final bool? loading;
 
   /// 加载中状态文案；默认“加载中...”。
-  final String loadingText;
+  final String? loadingText;
 
   /// 加载中是否显示旋转动画指示器；默认 true。
   final bool loadingSpinner;
 
   /// 加载失败状态文案；默认“加载失败，重新加载”。
-  final String loadingFailedText;
+  final String? loadingFailedText;
 
   /// 没有更多状态文案；默认“没有更多了”。
-  final String noMoreText;
+  final String? noMoreText;
 
   /// 加载完成状态文案；默认“已完成”。
-  final String finishedText;
+  final String? finishedText;
 
   /// 是否显示上下分割线。
   final bool line;
@@ -92,7 +93,7 @@ class WotLoadmore extends StatelessWidget {
                 ),
               ),
             if (loadingSpinner) const SizedBox(width: 6),
-            Text(loadMoreText ?? loadingText,
+            Text(loadMoreText ?? loadingText ?? tr(context, 'wot.loadmore.loading'),
                 style: TextStyle(fontSize: 12, color: scheme.textAuxiliary)),
           ],
         );
@@ -102,13 +103,16 @@ class WotLoadmore extends StatelessWidget {
             onLoadMore?.call();
             onLoadmore?.call();
           },
-          child: Text(failedText ?? loadingFailedText,
+          child: Text(
+              failedText ?? loadingFailedText ?? tr(context, 'wot.loadmore.loadingFailed'),
               style: TextStyle(fontSize: 12, color: scheme.dangerMain)),
         );
       case WotLoadmoreState.noMore:
-        content = Text(noMoreText, style: TextStyle(fontSize: 12, color: scheme.textAuxiliary));
+        content = Text(noMoreText ?? tr(context, 'wot.loadmore.noMore'),
+            style: TextStyle(fontSize: 12, color: scheme.textAuxiliary));
       case WotLoadmoreState.finished:
-        content = Text(finishedText, style: TextStyle(fontSize: 12, color: scheme.textAuxiliary));
+        content = Text(finishedText ?? tr(context, 'wot.loadmore.finished'),
+            style: TextStyle(fontSize: 12, color: scheme.textAuxiliary));
     }
 
     return Container(

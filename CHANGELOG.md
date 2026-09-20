@@ -99,6 +99,9 @@
   字段可空化（String -> String?，API 放宽）并接入 tr，key 复用 `wot.common.confirm` / `cancel`。
   `WotTour` 遗留：4 个按钮文案经 show() -> _TourSheet -> step 三层透传（step 级可空、sheet 级非空），
   可空化链路复杂，单独一轮处理。
+- T2.5 全库闭环·批次 5 起（同日）：`WotLoadmore` 四个文案字段（loadingText / loadingFailedText /
+  noMoreText / finishedText）可空化接入 tr；新增 key `wot.loadmore.*` 四个（zh + en）。
+  批次 5 剩余：`cascader` / `search` / `dialog` / `pagination`（弹层反馈类文案）。
 
 ### 无障碍（T1.2，2026-09-20）
 
