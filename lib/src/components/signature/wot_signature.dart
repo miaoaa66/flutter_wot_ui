@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 import '../../theme/wot_state.dart';
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 
 /// 导出图片类型，对应 wot `wd-signature` 的 `file-type`。
@@ -238,12 +239,16 @@ class _WotSignatureState extends State<WotSignature> {
                   onPanStart: locked ? null : _start,
                   onPanUpdate: locked ? null : _update,
                   onPanEnd: locked ? null : _end,
-                  child: CustomPaint(
-                    size: Size.infinite,
-                    painter: _SignaturePainter(
-                      strokes: _strokes,
-                      penColor: pen,
-                      lineWidth: widget.lineWidth,
+                  // 无障碍：画板区对读屏说明用途（手写签名区域）。
+                  child: Semantics(
+                    label: tr(context, 'wot.signature.area'),
+                    child: CustomPaint(
+                      size: Size.infinite,
+                      painter: _SignaturePainter(
+                        strokes: _strokes,
+                        penColor: pen,
+                        lineWidth: widget.lineWidth,
+                      ),
                     ),
                   ),
                 ),
@@ -251,13 +256,19 @@ class _WotSignatureState extends State<WotSignature> {
               Positioned(
                 right: 0,
                 bottom: 0,
-                child: GestureDetector(
+                // 无障碍：清空是图标按钮，补 button 角色 + 文案（图标本身对读屏不可读）。
+                child: Semantics(
+                  button: true,
+                  label: tr(context, 'wot.common.clear'),
                   onTap: locked ? null : clear,
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Icon(Icons.delete_outline,
-                        size: 18,
-                        color: disabled ? scheme.iconDisabled : scheme.iconAuxiliary),
+                  child: GestureDetector(
+                    onTap: locked ? null : clear,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(Icons.delete_outline,
+                          size: 18,
+                          color: disabled ? scheme.iconDisabled : scheme.iconAuxiliary),
+                    ),
                   ),
                 ),
               ),
@@ -278,22 +289,22 @@ class _WotSignatureState extends State<WotSignature> {
       children: [
         TextButton(
           onPressed: locked ? null : clear,
-          child: const Text('清空'),
+          child: Text(tr(context, 'wot.common.clear')),
         ),
         if (widget.enableHistory) ...[
           TextButton(
             onPressed: (locked || _strokes.isEmpty) ? null : revoke,
-            child: const Text('撤销'),
+            child: Text(tr(context, 'wot.common.revoke')),
           ),
           TextButton(
             onPressed: (locked || _redoStack.isEmpty) ? null : restore,
-            child: const Text('恢复'),
+            child: Text(tr(context, 'wot.common.restore')),
           ),
         ],
         FilledButton(
           // 只读仍允许「确认」导出当前签名；禁用则整体不可用。
           onPressed: (!disabled && _hasInk) ? () => confirm() : null,
-          child: const Text('确认'),
+          child: Text(tr(context, 'wot.common.confirm')),
         ),
       ],
     );

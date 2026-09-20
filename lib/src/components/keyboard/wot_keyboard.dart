@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 
@@ -24,9 +25,9 @@ class WotKeyboard extends StatefulWidget {
     this.onDelete,
     this.onPressEnsure,
     this.onClose,
-    this.title = '安全键盘',
+    this.title,
     this.showTitle = false,
-    this.ensureText = '完成',
+    this.ensureText,
     this.mode = WotKeyboardMode.number,
     this.randomOrder = false,
     this.loading = false,
@@ -50,13 +51,13 @@ class WotKeyboard extends StatefulWidget {
   final VoidCallback? onClose;
 
   /// 标题文本；默认“安全键盘”，需 [showTitle] 为 true 时展示。
-  final String title;
+  final String? title;
 
   /// 是否显示标题栏。
   final bool showTitle;
 
   /// 确定键文案；默认“完成”。
-  final String ensureText;
+  final String? ensureText;
 
   /// 键盘模式；`number` 常规数字键盘，`idcard` 身份证键盘（小数点换为 X）。
   final WotKeyboardMode mode;
@@ -152,7 +153,7 @@ class _WotKeyboardState extends State<WotKeyboard> {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 8),
               alignment: Alignment.center,
-              child: Text(widget.title,
+              child: Text(widget.title ?? tr(context, 'wot.keyboard.title'),
                   style: TextStyle(fontSize: 14, color: scheme.textSecondary)),
             ),
           _row(context, _keysForRow(0)),
@@ -205,7 +206,7 @@ class _WotKeyboardState extends State<WotKeyboard> {
                 ),
               )
             : Text(
-                widget.ensureText,
+                widget.ensureText ?? tr(context, 'wot.common.done'),
                 style: const TextStyle(fontSize: 18, color: Colors.white),
               ),
       ),

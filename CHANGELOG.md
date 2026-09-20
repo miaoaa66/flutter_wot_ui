@@ -83,6 +83,11 @@
 - T2.3 第二批（同日）：`WotSelectPicker` 弹层取消 / 确定 / 搜索 placeholder 接入 tr（复用既有 key）；
   `tabs` / `index_bar` 审计确认无用户可见文案。**遗留**：tour / upload / select_picker 的
   参数或字段默认值需可空化（同 calendar 模式）；form 的「$label校验未通过」需 tr() 占位符。
+- T2.5 全库闭环·批次 1（同日）：`WotSignature`（清空 / 撤销 / 恢复 / 确认 4 处接入 tr + 画板
+  Semantics「手写签名区域」+ 清空图标 button 角色）、`WotKeyboard`（title / ensureText 字段
+  可空化 + 接入 tr，key 复用既有）；新增 key `wot.signature.area`。
+  待做：`password_input` / `slide_verify`（a11y）、`keyboard` 按键 button 角色、
+  `tour` / `upload` / `select_picker` 参数可空化、纯展示类批量豁免归档。
 
 ### 无障碍（T1.2，2026-09-20）
 
