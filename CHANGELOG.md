@@ -58,6 +58,14 @@
 - `WotCalendar.show` 改为回落到 `WotCalendar` 本体：原先直接构造 `_CalendarSheet`，
   会**绕过** `WotCalendar.build` 里的三态包裹，使 disabled / readonly 失效。
 
+### Fixed（T3.2）
+
+- `checkbox` / `radio` 的 `name` 此前是**死参数**（声明但从未登记），导致表单 `validate()` / `values`
+  取不到它们的值、规则也绑不上。现已登记：
+  - `WotCheckbox`（独立模式）→ 登记自身 bool；`WotCheckboxGroup` → 登记整组 `List`
+  - `WotRadio`（独立模式）→ 登记 `true`；`WotRadioGroup` → 登记选中项 `value`
+- 示例页已补「复选 / 单选接入表单」演示（`wot_form_page`：提交后 `ctl.values` 取到整组值）。
+
 ### 三态推广（第 1 批，2026-09-20）
 
 - `WotForm` 新增表单级 `disabled`：经 `WotFieldScope` 下发给全部 `WotFormItem` 及其内部控件，

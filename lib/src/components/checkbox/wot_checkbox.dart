@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
+import '../form/wot_form.dart';
 
 /// 复选框选项数据，对齐 wot `WotCheckboxOption`。
 class WotCheckboxOption {
@@ -117,6 +118,8 @@ class WotCheckboxGroup extends StatelessWidget {
             if (max != null && list.length >= max!) return;
             list.add(v);
           }
+          // 按组 name 把整组选中值（List）登记到表单（原先漏登记，name 是死参数）。
+          wotFormPushValue(context, name, list);
           onChange?.call(list);
         },
       ),
@@ -217,10 +220,13 @@ class _WotCheckboxState extends State<WotCheckbox> {
     if (widget.disabled || widget.readonly) return;
     final group = _WotCheckboxScope.of(context);
     if (group != null) {
+      // 组模式：由 [WotCheckboxGroup] 负责登记整组选中值（组名）。
       group.onChange?.call(widget.value);
       return;
     }
     setState(() => _checked = !_checked);
+    // 独立模式：按自身 name 登记到表单（原先漏登记，name 是死参数）。
+    wotFormPushValue(context, widget.name, _checked);
     widget.onChange?.call(_checked);
   }
 

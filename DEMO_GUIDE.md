@@ -112,8 +112,8 @@ WotDemoScaffold(
 | **4** | `badge`、`avatar`、`gap`、`circle`、`image_preview`、`picker_view`、`tooltip`、`tour`、`picker` |
 | **5** | `tabs`、`divider`、`notice_bar`、`popup`、`table`、`theme_btn`、`cascader` |
 | **6** | `expand`、`row_col`、`progress`、`skeleton`、`steps`、`watermark`、`radio`、`datetime_picker` |
-| **7** | `form`、`navbar`、`pagination`、`dialog`、`text`、`loading`、`swiper`、`slide_verify`、`tag`、`switch`、`keyboard` |
-| **8** | `barcode`、`icon`、`popover`、`rate`、`password_input` |
+| **7** | `navbar`、`pagination`、`dialog`、`text`、`loading`、`swiper`、`slide_verify`、`tag`、`switch`、`keyboard` |
+| **8** | `barcode`、`icon`、`popover`、`rate`、`password_input`、`form` |
 | **9** | `cell`、`tabbar`、`button`、`count_to`、`checkbox`、`slider`、`search`、`upload`、`signature` |
 | **10+** | `select_picker` 12、`input_number` 11、`grid` 14、`img` 15、`input` 22、`calendar` 24 |
 
@@ -128,6 +128,8 @@ WotDemoScaffold(
 > 第三轮 `select_picker` 10→12、`cascader` 3→5、`picker` 3→4、`datetime_picker` 5→6、`calendar` 22→24、
 > `search` 8→9、`password_input` 6→8、`signature` 7→9、`keyboard` 4→7、`upload` 8→9。
 > **至此 16 个三态推广组件 + 3 个试点组件的示例页全部覆盖完成。**
+>
+> 第四轮（T3.2）：`form` 7→8（补「复选 / 单选接入表单（name 值登记）」演示）。
 
 **均值参考**：原「整体 48%」基于失真分母，不再引用。
 

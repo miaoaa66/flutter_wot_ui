@@ -27,6 +27,10 @@ class _WotFormPageState extends State<WotFormPage> {
   /// 当前校验结果（用于演示 errorType: none 时自行处理错误）。
   String _lastResult = '（尚未校验）';
 
+  /// 复选 / 单选接入表单的受控值（演示 name 登记）。
+  List<Object?> _hobbies = [];
+  Object? _gender;
+
   void _addAddr() => setState(() => _addrKeys.add('addr_${_addrSeq++}'));
   void _removeAddr(String key) => setState(() => _addrKeys.remove(key));
 
@@ -266,6 +270,49 @@ class _WotFormPageState extends State<WotFormPage> {
                   name: 'e',
                   required: true,
                   child: WotInput(name: 'e', placeholder: '留空提交，观察标签与提示变红'),
+                ),
+              ],
+            )),
+        demoSection('复选 / 单选接入表单（name 值登记）'),
+        demoBlock(
+            'WotCheckboxGroup / WotRadioGroup 的 name 现在会真正登记到表单（此前是死参数）：'
+            '提交后 ctl.values 可取到整组值，规则也能绑定',
+            WotForm(
+              rules: {
+                'hobbies': (v) => (v is List && v.isNotEmpty) ? null : '请至少选一个爱好',
+                'gender': (v) => v != null ? null : '请选择性别',
+              },
+              submitButtonText: '提交校验',
+              showSubmitButton: true,
+              onSubmit: (ctl) => demoToast(context, '提交成功：${ctl.values}'),
+              children: [
+                WotFormItem(
+                  label: '爱好',
+                  name: 'hobbies',
+                  required: true,
+                  child: WotCheckboxGroup(
+                    name: 'hobbies',
+                    modelValue: _hobbies,
+                    onChange: (v) => setState(() => _hobbies = v),
+                    children: const [
+                      WotCheckbox(label: '阅读', value: 'read'),
+                      WotCheckbox(label: '运动', value: 'sport'),
+                    ],
+                  ),
+                ),
+                WotFormItem(
+                  label: '性别',
+                  name: 'gender',
+                  required: true,
+                  child: WotRadioGroup(
+                    name: 'gender',
+                    modelValue: _gender,
+                    onChange: (v) => setState(() => _gender = v),
+                    children: const [
+                      WotRadio(label: '男', value: 'm'),
+                      WotRadio(label: '女', value: 'f'),
+                    ],
+                  ),
                 ),
               ],
             )),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
+import '../form/wot_form.dart';
 
 /// 单选选项数据，对齐 wot `WotRadioOption`。
 class WotRadioOption {
@@ -86,7 +87,11 @@ class WotRadioGroup extends StatelessWidget {
     return _WotRadioScope(
       control: _RadioGroupData(
         value: modelValue,
-        onChange: onChange,
+        onChange: (v) {
+          // 按组 name 把选中值登记到表单（原先漏登记，name 是死参数）。
+          wotFormPushValue(context, name, v);
+          onChange?.call(v);
+        },
         groupDisabled: disabled,
         shape: shape,
       ),
@@ -181,11 +186,14 @@ class _WotRadioState extends State<WotRadio> {
     final group = _WotRadioScope.of(context);
     if (group != null) {
       if (group.groupDisabled) return;
+      // 组模式：由 [WotRadioGroup] 负责登记选中值（组名）。
       group.onChange?.call(widget.value);
       return;
     }
     if (_selected) return;
     setState(() => _selected = true);
+    // 独立模式：按自身 name 登记到表单（原先漏登记，name 是死参数）。
+    wotFormPushValue(context, widget.name, true);
     widget.onChange?.call(true);
   }
 
