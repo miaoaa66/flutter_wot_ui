@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_scheme.dart';
 import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
@@ -525,7 +526,7 @@ class _WotSelectPickerSheetState extends State<_WotSelectPickerSheet> {
               children: [
                 InkWell(
                   onTap: _cancel,
-                  child: Text('取消', style: TextStyle(fontSize: 14, color: scheme.textSecondary)),
+                  child: Text(tr(context, 'wot.common.cancel'), style: TextStyle(fontSize: 14, color: scheme.textSecondary)),
                 ),
                 Expanded(
                   child: Center(
@@ -544,7 +545,7 @@ class _WotSelectPickerSheetState extends State<_WotSelectPickerSheet> {
                 if (widget.showConfirm)
                   InkWell(
                     onTap: _confirm,
-                    child: Text('确定', style: TextStyle(fontSize: 14, color: primary, fontWeight: FontWeight.w600)),
+                    child: Text(tr(context, 'wot.common.confirm'), style: TextStyle(fontSize: 14, color: primary, fontWeight: FontWeight.w600)),
                   )
                 else
                   const SizedBox(width: 28),
@@ -556,7 +557,7 @@ class _WotSelectPickerSheetState extends State<_WotSelectPickerSheet> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: WotSearch(
                 modelValue: _keyword.isEmpty ? null : _keyword,
-                placeholder: '搜索',
+                placeholder: tr(context, 'wot.common.search'),
                 onChange: (v) => setState(() => _keyword = v),
               ),
             ),

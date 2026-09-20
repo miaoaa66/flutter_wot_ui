@@ -72,6 +72,9 @@
   内置表累计补 **15 个 key**。`input` 审计确认无用户可见文案。
   **注**：字段可空化是 API 放宽（`String -> String?`），原传法全部兼容，非破坏性变更。
   **遗留**：带参数文案（如「不能超过 N 天」）需 tr() 支持占位符。
+- T2.3 第二批（同日）：`WotSelectPicker` 弹层取消 / 确定 / 搜索 placeholder 接入 tr（复用既有 key）；
+  `tabs` / `index_bar` 审计确认无用户可见文案。**遗留**：tour / upload / select_picker 的
+  参数或字段默认值需可空化（同 calendar 模式）；form 的「$label校验未通过」需 tr() 占位符。
 
 ### 无障碍（T1.2，2026-09-20）
 

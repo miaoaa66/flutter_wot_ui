@@ -854,7 +854,12 @@ flutter test             :: example 的 widget 测试
   ⏳ 遗留：带参数文案（rangePrompt「不能超过 N 天」）需 tr() 支持占位符；
   calendar 年月选择器标题（`title: title ?? '选择日期'`）未走 tr。
   注：字段可空化是 **API 放宽**（`String -> String?`），原传法全部兼容，非破坏性变更。
-- [ ] T2.3 第二批：tour / tabs / form / upload / index_bar / select_picker
+- [x] T2.3 第二批 —— ✅ 已完成（2026-09-20）：
+  ✅ `select_picker`（弹层取消 / 确定 / 搜索 placeholder，3 处接入 tr，均复用既有 key，零新增）；
+  ✔ 无需改：`tabs` / `index_bar` —— 审计确认无用户可见文案（命中的中文全是注释 / doc 示例）；
+  ⏳ 遗留：`tour`（show 的 4 个按钮文案参数默认值）、`upload`（addText 构造默认值）、
+  `select_picker`（placeholder / emptyText 构造默认值）需**参数/字段可空化**（同 calendar 模式，API 放宽）；
+  `form` 的「$label校验未通过」为带参数拼接，需 tr() 支持占位符。
 - [ ] T2.4 提供 en_US 包并验证
 
 **Stage 3 组件能力**
