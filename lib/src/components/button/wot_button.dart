@@ -275,15 +275,13 @@ class _DashedBorderPainter extends CustomPainter {
     required this.borderRadius,
     required this.color,
     required this.strokeWidth,
-    this.dashLength = 4,
-    this.gapLength = 3,
   });
 
   final BorderRadius borderRadius;
   final Color color;
   final double strokeWidth;
-  final double dashLength;
-  final double gapLength;
+  final double dashLength = 4;
+  final double gapLength = 3;
 
   @override
   void paint(Canvas canvas, Size size) {

@@ -101,7 +101,7 @@ class WotCalendarShortcut {
   /// 展示文案。
   final String text;
 
-  /// 对应值（单选返回 DateTime，范围返回 List<DateTime>）。
+  /// 对应值（单选返回 `DateTime`，范围返回 `List<DateTime>`）。
   final Object value;
 }
 
@@ -855,7 +855,7 @@ class _CalendarSheetState extends State<_CalendarSheet> {
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           itemCount: widget.shortcuts.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          separatorBuilder: (_, index) => const SizedBox(width: 8),
           itemBuilder: (context, index) {
             final s = widget.shortcuts[index];
             return GestureDetector(
@@ -925,17 +925,21 @@ class _CalendarSheetState extends State<_CalendarSheet> {
     final scheme = context.wotScheme;
     final primary = widget.color ?? scheme.primaryOf(6);
 
-    final list = <Widget>[
-      _buildHeader(scheme, primary),
-      if (_buildTypeSwitch(scheme, primary) case final w?) w,
-      if (_buildShortcuts(scheme, primary) case final w2?) w2,
-      if (_buildRangeBar(scheme) case final w3?) w3,
+    final list = <Widget>[];
+    list.add(_buildHeader(scheme, primary));
+    final typeSwitch = _buildTypeSwitch(scheme, primary);
+    if (typeSwitch != null) list.add(typeSwitch);
+    final shortcuts = _buildShortcuts(scheme, primary);
+    if (shortcuts != null) list.add(shortcuts);
+    final rangeBar = _buildRangeBar(scheme);
+    if (rangeBar != null) list.add(rangeBar);
+    list.add(
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: _isMonthType ? _buildMonthBody(primary) : _buildDayBody(scheme, primary),
       ),
-      _buildConfirmArea(scheme, primary),
-    ];
+    );
+    list.add(_buildConfirmArea(scheme, primary));
 
     final content = Column(
       mainAxisSize: MainAxisSize.min,

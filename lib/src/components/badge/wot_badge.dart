@@ -103,7 +103,13 @@ class _BadgeWidget extends MultiChildRenderObjectWidget {
     required this.position,
     required this.badge,
     required this.child,
-  }) : super(children: [child, if (badge != null) badge]);
+  }) : super(children: _buildChildren(child, badge));
+
+  static List<Widget> _buildChildren(Widget child, Widget? badge) {
+    final children = <Widget>[child];
+    if (badge != null) children.add(badge);
+    return children;
+  }
 
   final WotBadgePosition position;
   final Widget? badge;

@@ -181,7 +181,6 @@ class _WotSpinnerPainter extends CustomPainter {
         final scale = 0.5 + 0.5 * math.sin(2 * math.pi * animationValue);
         final radius = minRadius + (maxRadius - minRadius) * scale;
         if (radius <= 0) return;
-        final rect = Rect.fromCircle(center: center, radius: radius);
         canvas.drawCircle(center, radius, paint);
     }
   }

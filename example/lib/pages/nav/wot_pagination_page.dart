@@ -21,7 +21,7 @@ class _WotPaginationPageState extends State<WotPaginationPage> {
   int _m6 = 1;
   int _pageSize6 = 20;
   int _m7 = 1;
-  int _pageSize7 = 10;
+  final int _pageSize7 = 10;
 
   @override
   Widget build(BuildContext context) {

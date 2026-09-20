@@ -35,7 +35,7 @@ void main() {
       type: WotCalendarType.range,
       title: '快捷选项',
       shortcuts: [const WotCalendarShortcut(text: '近三天', value: [])],
-      onShortcutClick: (_, __) => [now, now.add(const Duration(days: 2))],
+      onShortcutClick: (_, index) => [now, now.add(const Duration(days: 2))],
       onConfirm: (v) => result = v,
     )));
     await tester.tap(find.text('近三天'));
