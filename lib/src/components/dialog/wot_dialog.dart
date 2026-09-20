@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_scheme.dart';
 import '../../theme/wot_theme.dart';
 
@@ -15,9 +16,9 @@ class WotDialog {
   static Future<bool> confirm(
     BuildContext context, {
     required String message,
-    String title = '提示',
-    String confirmText = '确定',
-    String cancelText = '取消',
+    String? title,
+    String? confirmText,
+    String? cancelText,
     bool showCancelButton = true,
     WotDialogType type = WotDialogType.info,
     bool showConfirmButton = true,
@@ -55,8 +56,8 @@ class WotDialog {
   static Future<void> alert(
     BuildContext context, {
     required String message,
-    String title = '提示',
-    String confirmText = '确定',
+    String? title,
+    String? confirmText,
     bool showClose = false,
     bool showConfirmButton = true,
     String? confirmButtonText,
@@ -102,8 +103,8 @@ class WotDialogView extends StatelessWidget {
     this.title,
     this.message,
     this.showTitle = true,
-    this.confirmText = '确定',
-    this.cancelText = '取消',
+    this.confirmText,
+    this.cancelText,
     this.showCancelButton = true,
     this.showConfirmButton = true,
     this.type = WotDialogType.info,
@@ -128,10 +129,10 @@ class WotDialogView extends StatelessWidget {
   final bool showTitle;
 
   /// 确定按钮文案，默认“确定”。
-  final String confirmText;
+  final String? confirmText;
 
   /// 取消按钮文案，默认“取消”。
-  final String cancelText;
+  final String? cancelText;
 
   /// 是否显示取消按钮；默认 true。
   final bool showCancelButton;
@@ -183,8 +184,12 @@ class WotDialogView extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
     final primary = confirmButtonColor ?? confirmColor ?? scheme.primaryOf(6);
-    final confirmLabel = confirmButtonText ?? confirmText;
-    final cancelLabel = cancelButtonText ?? cancelText;
+    final confirmLabel = confirmButtonText ??
+        confirmText ??
+        tr(context, 'wot.common.confirm');
+    final cancelLabel = cancelButtonText ??
+        cancelText ??
+        tr(context, 'wot.common.cancel');
 
     final messageWidget = content ??
         (message != null
