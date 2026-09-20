@@ -945,14 +945,16 @@ flutter test             :: example 的 widget 测试
   ——无文本无交互或 CustomPaint，T1.4 实证
 - **无用户可见文案（i18n 豁免，3）**：`input` / `tabs` / `index_bar`（命中中文全是注释 / doc 示例）
 
-### 待办（本轮甄别新增「批次 5：弹层 / 反馈类文案」）
+### 批次 5 已完成（2026-09-20，i18n 线全库闭环 ✅）
 
-- **i18n 新甄别（T2.2/T2.3 卡片点名之外）**：
-  - `loadmore`：4 个文案字段（loadingText / loadingFailedText / noMoreText / finishedText）
-  - `cascader`：build 内 4 处（取消 / 选择地区 / 确定 / 暂无数据）+ placeholder 默认值
-  - `search`：placeholder / actionText 默认值
-  - `dialog`：show 静态方法参数默认值（title / confirmText / cancelText，需参数可空化）
-  - `pagination`：分页设置弹层约 10 处（「共 X 条」等带参数文案需 tr() 占位符支持）
+- **新甄别的 5 个组件全部接入 tr**：`loadmore`（4 字段）/ `cascader`（弹层 6 处）/ `search`
+  （2 字段）/ `dialog`（3 字段 × confirm/alert 两重载 + View 回退链）/ `pagination`
+  （分页设置弹层 15 处，含「共 {total} 条」等占位符文案）。
+- **tr() 已支持 `{name}` 占位符**（对自定义语言包与 fallback 同样生效），
+  解锁所有带参数文案；各组件可空化均为 API 放宽（原传法全部兼容）。
+- 各批零散遗留（已记录于 CHANGELOG 各批次）：`tour`（三层透传可空化）、`fab`
+  （2 处 GestureDetector 待确认语义）、`form`（tr 已支持占位符，接入待做）、
+  `cascader` / `select_picker` / `slide_verify` / `keyboard` 的参数可空化与低优先级 a11y 项。
 - **a11y 待审计**：`dialog` / `action_sheet` / `drop_menu` / `popup` / `toast` / `notify` / `overlay`
   等浮层类、`fab`（2 处 GestureDetector 待确认语义）
 - **其他遗留**：`tour`（三层透传可空化）、`form`（$label 校验未通过，需占位符）、
