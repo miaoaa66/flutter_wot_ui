@@ -922,3 +922,46 @@ flutter test             :: example 的 widget 测试
 | Stage 5 | 7 天起，可裁剪 | 低（持续优化） |
 
 上一轮实测显示原估「1–2 天」实际耗时 3–4 天，本表已上调；建议完成 2–3 张卡后按实际速度重新校准，而非一次估到底。
+
+## 附录 I：a11y / i18n 全库归位表（2026-09-20，闭环推进中）
+
+全库共 **82 个组件**。归位标准：每个组件在两条线上明确归属——**已接入 / 豁免（有理由）/ 待办**，
+不存在「没看过」的组件。甄别手段：全库 grep 字符串字面量中文（`'\p{Han}'`，需排除注释）与
+`GestureDetector / InkWell / TextField` 交互实现。
+
+### 已接入（两线并集 20 个）
+
+- **a11y 已补 Semantics（14）**：`checkbox` / `radio` / `switch` / `slider` / `tabs` / `sidebar` /
+  `segmented` / `rate` / `icon` / `input_number` / `signature`（画板 + 清空） / `password_input` /
+  `sort_button`（value 报告升/降序）
+- **i18n 已接入 tr（9）**：`calendar` / `table` / `img_cropper` / `video_preview` / `select_picker` /
+  `keyboard` / `upload` / `picker` / `datetime_picker`（后三者字段可空化）
+
+### 审计豁免（有理由，15）
+
+- **Flutter 内建语义（a11y 豁免，4）**：`button`（InkWell）/ `input` / `search` 输入区（TextField）/
+  `cell`、`pagination`（InkWell）
+- **无语义噪声（a11y 豁免，6）**：`divider` / `gap` / `skeleton` / `watermark` / `progress` / `loading`
+  ——无文本无交互或 CustomPaint，T1.4 实证
+- **无用户可见文案（i18n 豁免，3）**：`input` / `tabs` / `index_bar`（命中中文全是注释 / doc 示例）
+
+### 待办（本轮甄别新增「批次 5：弹层 / 反馈类文案」）
+
+- **i18n 新甄别（T2.2/T2.3 卡片点名之外）**：
+  - `loadmore`：4 个文案字段（loadingText / loadingFailedText / noMoreText / finishedText）
+  - `cascader`：build 内 4 处（取消 / 选择地区 / 确定 / 暂无数据）+ placeholder 默认值
+  - `search`：placeholder / actionText 默认值
+  - `dialog`：show 静态方法参数默认值（title / confirmText / cancelText，需参数可空化）
+  - `pagination`：分页设置弹层约 10 处（「共 X 条」等带参数文案需 tr() 占位符支持）
+- **a11y 待审计**：`dialog` / `action_sheet` / `drop_menu` / `popup` / `toast` / `notify` / `overlay`
+  等浮层类、`fab`（2 处 GestureDetector 待确认语义）
+- **其他遗留**：`tour`（三层透传可空化）、`form`（$label 校验未通过，需占位符）、
+  `slide_verify`（slider 角色，低）、`keyboard` 按键 button 角色（低）
+
+### 剩余组件（约 30 个，预期大多豁免，待最后逐个甄别）
+
+`text` / `card` / `avatar` / `badge` / `empty` / `grid` / `steps` / `notice_bar` / `count_to` /
+`count_down` / `circle` / `barcode` / `qr_code` / `curtain` / `expand` / `row` / `col` /
+`transition` / `floating_panel` / `swiper` / `tabbar` / `navbar` / `backtop` / `img` / `theme_btn` /
+`tooltip` / `popover` / `config_provider` 等——初步扫描无硬编码文案、无自绘交互语义缺口，
+**批次 4 末逐个确认后归档为豁免**。
