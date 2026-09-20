@@ -2,6 +2,7 @@
 
 import '../../theme/wot_scheme.dart';
 import '../../theme/wot_state.dart';
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
 
@@ -247,14 +248,20 @@ class _CascaderSheetState extends State<_CascaderSheet> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              InkWell(onTap: _cancel, child: Text('取消', style: TextStyle(fontSize: 14, color: scheme.textSecondary))),
+              InkWell(
+                  onTap: _cancel,
+                  child: Text(tr(context, 'wot.common.cancel'),
+                      style: TextStyle(fontSize: 14, color: scheme.textSecondary))),
               Expanded(
                 child: Center(
-                  child: Text('选择地区',
+                  child: Text(tr(context, 'wot.cascader.title'),
                       style: TextStyle(fontSize: 16, color: scheme.textMain, fontWeight: FontWeight.w600)),
                 ),
               ),
-              InkWell(onTap: _confirm, child: Text('确定', style: TextStyle(fontSize: 14, color: primary, fontWeight: FontWeight.w600))),
+              InkWell(
+                  onTap: _confirm,
+                  child: Text(tr(context, 'wot.common.confirm'),
+                      style: TextStyle(fontSize: 14, color: primary, fontWeight: FontWeight.w600))),
             ],
           ),
         ),
@@ -262,7 +269,9 @@ class _CascaderSheetState extends State<_CascaderSheet> {
         Container(height: 1, color: scheme.dividerLight),
         Expanded(
           child: _levels.isEmpty
-              ? Center(child: Text('暂无数据', style: TextStyle(color: scheme.textAuxiliary)))
+              ? Center(
+                  child: Text(tr(context, 'wot.table.empty'),
+                      style: TextStyle(color: scheme.textAuxiliary)))
               : ListView.separated(
                   padding: EdgeInsets.zero,
                   itemCount: current.length,
@@ -318,9 +327,9 @@ class _CascaderSheetState extends State<_CascaderSheet> {
   }
 
   String _labelOf(int i) {
-    if (i >= _path.length) return '请选择';
+    if (i >= _path.length) return tr(context, 'wot.common.pleaseSelect');
     final opt = _find(_levels[i], _path[i]);
-    return opt?.text ?? '请选择';
+    return opt?.text ?? tr(context, 'wot.common.pleaseSelect');
   }
 
   Widget _buildRow(WotScheme scheme, Color primary, WotCascadeOption node) {
