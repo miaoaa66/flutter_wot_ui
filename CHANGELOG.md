@@ -90,6 +90,11 @@
   （新增 key `wot.passwordInput.field`；value 用纯数字避免语言问题，隐藏 TextField 本无可读语义）。
   `slide_verify` 审计：轨道文案是真实 Text（读屏可读），slider 角色为低优先级补项。
   待做：`tour` / `upload` / `select_picker` 参数可空化、纯展示类批量豁免归档。
+- T2.5 全库闭环·批次 2（同日）：`WotUpload`（addText 字段可空化接入 tr，key 复用 `wot.common.add`）、
+  `WotSortButton`（a11y：button 角色 + `value` 报告升序 / 降序 / 未排序——三角方向是自绘
+  CustomPaint 此前读屏不可感知；新增 key `wot.sort.ascending` / `descending` / `unsorted`）。
+  待做：`fab`（2 处 GestureDetector 需确认语义）、`tour` / `picker` / `datetime_picker` 可空化、
+  纯展示类批量豁免归档。
 
 ### 无障碍（T1.2，2026-09-20）
 

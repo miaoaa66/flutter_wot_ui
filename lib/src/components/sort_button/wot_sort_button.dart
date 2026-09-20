@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 
 /// 排序方向。
@@ -64,7 +65,14 @@ class _WotSortButtonState extends State<WotSortButton> {
     final active = _dir != WotSortDirection.none;
     final fg = active ? (widget.activeColor ?? scheme.primaryOf(6)) : (widget.color ?? scheme.textMain);
 
-    return GestureDetector(
+    // 无障碍：三角方向是自绘 CustomPaint，读屏读不出升/降序——用 value 报告排序状态。
+    final sortState = _dir == WotSortDirection.ascending
+        ? tr(context, 'wot.sort.ascending')
+        : _dir == WotSortDirection.descending
+            ? tr(context, 'wot.sort.descending')
+            : tr(context, 'wot.sort.unsorted');
+
+    final btn = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: widget.disabled ? null : _tap,
       child: Row(
@@ -88,6 +96,14 @@ class _WotSortButtonState extends State<WotSortButton> {
           ),
         ],
       ),
+    );
+
+    return Semantics(
+      button: true,
+      enabled: !widget.disabled,
+      value: sortState,
+      onTap: widget.disabled ? null : _tap,
+      child: btn,
     );
   }
 }

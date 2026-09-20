@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../theme/wot_state.dart';
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
 // 内置上传走 dart:io（native）；web 平台降级为占位实现，需用 uploadMethod。
@@ -133,7 +134,7 @@ class WotUpload extends StatefulWidget {
     this.readonly = false,
     this.size = 80,
     this.gutter = 10,
-    this.addText = '添加',
+    this.addText,
     this.name,
     this.action,
     this.header,
@@ -187,7 +188,7 @@ class WotUpload extends StatefulWidget {
   final bool readonly;
   final double size;
   final double gutter;
-  final String addText;
+  final String? addText;
   final String? name;
 
   /// 上传地址（wot `action` 语义）。设置后使用内置 multipart 上传。
@@ -590,7 +591,7 @@ class _WotUploadState extends State<WotUpload> {
           children: [
             const WotIcon(name: 'add', size: 22),
             const SizedBox(height: 4),
-            Text(widget.addText,
+            Text(widget.addText ?? tr(context, 'wot.common.add'),
                 style: TextStyle(fontSize: 12, color: scheme.textAuxiliary)),
           ],
         ),
