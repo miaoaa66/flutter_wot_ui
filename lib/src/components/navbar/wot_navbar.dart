@@ -176,7 +176,13 @@ class WotNavbar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   Widget _clickable(Widget child, VoidCallback? onTap) {
-    return GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: child);
+    // 无障碍：导航项补 button 角色 + 点按动作。
+    return Semantics(
+      button: true,
+      onTap: onTap,
+      child: GestureDetector(
+          behavior: HitTestBehavior.opaque, onTap: onTap, child: child),
+    );
   }
 
   /// 渲染顶部胶囊（navbar-capsule）：左半图标、右半文字，各自可点。需要传入 [WotScheme]。

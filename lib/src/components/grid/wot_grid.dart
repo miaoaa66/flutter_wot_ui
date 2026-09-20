@@ -204,7 +204,13 @@ class WotGridItem extends StatelessWidget {
     }
 
     if (onClick != null) {
-      cell = GestureDetector(behavior: HitTestBehavior.opaque, onTap: onClick, child: cell);
+      // 无障碍：宫格项可点时补 button 角色 + 点按动作。
+      cell = Semantics(
+        button: true,
+        onTap: onClick,
+        child: GestureDetector(
+            behavior: HitTestBehavior.opaque, onTap: onClick, child: cell),
+      );
     }
 
     return Container(

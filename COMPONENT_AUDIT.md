@@ -966,9 +966,8 @@ flutter test             :: example 的 widget 测试
   `barcode` / `qr_code` / `row` / `col` / `transition` / `swiper` / `notify`
   ——grep 无 GestureDetector / InkWell / IconButton；文本类内容（Text）本身可被读屏读取
 - **Flutter 内建语义（a11y 豁免，1）**：`backtop`（InkWell）
-- **GestureDetector 待补 button 语义（批次 6，14 组件）**：`card`（整卡 onClick）/ `avatar` /
-  `curtain`（2 处）/ `expand`（展开收起）/ `floating_panel`（拖拽 handle，低优先级）/ `img`
-  （点击预览）/ `grid`（cell onClick）/ `navbar`（item）/ `notice_bar`（3 处：关闭 / 链接）/
-  `popover`（触发区 2 处）/ `steps`（1 处 GestureDetector + 1 处 InkWell 混合）/ `theme_btn` /
-  `tooltip`（触发区 2 处）/ `tabbar`（tab 切换）/ `text`（可点击文本）
-  ——均为「可点击的自绘区域」，补 `Semantics(button: true, onTap:)` 即可，模式同 sort_button
+- **GestureDetector 待补 button 语义（批次 6）**：
+  - ✅ 已补（2026-09-20，单行表达式模式，1 处 1 改）：`card`（整卡）/ `avatar` / `navbar` / `grid`
+  - ⏳ 待补：`curtain`（2 处）/ `expand` / `floating_panel`（拖拽，低优先级）/ `img` / `text`
+    / `notice_bar`（3 处）/ `popover`（2 处）/ `steps` / `theme_btn` / `tooltip`（2 处）/ `tabbar`
+    ——均为「可点击的自绘区域」，补 `Semantics(button: true, onTap:)`，模式同 sort_button
