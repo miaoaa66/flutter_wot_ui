@@ -960,10 +960,15 @@ flutter test             :: example 的 widget 测试
 - **其他遗留**：`tour`（三层透传可空化）、`form`（$label 校验未通过，需占位符）、
   `slide_verify`（slider 角色，低）、`keyboard` 按键 button 角色（低）
 
-### 剩余组件（约 30 个，预期大多豁免，待最后逐个甄别）
+### 剩余组件甄别结果（2026-09-20，a11y 线收口账本）
 
-`text` / `card` / `avatar` / `badge` / `empty` / `grid` / `steps` / `notice_bar` / `count_to` /
-`count_down` / `circle` / `barcode` / `qr_code` / `curtain` / `expand` / `row` / `col` /
-`transition` / `floating_panel` / `swiper` / `tabbar` / `navbar` / `backtop` / `img` / `theme_btn` /
-`tooltip` / `popover` / `config_provider` 等——初步扫描无硬编码文案、无自绘交互语义缺口，
-**批次 4 末逐个确认后归档为豁免**。
+- **无交互实现（a11y 豁免，12）**：`badge` / `empty` / `count_to` / `count_down` / `circle` /
+  `barcode` / `qr_code` / `row` / `col` / `transition` / `swiper` / `notify`
+  ——grep 无 GestureDetector / InkWell / IconButton；文本类内容（Text）本身可被读屏读取
+- **Flutter 内建语义（a11y 豁免，1）**：`backtop`（InkWell）
+- **GestureDetector 待补 button 语义（批次 6，14 组件）**：`card`（整卡 onClick）/ `avatar` /
+  `curtain`（2 处）/ `expand`（展开收起）/ `floating_panel`（拖拽 handle，低优先级）/ `img`
+  （点击预览）/ `grid`（cell onClick）/ `navbar`（item）/ `notice_bar`（3 处：关闭 / 链接）/
+  `popover`（触发区 2 处）/ `steps`（1 处 GestureDetector + 1 处 InkWell 混合）/ `theme_btn` /
+  `tooltip`（触发区 2 处）/ `tabbar`（tab 切换）/ `text`（可点击文本）
+  ——均为「可点击的自绘区域」，补 `Semantics(button: true, onTap:)` 即可，模式同 sort_button
