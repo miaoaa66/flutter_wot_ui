@@ -11,7 +11,8 @@ void main() {
     ));
     await tester.pump(const Duration(milliseconds: 300));
 
-    await tester.tap(find.text('底部弹层'));
+    // 示例页按钮文案随死参数修复轮次更新过（原「底部弹层」→ 现「打开底部弹层看动画」）。
+    await tester.tap(find.text('打开底部弹层看动画'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
 
