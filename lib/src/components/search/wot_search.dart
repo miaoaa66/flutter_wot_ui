@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
@@ -14,7 +15,7 @@ class WotSearch extends StatefulWidget {
     this.onFocus,
     this.onBlur,
     this.onClear,
-    this.placeholder = '搜索',
+    this.placeholder,
     this.disabled = false,
     this.readonly = false,
     this.error = false,
@@ -22,7 +23,7 @@ class WotSearch extends StatefulWidget {
     this.shape = 'round',
     this.background,
     this.showAction = false,
-    this.actionText = '搜索',
+    this.actionText,
     this.onSearch,
     this.onClickAction,
     this.onClickInput,
@@ -48,7 +49,7 @@ class WotSearch extends StatefulWidget {
   final VoidCallback? onClear;
 
   /// 输入框占位符，默认「搜索」。
-  final String placeholder;
+  final String? placeholder;
 
   /// 是否禁用，默认 false。禁用时底色变浅、文字与图标灰化。
   final bool disabled;
@@ -72,7 +73,7 @@ class WotSearch extends StatefulWidget {
   final bool showAction;
 
   /// 右侧操作按钮文案，默认「搜索」。
-  final String actionText;
+  final String? actionText;
 
   /// 搜索回调（提交或有搜索动作时触发）。
   final VoidCallback? onSearch;
@@ -172,7 +173,7 @@ class _WotSearchState extends State<WotSearch> {
       onTapOutside: (_) => FocusScope.of(context).unfocus(),
       style: textStyle,
       decoration: InputDecoration(
-        hintText: widget.placeholder,
+        hintText: widget.placeholder ?? tr(context, 'wot.common.search'),
         hintStyle: TextStyle(
             fontSize: 14, height: 20 / 14, color: style.placeholder),
         border: InputBorder.none,
@@ -224,7 +225,7 @@ class _WotSearchState extends State<WotSearch> {
             child: Padding(
               padding: const EdgeInsets.only(left: 10),
               child: Text(
-                widget.actionText,
+                widget.actionText ?? tr(context, 'wot.common.search'),
                 style: TextStyle(fontSize: 14, color: scheme.primaryOf(6)),
               ),
             ),
