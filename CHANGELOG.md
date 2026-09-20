@@ -66,10 +66,12 @@
   locale 归一化兼容 `zh-CN` / `zh_CN` 写法；无 Provider 包裹时安全回退默认语言。
 - **本批未改任何组件**——组件内硬编码文案的替换在 T2.2（calendar / table / input /
   video_preview / img_cropper）与 T2.3 批次进行。
-- T2.2 首批（同日）：`WotImgCropper`（取消 / 完成）与 `WotVideoPreview`（标题 / 全屏 / 关闭 /
-  加载失败 / 重试 / 快进快退 semanticLabel）全部接入 tr()；内置表补 13 个 key。
-  `input` 审计确认无用户可见文案。**遗留**：calendar / table 的构造默认值需字段可空化
-  （API 变更，单独批次处理）；带参数文案（如「不能超过 N 天」）需 tr() 支持占位符。
+- T2.2 首批（同日，4 组件接入）：`WotCalendar`（title / confirmText / cancelText 字段可空化 +
+  弹层取消 / 确定 / 标题）、`WotTable`（emptyText 可空化 + 空态文案）、`WotImgCropper`（取消 / 完成）、
+  `WotVideoPreview`（标题 / 全屏 / 关闭 / 加载失败 / 重试 / 快进快退 semanticLabel）；
+  内置表累计补 **15 个 key**。`input` 审计确认无用户可见文案。
+  **注**：字段可空化是 API 放宽（`String -> String?`），原传法全部兼容，非破坏性变更。
+  **遗留**：带参数文案（如「不能超过 N 天」）需 tr() 支持占位符。
 
 ### 无障碍（T1.2，2026-09-20）
 

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../theme/wot_scheme.dart';
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 
 /// 列对齐。
@@ -99,7 +100,7 @@ class WotTable extends StatefulWidget {
     this.stripe = false,
     this.border = false,
     this.maxHeight,
-    this.emptyText = '暂无数据',
+    this.emptyText,
     this.showHead = true,
     this.headerRowHeight = 40,
     this.rowHeight = 44,
@@ -132,7 +133,7 @@ class WotTable extends StatefulWidget {
   final double? maxHeight;
 
   /// 数据为空时的提示文本，默认「暂无数据」。
-  final String emptyText;
+  final String? emptyText;
 
   /// 是否显示表头，默认 true。
   final bool showHead;
@@ -1047,7 +1048,7 @@ class _WotTableState extends State<WotTable> {
         height: 120,
         alignment: Alignment.center,
         child: Text(
-          widget.emptyText,
+          widget.emptyText ?? tr(context, 'wot.table.empty'),
           style: TextStyle(color: _scheme(context).textAuxiliary, fontSize: 13),
         ),
       );

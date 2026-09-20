@@ -846,13 +846,14 @@ flutter test             :: example 的 widget 测试
   **未动任何组件**（硬编码文案替换在 T2.2 / T2.3）。
   内置 key：common 系列（confirm / cancel / done / clear / add / revoke / restore / loading /
   increase / decrease / search）+ calendar.title + keyboard.title（zh_CN + en_US）
-- [ ] T2.2 首批替换 —— **部分完成**（2026-09-20）：
-  ✅ `img_cropper`（取消 / 完成，字段本就可空）+ `video_preview`（标题 / 全屏 / 关闭 / 加载失败 /
-  重试 / 快进快退，共 6 处，含 1 处 semanticLabel）全部接入 tr()；内置表补 13 个 key。
-  ✔ 无需改：`input` —— 审计确认无用户可见文案（命中的中文全是注释）。
-  ⏳ 遗留：`calendar` / `table` 的构造默认值（`this.title = '选择日期'` / `this.emptyText = '暂无数据'`）
-  需**字段可空化**（`String -> String?` + build 时 `?? tr(...)`）才能支持切语言，属 API 变更，单独批次处理；
-  带参数文案（rangePrompt「不能超过 N 天」）需 tr() 支持占位符，同样遗留。
+- [x] T2.2 首批替换 —— ✅ 已完成（2026-09-20）：
+  ✅ `calendar`（title / confirmText / cancelText **字段可空化** + 弹层取消 / 确定 / 标题接入 tr）、
+  `table`（emptyText 可空化 + 空态文案）、`img_cropper`（取消 / 完成）、
+  `video_preview`（标题 / 全屏 / 关闭 / 加载失败 / 重试 / 快进快退，共 6 处含 1 处 semanticLabel）；
+  内置表累计补 **15 个 key**。✔ 无需改：`input` —— 审计确认无用户可见文案（命中的中文全是注释）。
+  ⏳ 遗留：带参数文案（rangePrompt「不能超过 N 天」）需 tr() 支持占位符；
+  calendar 年月选择器标题（`title: title ?? '选择日期'`）未走 tr。
+  注：字段可空化是 **API 放宽**（`String -> String?`），原传法全部兼容，非破坏性变更。
 - [ ] T2.3 第二批：tour / tabs / form / upload / index_bar / select_picker
 - [ ] T2.4 提供 en_US 包并验证
 

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/wot_scheme.dart';
 import '../../theme/wot_state.dart';
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 import '../picker_view/wot_picker_view.dart';
 
@@ -123,9 +124,9 @@ class WotCalendar extends StatelessWidget {
     super.key,
     this.modelValue,
     this.onChange,
-    this.title = '选择日期',
-    this.confirmText = '确定',
-    this.cancelText = '取消',
+    this.title,
+    this.confirmText,
+    this.cancelText,
     this.minDate,
     this.maxDate,
     this.color,
@@ -165,14 +166,14 @@ class WotCalendar extends StatelessWidget {
   /// 确定选中单日时触发的回调。
   final ValueChanged<DateTime>? onChange;
 
-  /// 标题文案，默认「选择日期」。
-  final String title;
+  /// 标题文案；不传时按当前语言取默认（zh_CN：选择日期）。
+  final String? title;
 
-  /// 确认按钮文案，默认「确定」。
-  final String confirmText;
+  /// 确认按钮文案；不传时按当前语言取默认（zh_CN：确定）。
+  final String? confirmText;
 
-  /// 取消按钮文案，默认「取消」。
-  final String cancelText;
+  /// 取消按钮文案；不传时按当前语言取默认（zh_CN：取消）。
+  final String? cancelText;
 
   /// 可选日期范围的最小日期。
   final DateTime? minDate;
@@ -322,9 +323,9 @@ class _CalendarSheet extends StatefulWidget {
   const _CalendarSheet({
     this.modelValue,
     this.onChange,
-    this.title = '选择日期',
-    this.confirmText = '确定',
-    this.cancelText = '取消',
+    this.title,
+    this.confirmText,
+    this.cancelText,
     this.minDate,
     this.maxDate,
     this.color,
@@ -351,9 +352,9 @@ class _CalendarSheet extends StatefulWidget {
   });
   final DateTime? modelValue;
   final ValueChanged<DateTime>? onChange;
-  final String title;
-  final String confirmText;
-  final String cancelText;
+  final String? title;
+  final String? confirmText;
+  final String? cancelText;
   final DateTime? minDate;
   final DateTime? maxDate;
   final Color? color;
@@ -789,10 +790,14 @@ class _CalendarSheetState extends State<_CalendarSheet> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          InkWell(onTap: _cancel, child: Text(widget.cancelText, style: TextStyle(fontSize: 14, color: scheme.textSecondary))),
+          InkWell(
+              onTap: _cancel,
+              child: Text(widget.cancelText ?? tr(context, 'wot.common.cancel'),
+                  style: TextStyle(fontSize: 14, color: scheme.textSecondary))),
           Expanded(
             child: Center(
-              child: Text(widget.title, style: TextStyle(fontSize: 16, color: scheme.textMain, fontWeight: FontWeight.w600)),
+              child: Text(widget.title ?? tr(context, 'wot.calendar.title'),
+                  style: TextStyle(fontSize: 16, color: scheme.textMain, fontWeight: FontWeight.w600)),
             ),
           ),
           const Text('    '),
@@ -934,7 +939,9 @@ class _CalendarSheetState extends State<_CalendarSheet> {
                 height: 40,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(color: primary, borderRadius: BorderRadius.circular(8)),
-                child: Text(widget.confirmText, style: const TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w600)),
+                child: Text(
+                    widget.confirmText ?? tr(context, 'wot.common.confirm'),
+                    style: const TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w600)),
               ),
             ),
           ),
