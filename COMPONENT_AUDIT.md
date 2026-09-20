@@ -878,8 +878,11 @@ flutter test             :: example 的 widget 测试
   search / cell，其中 checkbox / radio / switch / slider / rate / input 为**三态矩阵**
   （正常 / readonly / disabled / error），直接守护三态语义规范的视觉。
   稳定性措施：surface 固定 400x120、dpr 3.0、pump 300ms 到动画稳定态。
-  **待用户执行**：`flutter test --update-goldens test/golden` 生成基线（agent 环境跑不了 flutter 命令）；
-  生成后日常 `flutter test test/golden` 即可守护视觉回归。Top 20 其余组件待基线跑通后补齐。
+  **首轮实测（用户执行）**：7/10 基线已生成；3 个多行用例（slider / rate / input 三态矩阵）
+  因 surface 400x120 高度不足溢出 —— 已修复（surface 统一提到 400x400，一处改动覆盖全部用例）。
+  **附带修复真实缺陷**：`WotInput._ensureKeyboardVisible` 的 160ms Timer 未保存引用、dispose 不取消，
+  组件销毁后仍存活 → 已保存引用并在 dispose 中 cancel（首次全量 `flutter test` 暴露的既有问题）。
+  **待用户重跑**：`flutter test --update-goldens test/golden` 生成剩余 3 张基线并确认全绿。
 - [ ] T4.2 接入 CI（analyze + test + golden）
 - [ ] T4.3 发布准备（评估移除 `publish_to: none`、补 dartdoc 元信息）
 

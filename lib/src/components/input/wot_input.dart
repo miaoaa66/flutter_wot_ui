@@ -157,6 +157,10 @@ class _WotTextInputState extends State<_WotTextInput> {
   /// 切换可能慢于一帧、首帧补发仍被吞掉，再在 160ms 后补一次。两次都以「本框仍持有
   /// 焦点」为前提，键盘已正常弹出时该调用是幂等的（平台侧对已显示的软键盘无副作用），
   /// 因此不会造成重复弹出或闪烁。仅 Android 生效，不影响 iOS / 桌面 / Web 既有行为。
+  /// 160ms 后补发软键盘请求的 Timer；dispose 时取消，
+  /// 否则组件销毁后 Timer 仍存活（flutter_test 会报 "Timer is still pending"）。
+  Timer? _kbTimer;
+
   void _ensureKeyboardVisible() {
     if (defaultTargetPlatform != TargetPlatform.android) return;
     void retry() {
@@ -167,7 +171,8 @@ class _WotTextInputState extends State<_WotTextInput> {
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) => retry());
-    Future<void>.delayed(const Duration(milliseconds: 160), retry);
+    _kbTimer?.cancel();
+    _kbTimer = Timer(const Duration(milliseconds: 160), retry);
   }
 
   /// 文本被程序化修改时刷新依赖 [TextEditingController.text] 的后置区。
@@ -189,6 +194,7 @@ class _WotTextInputState extends State<_WotTextInput> {
 
   @override
   void dispose() {
+    _kbTimer?.cancel();
     _c.removeListener(_handleControllerChange);
     _focusNode.removeListener(_handleFocusChange);
     if (_ownsFocusNode) _focusNode.dispose();

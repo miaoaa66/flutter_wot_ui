@@ -37,10 +37,12 @@ Widget _wrap(Widget child) {
   );
 }
 
-/// 统一泵到稳定态后返回；surface 固定 400x120，保证基线尺寸一致。
+/// 统一泵到稳定态后返回；surface 固定 400x400，保证基线尺寸一致。
+/// 高度按「最长的三态矩阵用例」取值（4 个 slider 叠放约 224 + padding），
+/// 多行用例不会溢出；单行组件多出的空白也参与基线比对，不影响一致性。
 Future<void> _pump(WidgetTester tester, Widget child) async {
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  await tester.binding.setSurfaceSize(const Size(400, 120));
+  await tester.binding.setSurfaceSize(const Size(400, 400));
   tester.view.devicePixelRatio = 3.0;
   addTearDown(tester.view.reset);
   await tester.pumpWidget(_wrap(child));

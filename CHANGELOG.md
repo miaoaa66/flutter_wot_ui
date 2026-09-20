@@ -100,6 +100,11 @@
 - 展示类降噪审计结论：**无需改动** —— `divider` / `gap` / `skeleton` 无文本无交互、`watermark` 用
   CustomPaint（均不产生语义节点）；`loading` / `divider` 的文本是有用信息，不应排除。
 
+### Fixed
+
+- `WotInput`：Android 软键盘兜底重试的 160ms Timer 未保存引用、组件销毁时不取消——
+  组件销毁后 Timer 仍存活（widget 测试报 "Timer is still pending"）。已保存引用并在 dispose 中取消。
+
 ### Fixed（T3.2）
 
 - `checkbox` / `radio` 的 `name` 此前是**死参数**（声明但从未登记），导致表单 `validate()` / `values`
