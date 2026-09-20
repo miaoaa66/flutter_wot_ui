@@ -24,11 +24,15 @@ flutter新项目引入组件库参考：<https://gitee.com/miaoaa66/flutter_wot_
 
 | 分类 | 组件 |
 | --- | --- |
-| 基础 | Button、Icon、Text、Row/Col、Cell、CellGroup、Gap、Divider、Fab、Transition、ConfigProvider |
+| 基础 | Button、Icon、Text、Row/Col、Cell、CellGroup、Gap、Divider、Fab、Transition、ConfigProvider、ThemeBtn |
 | 导航 | Navbar、Tabbar、Tabs、Segmented、Sidebar、Pagination、IndexBar、Backtop、Tour |
 | 录入 | Form、FormItem、Input、Textarea、Search、InputNumber、Checkbox、Radio、Switch、Rate、Slider、PickerView、Picker、SelectPicker、Cascader、Calendar、CalendarView、DatetimePicker、PasswordInput、Keyboard、Signature、SlideVerify、Upload |
 | 反馈 | Overlay、Loading、Popup、Dialog、ActionSheet、DropMenu、Popover、Tooltip、FloatingPanel、Progress、Circle、Toast、Notify、NoticeBar、SwipeAction、SortButton、Empty、CountDown、CountTo |
 | 展示 | Tag、Badge、Avatar、Card、Grid、Collapse、Expand、Steps、Skeleton、Loadmore、Img、ImagePreview、Swiper、Table、Watermark、QrCode、Barcode、Curtain、ImgCropper、VideoPreview |
+
+> 说明：
+> - `Textarea` 已实现为 `WotTextarea`，随 `WotInput` 同文件导出（`lib/src/components/input/wot_input.dart`），未独立成目录。
+> - `ThemeBtn`（明暗主题切换按钮）为独立复刻组件，颜色采用字面值硬编码，不跟随组件库主题切换。
 
 ## 目录结构
 
