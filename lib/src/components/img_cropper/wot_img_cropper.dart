@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_scheme.dart';
 import '../../theme/wot_theme.dart';
 
@@ -266,7 +267,7 @@ class WotImgCropperState extends State<WotImgCropper> {
             TextButton(
               onPressed: () => widget.onCancelled?.call(),
               child: Text(
-                widget.cancelText ?? '取消',
+                widget.cancelText ?? tr(context, 'wot.common.cancel'),
                 style: theme.textTheme.bodyLarge,
               ),
             ),
@@ -276,7 +277,7 @@ class WotImgCropperState extends State<WotImgCropper> {
                 foregroundColor: scheme.textWhite,
               ),
               onPressed: _handleCrop,
-              child: Text(widget.confirmText ?? '完成'),
+              child: Text(widget.confirmText ?? tr(context, 'wot.common.done')),
             ),
           ],
         ),

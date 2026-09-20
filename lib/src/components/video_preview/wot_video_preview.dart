@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
 
@@ -56,7 +57,7 @@ class WotVideoPreview extends StatefulWidget {
     return showGeneralDialog<void>(
       context: context,
       barrierDismissible: false,
-      barrierLabel: '视频预览',
+      barrierLabel: tr(context, 'wot.video.title'),
       barrierColor: Colors.transparent,
       pageBuilder: (ctx, _, _) => WotVideoPreview(
         src: src,
@@ -408,7 +409,9 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
         widget.closePosition == WotVideoPreviewClosePosition.leftTop;
     final action = _TopIconButton(
       icon: widget.onClose == null ? Icons.fullscreen : Icons.close,
-      tooltip: widget.onClose == null ? '全屏' : '关闭',
+      tooltip: widget.onClose == null
+          ? tr(context, 'wot.video.fullscreen')
+          : tr(context, 'wot.video.close'),
       onPressed: widget.onClose == null ? _openFullscreen : _handleClose,
     );
     return Positioned(
@@ -687,9 +690,9 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
         children: [
           const WotIcon(name: 'error', size: 48, color: Colors.white54),
           const SizedBox(height: 12),
-          const Text(
-            '视频加载失败',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
+          Text(
+            tr(context, 'wot.video.loadFailed'),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -699,7 +702,7 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
               minimumSize: const Size(120, 40),
             ),
             onPressed: _retry,
-            child: const Text('重试'),
+            child: Text(tr(context, 'wot.common.retry')),
           ),
         ],
       ),
@@ -784,7 +787,9 @@ class _SideSeekButton extends StatelessWidget {
       Icons.replay,
       color: Colors.white,
       size: 34,
-      semanticLabel: forward ? '快进15秒' : '快退15秒',
+      semanticLabel: forward
+          ? tr(context, 'wot.video.forward15')
+          : tr(context, 'wot.video.rewind15'),
     );
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
