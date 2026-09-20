@@ -58,6 +58,14 @@
 - `WotCalendar.show` 改为回落到 `WotCalendar` 本体：原先直接构造 `_CalendarSheet`，
   会**绕过** `WotCalendar.build` 里的三态包裹，使 disabled / readonly 失效。
 
+### 测试（T4.1，2026-09-20）
+
+- 新增 `test/golden/golden_test.dart`：10 个组件的 Golden 基线测试（flutter_test 原生
+  `matchesGoldenFile`，零第三方依赖）。其中 checkbox / radio / switch / slider / rate / input
+  为**三态矩阵**（正常 / readonly / disabled / error），直接守护三态语义规范的视觉。
+- 生成基线（固定单一平台执行）：`flutter test --update-goldens test/golden`；
+  日常验证：`flutter test test/golden`。
+
 ### 国际化（T2.1，2026-09-20）
 
 - 新增 `WotMessages`（内置 zh_CN / en_US 文案表）与 `tr(context, key, {fallback})` 取值函数，

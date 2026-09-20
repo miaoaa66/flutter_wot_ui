@@ -872,7 +872,14 @@ flutter test             :: example 的 widget 测试
 - [ ] T3.5 builder 插槽体系化（cell / grid / picker / cascader / swiper）
 
 **Stage 4 质量保障**
-- [ ] T4.1 Golden 测试覆盖 Top 20 组件（固定单一平台生成基线）
+- [ ] T4.1 Golden 测试 —— **测试文件已就绪，待生成基线**（2026-09-20）：
+  新增 `test/golden/golden_test.dart`（flutter_test 原生 `matchesGoldenFile`，零第三方依赖），
+  覆盖 10 个组件：button / checkbox / radio / switch / slider / rate / input / input_number /
+  search / cell，其中 checkbox / radio / switch / slider / rate / input 为**三态矩阵**
+  （正常 / readonly / disabled / error），直接守护三态语义规范的视觉。
+  稳定性措施：surface 固定 400x120、dpr 3.0、pump 300ms 到动画稳定态。
+  **待用户执行**：`flutter test --update-goldens test/golden` 生成基线（agent 环境跑不了 flutter 命令）；
+  生成后日常 `flutter test test/golden` 即可守护视觉回归。Top 20 其余组件待基线跑通后补齐。
 - [ ] T4.2 接入 CI（analyze + test + golden）
 - [ ] T4.3 发布准备（评估移除 `publish_to: none`、补 dartdoc 元信息）
 
