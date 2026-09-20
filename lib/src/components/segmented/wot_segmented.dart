@@ -125,8 +125,14 @@ class WotSegmented extends StatelessWidget {
       child: row,
     );
 
-    return block
-        ? Container(child: container)
-        : SizedBox(width: options.length * 88.0, child: container);
+    // 无障碍：整段读出「当前选中项」，读屏可感知分段选择器的状态。
+    final selectedLabel =
+        options.where((o) => o.value == modelValue).map((o) => o.label).join('、');
+    return Semantics(
+      value: selectedLabel.isEmpty ? null : '当前选中：$selectedLabel',
+      child: block
+          ? Container(child: container)
+          : SizedBox(width: options.length * 88.0, child: container),
+    );
   }
 }

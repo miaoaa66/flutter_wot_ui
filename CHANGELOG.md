@@ -66,6 +66,9 @@
   - slider：`slider` 角色 + 当前值 / 增减后值；`onIncrease` / `onDecrease` 复用内部拖动路径
     （与手动拖动一致走 step 对齐吸附和 onChange）
 - `WotButton`（InkWell）与 `WotInput`（TextField）由 Flutter 内建语义覆盖，无需包装。
+- 导航类（第二批）：`WotTabs` / `WotSidebarItem` 逐项补 `button` + `selected` 标志（sidebar 另含
+  enabled 与标题 label）；`WotSegmented` 整段读出「当前选中：X」。`WotCell` / `WotPagination`
+  用 InkWell，内建语义已覆盖。
 
 ### Fixed（T3.2）
 

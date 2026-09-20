@@ -49,7 +49,8 @@ class WotSidebarItem extends StatelessWidget {
     final scheme = context.wotScheme;
     final activeColor = data.activeColor ?? scheme.primaryOf(6);
 
-    return GestureDetector(
+    // 无障碍：侧边导航项，读屏需感知「可点 + 是否当前选中」。
+    final item = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: disabled ? null : () => data.onSelect?.call(this),
       child: Container(
@@ -125,6 +126,15 @@ class WotSidebarItem extends StatelessWidget {
           ],
         ),
       ),
+    );
+
+    return Semantics(
+      button: true,
+      selected: active,
+      enabled: !disabled,
+      label: title,
+      onTap: disabled ? null : () => data.onSelect?.call(this),
+      child: item,
     );
   }
 }

@@ -828,7 +828,11 @@ flutter test             :: example 的 widget 测试
   slider 的语义增减复用内部拖动路径（与拖动一致走 step 对齐 + onChange）。
   `button` 用 InkWell、`input` 用 TextField，Flutter 已内建语义（审计确认无需包装）。
   遗留：`input` 的「必填 / 错误」语义未关联。
-- [ ] T1.3 交互类第二批：tabs / segmented / pagination / icon / rate / input_number / sidebar / cell
+- [ ] T1.3 交互类第二批 —— **部分完成**（2026-09-20）：
+  ✅ `tabs`（逐项 button + selected）、`sidebar`（逐项 button + selected + enabled + label）、
+  `segmented`（整段 value「当前选中：X」，逐项标志待细化）；
+  ✔ 无需改：`cell` / `pagination` 用 InkWell（内建 button 语义，审计确认）；
+  ⏳ 待做：`rate` / `icon` / `input_number`（加减按钮语义）
 - [ ] T1.4 展示类降噪：divider / gap / skeleton / watermark / progress / loading
 
 **Stage 2 国际化**

@@ -480,7 +480,8 @@ class _WotTabsState extends State<WotTabs> {
   /// 单个 tab 项（含点击、禁用、激活样式与标题/角标）。
   Widget _tabItem(WotScheme scheme, Color activeColor, Color inactiveColor,
       Color primary, int i, bool isCard) {
-    return GestureDetector(
+    // 无障碍：tab 是导航项，读屏需感知「可点的 tab + 是否当前选中」。
+    final tab = GestureDetector(
       behavior: HitTestBehavior.opaque,
       // 统一走 _select：内部判定禁用并发出 onDisabled/onClick 事件。
       onTap: () => _select(i),
@@ -515,6 +516,13 @@ class _WotTabsState extends State<WotTabs> {
           ],
         ),
       ),
+    );
+
+    return Semantics(
+      button: true,
+      selected: i == _current,
+      onTap: () => _select(i),
+      child: tab,
     );
   }
 
