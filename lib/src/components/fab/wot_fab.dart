@@ -333,10 +333,15 @@ class _WotFabState extends State<WotFab> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      // 无障碍：动作按钮补 button 角色 + 点按动作（遮罩收起按惯例不进语义树）。
+      child: Semantics(
+        button: true,
         onTap: a.onClick,
-        child: circle,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: a.onClick,
+          child: circle,
+        ),
       ),
     );
   }

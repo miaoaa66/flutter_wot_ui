@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../toast/wot_toast.dart';
@@ -169,7 +170,8 @@ class WotFormControl extends ChangeNotifier {
   }
 
   /// 校验单个字段；返回错误文案，通过返回 null。
-  String? validateField(String name) {
+  /// 传入 [context] 时默认失败文案走当前语言（同 [validateFields]）。
+  String? validateField(String name, [BuildContext? context]) {
     final entry = _fields[name];
     if (entry == null) return null;
     _validated.add(name);
@@ -179,7 +181,7 @@ class WotFormControl extends ChangeNotifier {
       notifyListeners();
       return null;
     }
-    final msg = _evalRule(rule, _values[name], entry.label);
+    final msg = _evalRule(rule, _values[name], entry.label, context);
     if (msg == null) {
       _errors.remove(name);
     } else {
@@ -192,7 +194,9 @@ class WotFormControl extends ChangeNotifier {
   /// 校验全部字段（或 [prop] 指定的单个字段），返回「字段名 → 错误文案」。
   ///
   /// 与 [validate] 的区别是它返回完整错误表，便于调用方自行处理。
-  Map<String, String> validateFields([String? prop]) {
+  /// 传入 [context] 时默认失败文案走当前语言（「{label}校验未通过」的 i18n 版），
+  /// 未传时回退中文拼接（保持无 context 场景可用，如纯 controller 校验）。
+  Map<String, String> validateFields([String? prop, BuildContext? context]) {
     if (prop != null) {
       final m = validateField(prop);
       return m == null ? <String, String>{} : <String, String>{prop: m};
@@ -202,7 +206,7 @@ class WotFormControl extends ChangeNotifier {
       _validated.add(e.name);
       final rule = _rules[e.name];
       if (rule == null) continue;
-      final msg = _evalRule(rule, _values[e.name], e.label);
+      final msg = _evalRule(rule, _values[e.name], e.label, context);
       if (msg == null) {
         _errors.remove(e.name);
       } else {
@@ -223,10 +227,15 @@ class WotFormControl extends ChangeNotifier {
     return errs.isEmpty ? null : errs.values.first;
   }
 
-  static String? _evalRule(WotFormRule rule, Object? value, String label) {
+  static String? _evalRule(
+      WotFormRule rule, Object? value, String label, BuildContext? context) {
     final r = rule(value);
     if (r == null || r == true) return null;
-    if (r == false) return '$label校验未通过';
+    if (r == false) {
+      return context == null
+          ? '$label校验未通过'
+          : tr(context, 'wot.form.validateFailed', params: {'label': label});
+    }
     return r.toString();
   }
 }
@@ -323,7 +332,7 @@ class WotFormState extends State<WotForm> {
 
   /// 校验全部字段（或 [prop] 指定的单个字段）；通过返回 null，失败返回首个错误信息。
   String? validate([String? prop]) {
-    final errs = _control.validateFields(prop);
+    final errs = _control.validateFields(prop, context);
     if (errs.isEmpty) return null;
     final first = errs.values.first;
     if (widget.errorType == WotFormErrorType.toast) {
