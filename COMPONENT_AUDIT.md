@@ -872,7 +872,8 @@ flutter test             :: example 的 widget 测试
 - [ ] T3.5 builder 插槽体系化（cell / grid / picker / cascader / swiper）
 
 **Stage 4 质量保障**
-- [ ] T4.1 Golden 测试 —— **测试文件已就绪，待生成基线**（2026-09-20）：
+- [x] T4.1 Golden 测试 —— ✅ 已完成（2026-09-20 基线生成 + 2026-09-21 CI 实证）：
+  10 张基线全绿（本地 + Windows CI 双平台一致），含三态 golden 全集
   新增 `test/golden/golden_test.dart`（flutter_test 原生 `matchesGoldenFile`，零第三方依赖），
   覆盖 10 个组件：button / checkbox / radio / switch / slider / rate / input / input_number /
   search / cell，其中 checkbox / radio / switch / slider / rate / input 为**三态矩阵**
@@ -883,7 +884,8 @@ flutter test             :: example 的 widget 测试
   **附带修复真实缺陷**：`WotInput._ensureKeyboardVisible` 的 160ms Timer 未保存引用、dispose 不取消，
   组件销毁后仍存活 → 已保存引用并在 dispose 中 cancel（首次全量 `flutter test` 暴露的既有问题）。
   **待用户重跑**：`flutter test --update-goldens test/golden` 生成剩余 3 张基线并确认全绿。
-- [ ] T4.2 接入 CI（analyze + test + golden）
+- [x] T4.2 接入 CI（analyze + test + golden）—— ✅ 已完成（2026-09-21）：GitHub Actions
+  全绿（windows-latest + Flutter 3.41.4 固定，4m25s），push 全分支自动触发
 - [ ] T4.3 发布准备（评估移除 `publish_to: none`、补 dartdoc 元信息）
 
 **Stage 5 生态与收尾**
