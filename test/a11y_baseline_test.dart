@@ -51,7 +51,10 @@ void main() {
   testWidgets('WotButton：button 角色 + tap 动作', (tester) async {
     final handle = tester.ensureSemantics();
     await _pump(tester, const WotButton(text: '确定'));
-    final data = tester.getSemantics(find.text('确定')).getSemanticsData();
+    // getSemantics 返回「元素向下钻到的第一个 RenderObject 的语义节点或其祖先」：
+    // find.text 会拿到 Text 自己的节点（无 button 角色），必须用 InkWell 定位——
+    // 其语义包裹（InkWell 内建 Semantics）在子 renderObject 的祖先链上，向上可达。
+    final data = tester.getSemantics(find.byType(InkWell)).getSemanticsData();
     // ignore: deprecated_member_use
     expect(data.hasFlag(SemanticsFlag.isButton), isTrue);
     expect(data.hasAction(SemanticsAction.tap), isTrue);
@@ -96,7 +99,10 @@ void main() {
   testWidgets('WotInput：文本字段角色 + setText 动作', (tester) async {
     final handle = tester.ensureSemantics();
     await _pump(tester, const WotInput(value: '输入内容'));
-    final data = tester.getSemantics(find.byType(TextField)).getSemanticsData();
+    // 语义节点锚定在 EditableText（RenderEditable 自带 isTextField 语义），
+    // find.byType(TextField) 向上钻到的容器节点没有该标志。
+    final data =
+        tester.getSemantics(find.byType(EditableText)).getSemanticsData();
     // ignore: deprecated_member_use
     expect(data.hasFlag(SemanticsFlag.isTextField), isTrue);
     expect(data.hasAction(SemanticsAction.setText), isTrue);
@@ -106,7 +112,8 @@ void main() {
   testWidgets('WotSearch：文本字段角色 + setText 动作', (tester) async {
     final handle = tester.ensureSemantics();
     await _pump(tester, const WotSearch(modelValue: '搜索词'));
-    final data = tester.getSemantics(find.byType(TextField)).getSemanticsData();
+    final data =
+        tester.getSemantics(find.byType(EditableText)).getSemanticsData();
     // ignore: deprecated_member_use
     expect(data.hasFlag(SemanticsFlag.isTextField), isTrue);
     expect(data.hasAction(SemanticsAction.setText), isTrue);
