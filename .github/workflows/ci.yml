@@ -9,7 +9,10 @@ on:
 
 jobs:
   ci:
-    runs-on: ubuntu-latest
+    # 用 Windows runner：golden 基线在本地 Windows 生成，文本/图标字体的像素渲染
+    # 与平台相关（Linux 上 7 张基线比对失败已实证），同平台才能保证比对一致。
+    # 公开仓库 Windows runner 同样免费。
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
 
