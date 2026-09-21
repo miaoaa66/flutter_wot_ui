@@ -204,11 +204,17 @@ class _WotPopoverState extends State<WotPopover> {
               _scheduleClose();
             }
           : null,
-      child: GestureDetector(
-        key: _anchorKey,
-        behavior: HitTestBehavior.opaque,
+      // 无障碍：点击触发补 button 角色 + 点按动作（hover 模式不宣称按钮）；
+      // 遮罩点击不进语义树（惯例豁免）。
+      child: Semantics(
+        button: isClick,
         onTap: isClick ? () => _toggle() : null,
-        child: widget.child,
+        child: GestureDetector(
+          key: _anchorKey,
+          behavior: HitTestBehavior.opaque,
+          onTap: isClick ? () => _toggle() : null,
+          child: widget.child,
+        ),
       ),
     );
 

@@ -292,7 +292,13 @@ class WotSteps extends StatelessWidget {
         Expanded(
           child: onChange == null
               ? column
-              : GestureDetector(onTap: () => onChange!(i), child: column),
+              // 无障碍：可点击步骤补 button 角色 + 点按动作（步骤文案读屏可读）。
+              : Semantics(
+                  button: true,
+                  onTap: () => onChange!(i),
+                  child: GestureDetector(
+                      onTap: () => onChange!(i), child: column),
+                ),
         ),
       );
     }

@@ -971,5 +971,9 @@ flutter test             :: example 的 widget 测试
   - ✅ 已补（2026-09-21）：`img`（点击/预览，提取 handleTap 复用）/ `expand`（展开收起）/
     `theme_btn`（明暗切换）/ `tabbar`（标签项）/ `curtain`（关闭按钮 + 新 key `wot.common.close`；
     遮罩点击不进语义树，读屏用户走关闭按钮，符合惯例）
-  - ⏳ 待补：`notice_bar`（3 处）/ `popover`（2 处）/ `steps` / `tooltip`（2 处）/ `floating_panel`
-    （拖拽，低优先级）——补 `Semantics(button: true, onTap:)`，模式同 sort_button
+  - ✅ 已补（2026-09-21 第二批）：`notice_bar`（3 处：本体 / 关闭 / 链接图标）/ `steps`（可点步骤）/
+    `tooltip`（点击 / 长按触发锚点）/ `popover`（点击触发锚点）——hover 触发不宣称按钮
+    （`button: isClick`）；遮罩一律不进语义树；关闭图标统一用 `wot.common.close` label
+  - ⏸ `floating_panel`：拖拽 handle 语义需 custom semantics action，收益低，记录在案
+  - **a11y 线全库闭环 ✅（2026-09-21）**：已接入 37 组件 / 豁免 23（均有理由）/
+    低优先级遗留 3（floating_panel 拖拽、slide_verify slider 角色、keyboard 按键角色）

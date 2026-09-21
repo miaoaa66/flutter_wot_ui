@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
 
@@ -326,10 +327,15 @@ class _WotNoticeBarState extends State<WotNoticeBar>
     }
     final cur = widget.text ?? (widget.texts?.isNotEmpty == true ? widget.texts!.first : '');
     final idx = _currentIndex();
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    // 无障碍：公告栏本体可点，补 button 角色 + 点按动作（公告文本读屏可读）。
+    return Semantics(
+      button: true,
       onTap: () => widget.onClick?.call(cur, idx),
-      child: Align(alignment: Alignment.centerLeft, child: content),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => widget.onClick?.call(cur, idx),
+        child: Align(alignment: Alignment.centerLeft, child: content),
+      ),
     );
   }
 
@@ -355,18 +361,32 @@ class _WotNoticeBarState extends State<WotNoticeBar>
     const baseFontSize = 13.0;
 
     final trailing = switch (mode) {
-      WotNoticeMode.closeable => GestureDetector(
-          behavior: HitTestBehavior.opaque,
+      WotNoticeMode.closeable => Semantics(
+          // 无障碍：关闭是图标按钮，补 button 角色 + 文案（图标本身对读屏不可读）。
+          button: true,
+          label: tr(context, 'wot.common.close'),
           onTap: _handleClose,
-          child: WotIcon(name: 'close', size: 14, color: fg),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _handleClose,
+            child: WotIcon(name: 'close', size: 14, color: fg),
+          ),
         ),
-      WotNoticeMode.link => GestureDetector(
-          behavior: HitTestBehavior.opaque,
+      WotNoticeMode.link => Semantics(
+          // 无障碍：链接图标补 button 角色 + 点按动作（图标名 WotIcon 已带语义）。
+          button: true,
           onTap: () {
             final cur = widget.text ?? (widget.texts?.isNotEmpty == true ? widget.texts!.first : '');
             widget.onClick?.call(cur, 0);
           },
-          child: WotIcon(name: 'arrow-right', size: 14, color: fg),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              final cur = widget.text ?? (widget.texts?.isNotEmpty == true ? widget.texts!.first : '');
+              widget.onClick?.call(cur, 0);
+            },
+            child: WotIcon(name: 'arrow-right', size: 14, color: fg),
+          ),
         ),
       WotNoticeMode.normal => const SizedBox.shrink(),
     };

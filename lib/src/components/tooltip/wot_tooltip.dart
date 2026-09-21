@@ -156,12 +156,19 @@ class _WotTooltipState extends State<WotTooltip> {
     final anchor = MouseRegion(
       onEnter: isHover || isAuto ? (_) => _open() : null,
       onExit: isHover || isAuto ? (_) => _close() : null,
-      child: GestureDetector(
-        key: _key,
-        behavior: HitTestBehavior.opaque,
+      // 无障碍：点击 / 长按触发补 button 角色 + 对应动作（hover 模式不宣称按钮）；
+      // 关闭用遮罩不进语义树（惯例豁免）。
+      child: Semantics(
+        button: isClick || isLongPress,
         onTap: isClick ? () => _toggle() : null,
         onLongPress: isLongPress ? () => _open() : null,
-        child: widget.child,
+        child: GestureDetector(
+          key: _key,
+          behavior: HitTestBehavior.opaque,
+          onTap: isClick ? () => _toggle() : null,
+          onLongPress: isLongPress ? () => _open() : null,
+          child: widget.child,
+        ),
       ),
     );
 
