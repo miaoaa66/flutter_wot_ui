@@ -1,0 +1,51 @@
+name: CI
+
+# 触发：任意分支推送 + 支持在 Actions 页面手动触发。
+# 公开仓库 Actions 免费不限量；Gitee -> GitHub 自动同步后自动生效。
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 仓库根即组件库根（flutter_wot_ui），example 是其下的独立子包。
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          # 如需与本地版本严格一致，可改为固定版本号，例如：
+          # flutter-version: 3.35.0
+
+      - name: Flutter version
+        run: flutter --version
+
+      # ---- 组件库根：analyze + 全量测试（含 golden 基线比对）----
+      - name: Pub get (root)
+        run: flutter pub get
+
+      - name: Analyze (lib / test)
+        run: flutter analyze --no-pub --no-version-check
+
+      - name: Test (root, incl. golden)
+        run: flutter test
+        # 注：golden 为像素级比对。当前基线在本地生成，若 CI 因字体渲染差异报
+        # golden 失败，需在测试入口统一加载字体（如 golden_toolkit 的 loadAppFonts），
+        # 并由本地重新生成基线后再提交。
+
+      # ---- example 子包：analyze + 测试 ----
+      - name: Pub get (example)
+        run: flutter pub get
+        working-directory: example
+
+      - name: Analyze (example)
+        run: flutter analyze --no-pub --no-version-check
+        working-directory: example
+
+      - name: Test (example)
+        run: flutter test
+        working-directory: example
