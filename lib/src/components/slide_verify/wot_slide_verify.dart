@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 
 /// 滑动验证，对应 wot `wd-slide-verify`。
@@ -12,9 +13,9 @@ class WotSlideVerify extends StatefulWidget {
     super.key,
     this.modelValue = false,
     this.onChange,
-    this.text = '向右滑动完成验证',
-    this.successText = '验证通过',
-    this.errorText = '验证失败',
+    this.text,
+    this.successText,
+    this.errorText,
     this.disabled = false,
     this.color,
     this.height = 44,
@@ -22,9 +23,9 @@ class WotSlideVerify extends StatefulWidget {
 
   final bool modelValue;
   final ValueChanged<bool>? onChange;
-  final String text;
-  final String successText;
-  final String errorText;
+  final String? text;
+  final String? successText;
+  final String? errorText;
   final bool disabled;
   final Color? color;
   final double height;
@@ -126,8 +127,13 @@ class _WotSlideVerifyState extends State<WotSlideVerify> {
                 Center(
                   child: Text(
                     _success
-                        ? widget.successText
-                        : (_failed ? widget.errorText : widget.text),
+                        ? widget.successText ??
+                            tr(context, 'wot.slideVerify.success')
+                        : (_failed
+                            ? widget.errorText ??
+                                tr(context, 'wot.slideVerify.error')
+                            : widget.text ??
+                                tr(context, 'wot.slideVerify.slide')),
                     style: TextStyle(fontSize: 14, color: scheme.textSecondary),
                   ),
                 ),

@@ -61,14 +61,14 @@ class WotSelectPicker extends StatefulWidget {
     this.labelKey = 'label',
     this.disabledKey = 'disabled',
     this.title,
-    this.placeholder = '请选择',
+    this.placeholder,
     this.disabled = false,
     this.readonly = false,
     this.error = false,
     this.loading = false,
     this.color,
     this.name,
-    this.emptyText = '暂无数据',
+    this.emptyText,
   });
 
   /// 扁平选项列表（对应 wot `columns`）。每项可为 [WotSelectPickerOption]、
@@ -127,7 +127,7 @@ class WotSelectPicker extends StatefulWidget {
   final String? title;
 
   /// 未选择任何项时的占位文本，默认「请选择」。
-  final String placeholder;
+  final String? placeholder;
 
   /// 是否禁用整组件（不可点击弹出），默认 false。禁用时触发区灰化。
   final bool disabled;
@@ -148,7 +148,7 @@ class WotSelectPicker extends StatefulWidget {
   final String? name;
 
   /// 空列表/搜索无结果时的提示文案，默认「暂无数据」。
-  final String emptyText;
+  final String? emptyText;
 
   /// 解析单个选项为内部统一结构。
   ({String label, Object? value, bool disabled}) _resolveOne(Object item) {
@@ -216,7 +216,7 @@ class WotSelectPicker extends StatefulWidget {
     String disabledKey = 'disabled',
     bool loading = false,
     Color? color,
-    String emptyText = '暂无数据',
+    String? emptyText,
   }) {
     return showModalBottomSheet<T>(
       context: context,
@@ -340,7 +340,9 @@ class _WotSelectPickerState extends State<WotSelectPicker> {
           children: [
             Expanded(
               child: Text(
-                display.isEmpty ? widget.placeholder : display,
+                display.isEmpty
+                    ? widget.placeholder ?? tr(context, 'wot.common.pleaseSelect')
+                    : display,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -389,7 +391,7 @@ class _WotSelectPickerSheet extends StatefulWidget {
     this.disabledKey = 'disabled',
     this.loading = false,
     this.color,
-    this.emptyText = '暂无数据',
+    this.emptyText,
   });
 
   final List<Object> columns;
@@ -406,7 +408,7 @@ class _WotSelectPickerSheet extends StatefulWidget {
   final String disabledKey;
   final bool loading;
   final Color? color;
-  final String emptyText;
+  final String? emptyText;
 
   @override
   State<_WotSelectPickerSheet> createState() => _WotSelectPickerSheetState();
@@ -575,7 +577,7 @@ class _WotSelectPickerSheetState extends State<_WotSelectPickerSheet> {
     List<({String label, Object? value, bool disabled})> options,
   ) {
     final body = options.isEmpty
-        ? WotEmpty(description: widget.emptyText)
+        ? WotEmpty(description: widget.emptyText ?? tr(context, 'wot.table.empty'))
         : ListView.separated(
             padding: EdgeInsets.zero,
             itemCount: options.length,

@@ -30,7 +30,7 @@ class WotCascader extends StatelessWidget {
     super.key,
     this.modelValue = const [],
     this.onChange,
-    this.placeholder = '请选择',
+    this.placeholder,
     this.disabled = false,
     this.readonly = false,
     this.error = false,
@@ -46,7 +46,7 @@ class WotCascader extends StatelessWidget {
   final ValueChanged<List<Object?>>? onChange;
 
   /// 未选择时展示的占位文案，默认「请选择」。
-  final String placeholder;
+  final String? placeholder;
 
   /// 是否禁用，禁用后不可点击，默认 false。禁用时触发区灰化。
   final bool disabled;
@@ -123,7 +123,9 @@ class WotCascader extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                display.isEmpty ? placeholder : display,
+                display.isEmpty
+                    ? placeholder ?? tr(context, 'wot.common.pleaseSelect')
+                    : display,
                 style: TextStyle(
                   fontSize: 14,
                   color: display.isEmpty ? style.placeholder : style.text,
