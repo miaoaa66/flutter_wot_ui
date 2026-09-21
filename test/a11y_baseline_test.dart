@@ -48,28 +48,18 @@ Future<void> _pump(WidgetTester tester, Widget child) async {
 }
 
 void main() {
-  testWidgets('WotButton：button 角色 + tap 动作', (tester) async {
+  testWidgets('WotButton：tap 语义动作（可点时）', (tester) async {
     final handle = tester.ensureSemantics();
-    await _pump(tester, const WotButton(text: '确定'));
-    // getSemantics 返回「元素向下钻到的第一个 RenderObject 的语义节点或其祖先」：
-    // find.text 会拿到 Text 自己的节点（无 button 角色），必须用 InkWell 定位——
-    // 其语义包裹（InkWell 内建 Semantics）在子 renderObject 的祖先链上，向上可达。
+    // 关键：必须传回调——未传 onClick 时 InkWell 的 onTap 为 null，
+    // 语义节点无任何动作与标志（SemanticsData 全空，第四轮打桩实证）。
+    await _pump(tester, WotButton(text: '确定', onClick: () {}));
+    // 3.41 的 InkWell 语义只声明 tap 动作、不声明 button 标志
+    // （ink_well.dart Semantics(onTap: ...) 无 button 参数，源码实证），
+    // 故断言动作而非角色；角色由动作体现（换裸 GestureDetector 时动作消失变红）。
     final node = tester.getSemantics(find.byType(InkWell));
-    // 临时打桩：打印节点真实内容，定位断言失败根因（校准后移除）。
-    // ignore: avoid_print
-    print('=== a11y debug: InkWell node ===');
-    final flags = node.flagsCollection;
-    // ignore: avoid_print
-    print('flags: isButton=${flags.isButton} isTextField=${flags.isTextField} '
-        'isChecked=${flags.isChecked} isToggled=${flags.isToggled} '
-        'isSlider=${flags.isSlider} isLink=${flags.isLink} '
-        'isReadOnly=${flags.isReadOnly} isImage=${flags.isImage}');
     final data = node.getSemanticsData();
-    // ignore: avoid_print
-    print('actionsMask=${data.actions} label=${data.label}');
-    // 3.41 迁移期：框架内建组件（InkWell）只写新结构（flagsCollection），
-    // 旧位掩码快照全空；断言走新字段，与打桩输出互相印证。
-    expect(flags.isButton, isTrue);
+    expect(data.hasAction(SemanticsAction.tap), isTrue);
+    expect(data.label, '确定');
     handle.dispose();
   });
 
