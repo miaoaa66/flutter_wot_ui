@@ -54,10 +54,20 @@ void main() {
     // getSemantics 返回「元素向下钻到的第一个 RenderObject 的语义节点或其祖先」：
     // find.text 会拿到 Text 自己的节点（无 button 角色），必须用 InkWell 定位——
     // 其语义包裹（InkWell 内建 Semantics）在子 renderObject 的祖先链上，向上可达。
-    final data = tester.getSemantics(find.byType(InkWell)).getSemanticsData();
+    final node = tester.getSemantics(find.byType(InkWell));
+    // 临时打桩：打印节点真实内容，定位断言失败根因（校准后移除）。
+    // ignore: avoid_print
+    print('=== a11y debug: InkWell node ===');
+    // ignore: avoid_print
+    print('flagsCollection: ${node.flagsCollection}');
+    // ignore: avoid_print
+    print('semanticsData: ${node.getSemanticsData()}');
+    // ignore: avoid_print
+    print('label: ${node.label} / rect: ${node.rect}');
     // ignore: deprecated_member_use
-    expect(data.hasFlag(SemanticsFlag.isButton), isTrue);
-    expect(data.hasAction(SemanticsAction.tap), isTrue);
+    // ignore: deprecated_member_use
+    expect(node.getSemanticsData().hasFlag(SemanticsFlag.isButton), isTrue);
+    expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
     handle.dispose();
   });
 
