@@ -87,10 +87,16 @@ class WotIndexPage extends StatefulWidget {
     super.key,
     required this.dark,
     required this.onToggleDark,
+    required this.locale,
+    required this.onToggleLocale,
   });
 
   final bool dark;
   final VoidCallback onToggleDark;
+
+  /// 当前 wot 语言（zh_CN / en_US），由根级 [WotConfigProvider] 维护。
+  final String locale;
+  final VoidCallback onToggleLocale;
 
   @override
   State<WotIndexPage> createState() => _WotIndexPageState();
@@ -205,6 +211,15 @@ class _WotIndexPageState extends State<WotIndexPage> {
       appBar: AppBar(
         title: const Text('Wot UI Flutter'),
         actions: [
+          TextButton(
+            onPressed: widget.onToggleLocale,
+            child: Text(
+              widget.locale == 'zh_CN' ? 'EN' : '中文',
+              style: TextStyle(
+                color: widget.dark ? Colors.white : Colors.black87,
+              ),
+            ),
+          ),
           Tooltip(
             message: widget.dark ? '切换浅色' : '切换深色',
             child: WotThemeBtn(
