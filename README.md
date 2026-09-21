@@ -1,60 +1,62 @@
 # flutter_wot_ui
 
-对 **Wot UI**（uni-app 版 https://wot-ui.cn/ ）的 Flutter 复刻组件库，纯 Dart/Flutter 实现，跨平台（Web / Android / iOS / Windows / macOS / Linux）。
+[English](README.md) | [简体中文](README.zh-CN.md)
 
-- 语义设计令牌：Light / Dark 两套主题 + `WotScheme.copyWith` 全色值可配置。
-- 命名与参数对齐 wot：Vue props 驼峰化 → Dart 构造命名参数；`emit` → `onXxx` 回调。
-- 组件独立目录、单一 barrel 出口，高内聚低耦合，接入简单。
-- 尽量少引三方库，其余全部自绘。
+A Flutter re-implementation of the **Wot UI** component library (uni-app version: https://wot-ui.cn/), built in pure Dart/Flutter, cross-platform (Web / Android / iOS / Windows / macOS / Linux).
 
-> 开源仓库：<https://gitee.com/miaoaa66/flutter_wot_ui>
-> 开源仓库：<https://github.com/miaoaa66/flutter_wot_ui>
+- Semantic design tokens: Light / Dark themes out of the box, with every color customizable via `WotScheme.copyWith`.
+- Naming and parameters aligned with wot: Vue props camelCased → Dart named constructor parameters; `emit` → `onXxx` callbacks.
+- One directory per component with a single barrel export — highly cohesive, loosely coupled, easy to adopt.
+- Minimal third-party dependencies; everything else is drawn from scratch.
+
+> Open source repository: <https://gitee.com/miaoaa66/flutter_wot_ui>
+> Open source repository: <https://github.com/miaoaa66/flutter_wot_ui>
 
 ---
 
 
-## 须知
+## Notes
 
-此组件库仅测试和构建了web端和android端，其他平台未测试。   
-组件库也没有进行所有组件所有属性的完整测试。   
-flutter新项目引入组件库参考：<https://gitee.com/miaoaa66/flutter_wot_ui_demo>   
-flutter新项目引入组件库参考：<https://github.com/miaoaa66/flutter_wot_ui_demo>   
+This library has only been tested and built for Web and Android; other platforms are untested.
+Not all properties of all components have been fully covered by tests.
+For integrating the library into a new Flutter project, see: <https://gitee.com/miaoaa66/flutter_wot_ui_demo>
+For integrating the library into a new Flutter project, see: <https://github.com/miaoaa66/flutter_wot_ui_demo>
 
-## 组件清单
+## Component List
 
-按分类（与 wot 文档结构一致）：
+Grouped by category (consistent with the wot docs structure):
 
-| 分类 | 组件 |
+| Category | Components |
 | --- | --- |
-| 基础 | Button、Icon、Text、Row/Col、Cell、CellGroup、Gap、Divider、Fab、Transition、ConfigProvider、ThemeBtn |
-| 导航 | Navbar、Tabbar、Tabs、Segmented、Sidebar、Pagination、IndexBar、Backtop、Tour |
-| 录入 | Form、FormItem、Input、Textarea、Search、InputNumber、Checkbox、Radio、Switch、Rate、Slider、PickerView、Picker、SelectPicker、Cascader、Calendar、CalendarView、DatetimePicker、PasswordInput、Keyboard、Signature、SlideVerify、Upload |
-| 反馈 | Overlay、Loading、Popup、Dialog、ActionSheet、DropMenu、Popover、Tooltip、FloatingPanel、Progress、Circle、Toast、Notify、NoticeBar、SwipeAction、SortButton、Empty、CountDown、CountTo |
-| 展示 | Tag、Badge、Avatar、Card、Grid、Collapse、Expand、Steps、Skeleton、Loadmore、Img、ImagePreview、Swiper、Table、Watermark、QrCode、Barcode、Curtain、ImgCropper、VideoPreview |
+| Basic | Button, Icon, Text, Row/Col, Cell, CellGroup, Gap, Divider, Fab, Transition, ConfigProvider, ThemeBtn |
+| Navigation | Navbar, Tabbar, Tabs, Segmented, Sidebar, Pagination, IndexBar, Backtop, Tour |
+| Form | Form, FormItem, Input, Textarea, Search, InputNumber, Checkbox, Radio, Switch, Rate, Slider, PickerView, Picker, SelectPicker, Cascader, Calendar, CalendarView, DatetimePicker, PasswordInput, Keyboard, Signature, SlideVerify, Upload |
+| Feedback | Overlay, Loading, Popup, Dialog, ActionSheet, DropMenu, Popover, Tooltip, FloatingPanel, Progress, Circle, Toast, Notify, NoticeBar, SwipeAction, SortButton, Empty, CountDown, CountTo |
+| Display | Tag, Badge, Avatar, Card, Grid, Collapse, Expand, Steps, Skeleton, Loadmore, Img, ImagePreview, Swiper, Table, Watermark, QrCode, Barcode, Curtain, ImgCropper, VideoPreview |
 
-> 说明：
-> - `Textarea` 已实现为 `WotTextarea`，随 `WotInput` 同文件导出（`lib/src/components/input/wot_input.dart`），未独立成目录。
-> - `ThemeBtn`（明暗主题切换按钮）为独立复刻组件，颜色采用字面值硬编码，不跟随组件库主题切换。
+> Notes:
+> - `Textarea` is implemented as `WotTextarea`, exported from the same file as `WotInput` (`lib/src/components/input/wot_input.dart`); it has no standalone directory.
+> - `ThemeBtn` (light/dark theme toggle button) is an independently re-implemented component; its colors are hardcoded literals and do not follow the library theme.
 
-## 目录结构
+## Directory Structure
 
 ```
 flutter_wot_ui/
 ├── pubspec.yaml
 ├── lib/
-│   ├── flutter_wot_ui.dart          # 统一出口（barrel）
+│   ├── flutter_wot_ui.dart          # Single barrel export
 │   └── src/
-│       ├── theme/                   # 语义令牌主题（Light/Dark + copyWith 可配置）
-│       ├── icon/                    # 图标名称 → IconData 映射
-│       ├── util/                    # props / format / touch 纯 Dart 工具
-│       └── components/              # 各组件独立目录，含 components.dart 分类出口
-├── example/                         # 示例应用
-└── test/                            # 单元测试
+│       ├── theme/                   # Semantic token themes (Light/Dark + copyWith configurable)
+│       ├── icon/                    # Icon name → IconData mapping
+│       ├── util/                    # props / format / touch pure Dart utilities
+│       └── components/              # One directory per component, with components.dart category exports
+├── example/                         # Example app
+└── test/                            # Unit tests
 ```
 
-## 快速开始
+## Getting Started
 
-在你的 Flutter 项目中引入依赖：
+Add the dependency in your Flutter project:
 
 ```yaml
 dependencies:
@@ -65,9 +67,9 @@ dependencies:
       ref: master
 ```
 
-然后执行 `flutter pub get`。
+Then run `flutter pub get`.
 
-用 `WotConfigProvider` 包裹应用根节点，子组件通过 `context.wotScheme` 获取语义令牌：
+Wrap your app root with `WotConfigProvider`; descendant widgets access semantic tokens via `context.wotScheme`:
 
 ```dart
 import 'package:flutter/material.dart';
@@ -81,7 +83,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return WotConfigProvider(
-      wotTheme: WotThemeData.light, // 深色：WotThemeData.dark
+      wotTheme: WotThemeData.light, // Dark: WotThemeData.dark
       child: MaterialApp(
         home: const HomePage(),
       ),
@@ -90,57 +92,57 @@ class MyApp extends StatelessWidget {
 }
 ```
 
-页面内直接使用组件：
+Use components directly in your pages:
 
 ```dart
 WotButton(
-  text: '主按钮',
+  text: 'Primary',
   type: WotButtonType.primary,
-  onClick: () => WotToast.success(context, '点击了按钮'),
+  onClick: () => WotToast.success(context, 'Button clicked'),
 );
 ```
 
-命令式组件（不占 widget 树）：
+Imperative components (no widget-tree footprint):
 
 ```dart
-WotToast.success(context, '操作成功');
-final ok = await WotDialog.confirm(context, message: '确认删除吗？');
+WotToast.success(context, 'Operation succeeded');
+final ok = await WotDialog.confirm(context, message: 'Delete this item?');
 if (ok == true) {
   // ...
 }
 ```
 
 
-## 常见问题 FAQ
+## FAQ
 
-| 问题 | 说明 |
+| Issue | Description |
 | --- | --- |
-| **忘记包 `WotConfigProvider`** | 组件仍会渲染但颜色回退浅色默认，主题不生效；务必在根部包裹。 |
-| **文件/图片选择、视频播放** | 依赖 `file_picker` `video_player` 等插件，接入方需按对应插件要求配置对应平台权限。 |
-| **深色模式** | 切换 `WotConfigProvider` 的 `wotTheme` 为 `WotThemeData.dark`，或传 `themeMode: ThemeMode.dark`。 |
-| **自定义主题色** | 通过 `WotScheme.copyWithPrimary(...)` 一键换肤，再配合 `copyWith(...)` 逐项覆盖其它语义令牌；用 `WotThemeData.copyWith(scheme: myScheme)` 组装后传入 `WotConfigProvider`。 |
+| **Forgot to wrap with `WotConfigProvider`** | Components still render, but colors fall back to the light defaults and theming has no effect; always wrap at the root. |
+| **File/image picking, video playback** | Depends on plugins such as `file_picker` and `video_player`; you must configure the required platform permissions for those plugins. |
+| **Dark mode** | Switch `WotConfigProvider`'s `wotTheme` to `WotThemeData.dark`, or pass `themeMode: ThemeMode.dark`. |
+| **Custom theme colors** | Use `WotScheme.copyWithPrimary(...)` for one-line re-theming, then `copyWith(...)` to override other semantic tokens individually; assemble with `WotThemeData.copyWith(scheme: myScheme)` and pass to `WotConfigProvider`. |
 
-## 三方依赖
+## Third-party Dependencies
 
-| 包 | 用途 | 平台 |
+| Package | Purpose | Platforms |
 | --- | --- | --- |
-| `intl` | 官方日期/数字本地化 | 全平台 |
-| `qr_flutter` | WotQrCode 二维码生成（纯 Dart） | 全平台 |
-| `barcode` | WotBarcode 条码生成（纯 Dart） | 全平台 |
-| `file_picker` | WotUpload / WotImg 文件/图片选择 | 全平台 |
-| `video_player` | WotVideoPreview 视频播放 | 全平台 |
+| `intl` | Official date/number localization | All platforms |
+| `qr_flutter` | QR code generation for WotQrCode (pure Dart) | All platforms |
+| `barcode` | Barcode generation for WotBarcode (pure Dart) | All platforms |
+| `file_picker` | File/image picking for WotUpload / WotImg | All platforms |
+| `video_player` | Video playback for WotVideoPreview | All platforms |
 
-> 图标：默认用 Flutter 内置 Material 图标映射渲染 `WotIcon`；如需 wot 官方字形，可自行打包 `iconfont.ttf` 并按 `kWotIconFontFamily` 注册（见 `lib/src/components/icon/wot_icon.dart`）。
+> Icons: `WotIcon` renders using Flutter's built-in Material icon mapping by default; if you need the official wot glyphs, bundle your own `iconfont.ttf` and register it with `kWotIconFontFamily` (see `lib/src/components/icon/wot_icon.dart`).
 
-## 本地开发 & 验证
+## Local Development & Verification
 
 ```bash
 
 
 cd example
-# 查看环境
+# Check the environment
 flutter doctor
-# 接受 Android 许可
+# Accept Android licenses
 flutter doctor --android-licenses
 flutter pub get
 flutter analyze
@@ -148,19 +150,20 @@ flutter test
 flutter run
 
 
-# 打包web
+# Build for web
 flutter build web --release
-# 如果部署在子路径，例如 https://xxx.com/myapp/：
+# If deploying under a sub-path, e.g. https://xxx.com/myapp/:
 flutter build web --release --base-href /myapp/
 
 
-# 打包android
+# Build for Android
 flutter build apk --debug
 flutter build apk --release
-# 分架构，输出3个小包（推荐）
+# Split per ABI, outputs 3 smaller APKs (recommended)
 flutter build apk --release --split-per-abi
-# 只打 arm64 APK
+# Build arm64-only APK
 flutter build apk --release --target-platform android-arm64
+
 
 
 
@@ -174,7 +177,7 @@ flutter build apk --release --target-platform android-arm64
 
 ## CI
 
-在gitee创建仓库，gitee仓库镜像功能自动同步github仓库，github自动触发action。
+A repository is created on Gitee; Gitee's repository mirroring feature syncs automatically to GitHub, which triggers GitHub Actions automatically.
 
 
 
@@ -182,6 +185,6 @@ flutter build apk --release --target-platform android-arm64
 
 
 
-## 许可证
+## License
 
-本项目基于 **MIT License** 开源，版权所有 © 2026 miaoaa66，详见 [LICENSE](LICENSE)。
+This project is open sourced under the **MIT License**, Copyright © 2026 miaoaa66. See [LICENSE](LICENSE) for details.
