@@ -16,10 +16,13 @@ jobs:
       # 仓库根即组件库根（flutter_wot_ui），example 是其下的独立子包。
       - uses: subosito/flutter-action@v2
         with:
+          # 固定为本仓库开发环境所用的版本（本地 flutter.version.json 实测 3.41.4）。
+          # CI 第一原则是复现本地环境：不固定的话 stable 升级后新弃用标记会让 CI 变红
+          # （首跑已实证：最新 stable 对 table 组件的 cacheExtent/onBoarderItem 报 6 条弃用）。
+          # 升级本地 Flutter 后此处同步更新即可。
+          flutter-version: 3.41.4
           channel: stable
           cache: true
-          # 如需与本地版本严格一致，可改为固定版本号，例如：
-          # flutter-version: 3.35.0
 
       - name: Flutter version
         run: flutter --version
