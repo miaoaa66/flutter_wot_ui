@@ -48,14 +48,13 @@ Future<void> _pump(WidgetTester tester, Widget child) async {
 }
 
 void main() {
-  testWidgets('WotButton：button 角色（tap 动作由 InkWell 内建，不重复守护）', (tester) async {
+  testWidgets('WotButton：button 角色 + tap 动作', (tester) async {
     final handle = tester.ensureSemantics();
     await _pump(tester, const WotButton(text: '确定'));
-    final node = tester.getSemantics(find.text('确定'));
-    // 守护策略：框架内建组件只断言角色标志——角色与动作由框架保证伴生，
-    // 若 InkWell 被换成裸 GestureDetector，isButton 消失、此处变红。
-    // 动作位掩码（SemanticsData.actions）读不到框架内建动作，故不断言动作。
-    expect(node.flagsCollection.isButton, isTrue);
+    final data = tester.getSemantics(find.text('确定')).getSemanticsData();
+    // ignore: deprecated_member_use
+    expect(data.hasFlag(SemanticsFlag.isButton), isTrue);
+    expect(data.hasAction(SemanticsAction.tap), isTrue);
     handle.dispose();
   });
 
@@ -94,19 +93,23 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('WotInput：文本字段角色（setText 由 TextField 内建，不重复守护）', (tester) async {
+  testWidgets('WotInput：文本字段角色 + setText 动作', (tester) async {
     final handle = tester.ensureSemantics();
     await _pump(tester, const WotInput(value: '输入内容'));
-    final node = tester.getSemantics(find.byType(TextField));
-    expect(node.flagsCollection.isTextField, isTrue);
+    final data = tester.getSemantics(find.byType(TextField)).getSemanticsData();
+    // ignore: deprecated_member_use
+    expect(data.hasFlag(SemanticsFlag.isTextField), isTrue);
+    expect(data.hasAction(SemanticsAction.setText), isTrue);
     handle.dispose();
   });
 
-  testWidgets('WotSearch：文本字段角色（setText 由 TextField 内建，不重复守护）', (tester) async {
+  testWidgets('WotSearch：文本字段角色 + setText 动作', (tester) async {
     final handle = tester.ensureSemantics();
     await _pump(tester, const WotSearch(modelValue: '搜索词'));
-    final node = tester.getSemantics(find.byType(TextField));
-    expect(node.flagsCollection.isTextField, isTrue);
+    final data = tester.getSemantics(find.byType(TextField)).getSemanticsData();
+    // ignore: deprecated_member_use
+    expect(data.hasFlag(SemanticsFlag.isTextField), isTrue);
+    expect(data.hasAction(SemanticsAction.setText), isTrue);
     handle.dispose();
   });
 }
