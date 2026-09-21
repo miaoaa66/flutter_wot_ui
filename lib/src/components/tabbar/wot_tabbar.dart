@@ -139,14 +139,21 @@ class WotTabbarItem extends StatelessWidget {
       );
     }
 
+    void handleTap() {
+      onClick?.call();
+      onChange?.call(this);
+    }
+
     return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          onClick?.call();
-          onChange?.call(this);
-        },
-        child: content,
+      // 无障碍：标签项补 button 角色 + 点按动作（图标与文字本身读屏可读）。
+      child: Semantics(
+        button: true,
+        onTap: handleTap,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: handleTap,
+          child: content,
+        ),
       ),
     );
   }

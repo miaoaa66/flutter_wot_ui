@@ -967,8 +967,9 @@ flutter test             :: example 的 widget 测试
   ——grep 无 GestureDetector / InkWell / IconButton；文本类内容（Text）本身可被读屏读取
 - **Flutter 内建语义（a11y 豁免，1）**：`backtop`（InkWell）
 - **GestureDetector 待补 button 语义（批次 6）**：
-  - ✅ 已补（2026-09-20，单行表达式模式，1 处 1 改）：`card`（整卡）/ `avatar` / `navbar` / `grid` /
-    `text`（可点击文本，短段整包）
-  - ⏳ 待补（多行模式，需读上下文定位结尾）：`curtain`（2 处）/ `expand` / `floating_panel`
-    （拖拽，低优先级）/ `img` / `notice_bar`（3 处）/ `popover`（2 处）/ `steps` / `theme_btn` /
-    `tooltip`（2 处）/ `tabbar`——补 `Semantics(button: true, onTap:)`，模式同 sort_button
+  - ✅ 已补（2026-09-20）：`card`（整卡）/ `avatar` / `navbar` / `grid` / `text`（可点击文本）
+  - ✅ 已补（2026-09-21）：`img`（点击/预览，提取 handleTap 复用）/ `expand`（展开收起）/
+    `theme_btn`（明暗切换）/ `tabbar`（标签项）/ `curtain`（关闭按钮 + 新 key `wot.common.close`；
+    遮罩点击不进语义树，读屏用户走关闭按钮，符合惯例）
+  - ⏳ 待补：`notice_bar`（3 处）/ `popover`（2 处）/ `steps` / `tooltip`（2 处）/ `floating_panel`
+    （拖拽，低优先级）——补 `Semantics(button: true, onTap:)`，模式同 sort_button

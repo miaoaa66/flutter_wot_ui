@@ -137,16 +137,23 @@ class WotImg extends StatelessWidget {
 
     Widget result = box;
     if (preview || onClick != null) {
-      result = GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          onClick?.call();
-          if (preview) {
-            final urls = previewList ?? [if (src != null && src!.isNotEmpty) src!];
-            if (urls.isNotEmpty) WotImagePreview.show(urls, context: context);
-          }
-        },
-        child: box,
+      void handleTap() {
+        onClick?.call();
+        if (preview) {
+          final urls = previewList ?? [if (src != null && src!.isNotEmpty) src!];
+          if (urls.isNotEmpty) WotImagePreview.show(urls, context: context);
+        }
+      }
+
+      // 无障碍：可预览/可点击的图片补 button 角色 + 点按动作。
+      result = Semantics(
+        button: true,
+        onTap: handleTap,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: handleTap,
+          child: box,
+        ),
       );
     }
     return result;

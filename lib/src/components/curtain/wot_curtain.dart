@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
 
@@ -169,18 +170,25 @@ class _WotCurtainState extends State<WotCurtain> {
                   Positioned(
                     top: 0,
                     right: 0,
-                    child: GestureDetector(
+                    // 无障碍：关闭是图标按钮，补 button 角色 + 文案（图标本身对读屏不可读）；
+                    // 遮罩点击不进语义树（读屏用户走本按钮），符合惯例。
+                    child: Semantics(
+                      button: true,
+                      label: tr(context, 'wot.common.close'),
                       onTap: _close,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: WotIcon(
-                          name: widget.closeIcon,
-                          size: widget.closeIconSize,
-                          color: widget.closeIconColor ?? Colors.white,
+                      child: GestureDetector(
+                        onTap: _close,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: WotIcon(
+                            name: widget.closeIcon,
+                            size: widget.closeIconSize,
+                            color: widget.closeIconColor ?? Colors.white,
+                          ),
                         ),
                       ),
                     ),

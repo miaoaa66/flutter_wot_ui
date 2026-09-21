@@ -93,7 +93,7 @@ class WotThemeBtn extends StatelessWidget {
       ),
     );
 
-    return GestureDetector(
+    final btn = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: disabled ? null : () => onChanged?.call(!night),
       child: Opacity(
@@ -127,6 +127,13 @@ class WotThemeBtn extends StatelessWidget {
           ),
         ),
       ),
+    );
+
+    // 无障碍：明暗主题切换补 button 角色 + 点按动作（disabled 时不宣称可用）。
+    return Semantics(
+      button: true,
+      onTap: disabled ? null : () => onChanged?.call(!night),
+      child: btn,
     );
   }
 
