@@ -8,6 +8,7 @@
 - 尽量少引三方库，其余全部自绘。
 
 > 开源仓库：<https://gitee.com/miaoaa66/flutter_wot_ui>
+> 开源仓库：<https://github.com/miaoaa66/flutter_wot_ui>
 
 ---
 
@@ -17,6 +18,7 @@
 此组件库仅测试和构建了web端和android端，其他平台未测试。   
 组件库也没有进行所有组件所有属性的完整测试。   
 flutter新项目引入组件库参考：<https://gitee.com/miaoaa66/flutter_wot_ui_demo>   
+flutter新项目引入组件库参考：<https://github.com/miaoaa66/flutter_wot_ui_demo>   
 
 ## 组件清单
 
@@ -59,6 +61,7 @@ dependencies:
   flutter_wot_ui:
     git:
       url: https://gitee.com/miaoaa66/flutter_wot_ui.git
+      # url: https://github.com/miaoaa66/flutter_wot_ui.git
       ref: master
 ```
 
