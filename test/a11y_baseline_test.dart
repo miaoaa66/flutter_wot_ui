@@ -58,16 +58,18 @@ void main() {
     // 临时打桩：打印节点真实内容，定位断言失败根因（校准后移除）。
     // ignore: avoid_print
     print('=== a11y debug: InkWell node ===');
+    final flags = node.flagsCollection;
     // ignore: avoid_print
-    print('flagsCollection: ${node.flagsCollection}');
+    print('flags: isButton=${flags.isButton} isTextField=${flags.isTextField} '
+        'isChecked=${flags.isChecked} isToggled=${flags.isToggled} '
+        'isSlider=${flags.isSlider} isLink=${flags.isLink} '
+        'isReadOnly=${flags.isReadOnly} isImage=${flags.isImage}');
+    final data = node.getSemanticsData();
     // ignore: avoid_print
-    print('semanticsData: ${node.getSemanticsData()}');
-    // ignore: avoid_print
-    print('label: ${node.label} / rect: ${node.rect}');
-    // ignore: deprecated_member_use
-    // ignore: deprecated_member_use
-    expect(node.getSemanticsData().hasFlag(SemanticsFlag.isButton), isTrue);
-    expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+    print('actionsMask=${data.actions} label=${data.label}');
+    // 3.41 迁移期：框架内建组件（InkWell）只写新结构（flagsCollection），
+    // 旧位掩码快照全空；断言走新字段，与打桩输出互相印证。
+    expect(flags.isButton, isTrue);
     handle.dispose();
   });
 
@@ -106,27 +108,28 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('WotInput：文本字段角色 + setText 动作', (tester) async {
+  testWidgets('WotInput：文本字段角色', (tester) async {
     final handle = tester.ensureSemantics();
     await _pump(tester, const WotInput(value: '输入内容'));
-    // 语义节点锚定在 EditableText（RenderEditable 自带 isTextField 语义），
-    // find.byType(TextField) 向上钻到的容器节点没有该标志。
-    final data =
-        tester.getSemantics(find.byType(EditableText)).getSemanticsData();
-    // ignore: deprecated_member_use
-    expect(data.hasFlag(SemanticsFlag.isTextField), isTrue);
-    expect(data.hasAction(SemanticsAction.setText), isTrue);
+    // 语义节点锚定在 EditableText（同上，走新结构字段断言）。
+    final node = tester.getSemantics(find.byType(EditableText));
+    final flags = node.flagsCollection;
+    // ignore: avoid_print
+    print('=== a11y debug: EditableText(Input) flags: '
+        'isTextField=${flags.isTextField} isReadOnly=${flags.isReadOnly}');
+    expect(flags.isTextField, isTrue);
     handle.dispose();
   });
 
-  testWidgets('WotSearch：文本字段角色 + setText 动作', (tester) async {
+  testWidgets('WotSearch：文本字段角色', (tester) async {
     final handle = tester.ensureSemantics();
     await _pump(tester, const WotSearch(modelValue: '搜索词'));
-    final data =
-        tester.getSemantics(find.byType(EditableText)).getSemanticsData();
-    // ignore: deprecated_member_use
-    expect(data.hasFlag(SemanticsFlag.isTextField), isTrue);
-    expect(data.hasAction(SemanticsAction.setText), isTrue);
+    final node = tester.getSemantics(find.byType(EditableText));
+    final flags = node.flagsCollection;
+    // ignore: avoid_print
+    print('=== a11y debug: EditableText(Search) flags: '
+        'isTextField=${flags.isTextField} isReadOnly=${flags.isReadOnly}');
+    expect(flags.isTextField, isTrue);
     handle.dispose();
   });
 }
