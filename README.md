@@ -185,6 +185,11 @@ A repository is created on Gitee; Gitee's repository mirroring feature syncs aut
 
 
 
+## Development Environment & AI Assistance
+
+- **Local environment:** Java 17.0.12, Flutter 3.41.4.
+- **AI models involved:** The development of this project was assisted by the following AI models — deepseek-v4-flash, deepseek-v4-pro, seed-code, qwen-3.7-plus, glm-5.3-flash, hy3, hy4.
+
 ## License
 
 This project is open sourced under the **MIT License**, Copyright © 2026 miaoaa66. See [LICENSE](LICENSE) for details.
