@@ -103,6 +103,7 @@ class WotMessages {
       'wot.video.loadFailed': '视频加载失败',
       'wot.video.forward15': '快进15秒',
       'wot.video.rewind15': '快退15秒',
+      'wot.qrCode.loadFailed': '二维码生成失败',
     },
     'en_US': {
       'wot.common.confirm': 'Confirm',
@@ -162,6 +163,7 @@ class WotMessages {
       'wot.video.loadFailed': 'Failed to load video',
       'wot.video.forward15': 'Forward 15s',
       'wot.video.rewind15': 'Rewind 15s',
+      'wot.qrCode.loadFailed': 'Failed to generate QR code',
     },
   };
 

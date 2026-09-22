@@ -12,6 +12,7 @@ class WotCountTo extends StatefulWidget {
     this.decimals = 0,
     this.speed,
     this.autoplay = true,
+    this.startVal = 0,
     this.prefix = '',
     this.suffix = '',
     this.thousands = true,
@@ -38,6 +39,10 @@ class WotCountTo extends StatefulWidget {
   /// 是否自动播放动画，默认 true。
   final bool autoplay;
 
+  /// 起始数值（D 类 P1），默认 0；autoplay 时从该值滚动到 [modelValue]，
+  /// 非 autoplay 时初始直接显示 [modelValue]。
+  final num startVal;
+
   /// 数字前缀。
   final String prefix;
 
@@ -62,8 +67,8 @@ class _WotCountToState extends State<WotCountTo> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
-    // autoplay 时从 0 开始滚动到 modelValue；否则直接显示目标值。
-    _current = widget.autoplay ? 0 : widget.modelValue.toDouble();
+    // autoplay 时从 startVal（D 类 P1，默认 0）滚动到 modelValue；否则直接显示目标值。
+    _current = widget.autoplay ? widget.startVal.toDouble() : widget.modelValue.toDouble();
     _controller = AnimationController(vsync: this, duration: _effectiveDuration());
     _anim = Tween<double>(begin: _current, end: widget.modelValue.toDouble())
         .animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
