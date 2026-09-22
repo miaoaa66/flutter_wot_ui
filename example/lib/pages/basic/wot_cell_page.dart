@@ -74,6 +74,26 @@ class WotCellPage extends StatelessWidget {
           isLink: true,
           arrowDirection: WotArrowDirection.up,
         ),
+        demoSection('新增（T3.5）：builder 插槽'),
+        WotCell(
+          titleBuilder: (context) => const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.local_fire_department, size: 16, color: Color(0xFFFA5151)),
+              SizedBox(width: 4),
+              Text('热门内容'),
+            ],
+          ),
+          value: '标题插槽带图标',
+          isLink: true,
+        ),
+        WotCell(
+          title: '积分',
+          valueBuilder: (context) => const Text(
+            '1,024 分',
+            style: TextStyle(fontSize: 13, color: Color(0xFFFA9D3B), fontWeight: FontWeight.w600),
+          ),
+        ),
       ],
     );
   }

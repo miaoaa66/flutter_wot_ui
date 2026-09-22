@@ -874,8 +874,16 @@ flutter test             :: example 的 widget 测试
   规范落于 `lib/src/theme/wot_state.dart`，覆盖 **16 个组件 + 19 个示例页**，详见第十一节（2026-09-20）
 - [x] T3.2 checkbox / radio 接入 Form 值登记 —— ✅ 已完成（2026-09-20）：修掉 **4 个死参数**
   （`WotCheckbox.name` / `WotCheckboxGroup.name` / `WotRadio.name` / `WotRadioGroup.name`），示例页已补演示
-- [ ] T3.3 外观参数枚举化（tabs.type / segmented.shape / select_picker.type）
-- [ ] T3.4 D 类 P1 补齐（cell / switch / notify / badge / fab / count_down / img / qr_code）
+- [x] T3.3 外观参数枚举化 —— ✅ 已完成（2026-09-22，六批）：tabs.type / toast.position /
+  checkbox·radio.shape / tooltip·popover.trigger / segmented.shape / search.shape /
+  select_picker.type 共 7 参数迁移为共用枚举（WotTabsType / WotToastPosition /
+  WotCheckShape / WotTriggerMode / WotSegmentedShape / WotSearchShape /
+  WotSelectPickerType），BREAKING 迁移对照见 CHANGELOG；input/upload.type 待评估
+- [x] T3.4 D 类 P1 补齐 —— ✅ 已完成（2026-09-22，三批 13 个组件条目，D 类 P1 表已
+  逐条勾选）：switch / badge / cell / notify / count_to / qr_code / img / fab /
+  count_down / sort_button / tag(dashed) / curtain / cell_group / dialog；
+  剩余大件（fab 定位系 / swiper / skeleton / text / drop_menu / sidebar / keyboard /
+  checkbox-radio 形态）转入 T5 评估排期
 - [ ] T3.5 builder 插槽体系化（cell / grid / picker / cascader / swiper）
 
 **Stage 4 质量保障**

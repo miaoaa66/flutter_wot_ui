@@ -42,6 +42,8 @@ class WotCell extends StatelessWidget {
     this.labelStyle,
     this.valueStyle,
     this.descStyle,
+    this.titleBuilder,
+    this.valueBuilder,
   });
 
   /// 左侧标题文案。
@@ -126,6 +128,14 @@ class WotCell extends StatelessWidget {
   /// 描述文本样式，合并规则同 [titleStyle]。
   final TextStyle? descStyle;
 
+  /// 标题自定义渲染插槽（T3.5 builder 插槽）：非空时优先于 [title] 文案，
+  /// 用于富文本标题（图标 / 多行 / 高亮片段等）。
+  final Widget Function(BuildContext context)? titleBuilder;
+
+  /// 值自定义渲染插槽（T3.5 builder 插槽）：非空时优先于 [value] /
+  /// [placeholder] 文案。注意：builder 不参与省略号截断，超长请自行约束。
+  final Widget Function(BuildContext context)? valueBuilder;
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
@@ -164,7 +174,9 @@ class WotCell extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (title != null)
+        if (titleBuilder != null)
+          titleBuilder!(context)
+        else if (title != null)
           _text(
             title!,
             width: titleWidth,
@@ -189,7 +201,9 @@ class WotCell extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (shownValue != null)
+        if (valueBuilder != null)
+          valueBuilder!(context)
+        else if (shownValue != null)
           _text(
             shownValue,
             style: TextStyle(fontSize: 13, color: hasValue ? valueColor : subColor)
