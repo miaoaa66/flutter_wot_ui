@@ -37,6 +37,7 @@ class WotCascader extends StatelessWidget {
     this.color,
     this.name,
     this.options = const [],
+    this.optionBuilder,
   });
 
   /// 当前选中路径值数组。
@@ -65,6 +66,11 @@ class WotCascader extends StatelessWidget {
 
   /// 根级选项。
   final List<WotCascadeOption> options;
+
+  /// 选项自定义渲染插槽（T3.5）：非空时优先于默认文本渲染；
+  /// 下钻箭头与选中高亮仍由组件统一处理。
+  final Widget? Function(BuildContext context, WotCascadeOption node, bool selected)?
+      optionBuilder;
 
   String _display() {
     final parts = <String>[];
@@ -144,16 +150,25 @@ class WotCascader extends StatelessWidget {
       context: context,
       showDragHandle: true,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      builder: (_) => _CascaderSheet(options: options, values: modelValue),
+      builder: (_) => _CascaderSheet(
+          options: options, values: modelValue, optionBuilder: optionBuilder),
     );
     if (res != null) onChange?.call(res);
   }
 }
 
 class _CascaderSheet extends StatefulWidget {
-  const _CascaderSheet({required this.options, required this.values});
+  const _CascaderSheet({
+    required this.options,
+    required this.values,
+    this.optionBuilder,
+  });
   final List<WotCascadeOption> options;
   final List<Object?> values;
+
+  /// 选项自定义渲染插槽（T3.5），透传给选项行。
+  final Widget? Function(BuildContext context, WotCascadeOption node, bool selected)?
+      optionBuilder;
 
   @override
   State<_CascaderSheet> createState() => _CascaderSheetState();
@@ -336,6 +351,7 @@ class _CascaderSheetState extends State<_CascaderSheet> {
 
   Widget _buildRow(WotScheme scheme, Color primary, WotCascadeOption node) {
     final selected = _active < _path.length && _path[_active] == node.value;
+    final Widget? custom = widget.optionBuilder?.call(context, node, selected);
     return InkWell(
       onTap: () {
         final isLeaf = _onSelect(_active, node.value);
@@ -346,24 +362,26 @@ class _CascaderSheetState extends State<_CascaderSheet> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         color: selected ? scheme.filledContent : Colors.transparent,
         alignment: Alignment.centerLeft,
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                node.text,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: selected ? primary : scheme.textMain,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                ),
+        child: custom != null
+            ? Row(children: [Expanded(child: custom)])
+            : Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      node.text,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: selected ? primary : scheme.textMain,
+                        fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  if (node.children.isNotEmpty)
+                    Icon(Icons.chevron_right, size: 16, color: scheme.iconAuxiliary),
+                ],
               ),
-            ),
-            if (node.children.isNotEmpty)
-              Icon(Icons.chevron_right, size: 16, color: scheme.iconAuxiliary),
-          ],
-        ),
       ),
     );
   }
