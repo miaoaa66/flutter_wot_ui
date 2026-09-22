@@ -4,6 +4,49 @@
 
 ---
 
+## Unreleased — 2026-09-22
+
+D 类 P1 缺失配置项批量补齐（T3.4，三批 13 个组件条目）+ a11y / i18n 验证基线。
+
+### Added
+
+- **WotSwitch 值域泛型化**：`WotSwitch<T>`（默认 bool 完全兼容）+ `activeValue` /
+  `inactiveValue`（对接 `'1'/'0'` 后端协议）+ `beforeChange` 异步切换拦截。
+- **WotBadge**：`WotBadgeType` 预设色 / `WotBadgeShape`（circle/square）/ `text`
+  纯文本角标 / `showZero` / `offset` 偏移。
+- **WotCell**：`placeholder` / `WotCellLayout.vertical` / `padding` /
+  `WotArrowDirection` / 四个 TextStyle（与三态色按字段合并）。
+- **WotNotify**：`position`(top/bottom) / `color` / `background` / `closable` /
+  `safeHeight` / `onClick` / `onOpened` / `onClosed`（统一关闭回调）。
+- **WotCountTo**：`startVal` 起始数值。
+- **WotQrCode**：`WotQrCodeDotType` / `gapless` / `margin` / `logo`+`logoSize` /
+  `onError`（新文案 key `wot.qrCode.loadFailed`）。
+- **WotImg**：`imageProvider`（优先于 src）/ `cacheWidth`·`cacheHeight`（解码降采样）/
+  `showLoading`·`showError` 开关。
+- **WotFab**：`disabled`（主按钮与动作列表禁用 + 整体半透明）。
+- **WotCountDown**：`millisecond` 毫秒级刷新（`SS` 实时）/ `SS`·`SSS` 格式修正 /
+  `WotCountDownController`（start/pause/reset）。
+- **WotSortButton**：`allowReset` / `descFirst`。
+- **WotDialog**：`beforeConfirm` 确认拦截（confirm 返回 false）/
+  `WotDialogActionLayout` / `WotDialogAction`+`actions` 自定义按钮组。
+- **WotTag**：`WotTagVariant.dashed` 虚线边框（自绘 `_DashedRRectPainter`）。
+- **WotCurtain**：`src` 图片幕布 / `WotCurtainClosePosition`（inside/outside）。
+- **WotCellGroup**：`title`/`value` 标题区 + `WotCellGroupScope` 下发通道。
+- 测试基线：`test/a11y_baseline_test.dart`（7 组件语义断言）、`test/i18n_en_test.dart`
+  （en_US 五层验证）、`test/switch_value_test.dart`（值域 + beforeChange 四用例）。
+
+### ⚠️ BREAKING CHANGES
+
+- **WotCellGroup.bordered 默认值 false → true**（对齐 wot Vue 的 border 默认值；
+  此前该参数未下发给 cell 属漂移）。行为变更：默认出现组外框；组内 cell 分割线
+  现跟随组的 bordered。依赖旧默认隐藏外框的调用方需显式传 `bordered: false`。
+- **WotSwitch 泛型化** `WotSwitch<T>`：现有 `WotSwitch(modelValue: true)` 用法
+  自动推断 `T=bool`，无需迁移；测试中 `find.byType(WotSwitch)` 需改为
+  `find.byType(WotSwitch<bool>)`（泛型组件 finder 必须写全类型参数）。
+- **WotCountDown SS/SSS 格式修正**：`SSS` 现为三位毫秒（原实现为 1 位值×2）。
+
+---
+
 ## Unreleased — 2026-09-20
 
 三态语义规范（disabled / readonly / error）落地，试点 input / textarea / cell / form_item。

@@ -224,7 +224,7 @@ Vue 版 `v-model` 无默认值（空），Flutter 因 `num` 不可空只能取 `
 | 组件 | 缺失项 |
 |---|---|
 | **cell** | ✅ **已补**（2026-09-22）：`placeholder` / `layout`(vertical) / `padding` / `arrowDirection` / 四个 `TextStyle`（与三态色按字段合并） |
-| **cell_group** | `title` / `value` + InheritedWidget 下发通道（Vue 侧分组属性继承是标准用法） |
+| **cell_group** | ✅ **已补**（2026-09-22）：`title`/`value` 标题区 + `WotCellGroupScope` InheritedWidget 下发（cell 的 border 三层判定：显式 > 组下发 > 默认 true）；⚠️ `bordered` 默认 false→true（对齐 wot Vue，行为变更见 CHANGELOG） |
 | **text** | `mode`(date/phone/name/price) + `format` 脱敏 + `prefixWidget`/`suffixWidget` + `style` |
 | **switch** | ✅ **已补**（2026-09-22）：值域泛型化 `WotSwitch<T>`（activeValue/inactiveValue 对接 '1'/'0' 协议，默认 bool 零迁移）+ `beforeChange` 异步拦截 |
 | **qr_code** | `logo` / `dotType` / `gapless`+`margin` / `onError`（`qr_flutter` 已支持，仅需透传） |
@@ -233,12 +233,12 @@ Vue 版 `v-model` 无默认值（空），Flutter 因 `num` 不可空只能取 `
 | **count_to** | `startVal`（当前恒从 0 开始） |
 | **sort_button** | `allowReset` / `descFirst` |
 | **drop_menu** | `modal` 蒙层（当前点击外部不关闭）+ `popupHeight` + `beforeToggle` |
-| **curtain** | `src` 图片能力（缺此组件名不副实）+ `closePosition` |
-| **dialog** | `beforeConfirm` / `actionLayout` / `actions` |
+| **curtain** | ✅ **已补**（2026-09-22）：`src` 图片幕布（缺省 300×360，child 优先）+ `closePosition`（inside/outside，outside 保留 18px 命中预留） |
+| **dialog** | ✅ **已补**（2026-09-22）：`beforeConfirm` 异步拦截（confirm 返回 false）/ `WotDialogActionLayout`（horizontal/vertical）/ `actions` 自定义按钮组 |
 | **swiper** | `direction` / `curve` / 指示器体系 / `viewportFraction` / 外部 `controller` |
 | **img** | `imageProvider`（asset/文件/内存）+ `cacheWidth`/`cacheHeight` + `showLoading`/`showError` |
 | **skeleton** | `theme` + `rowCol` + `animation`(gradient/flashed)（现 API 与 Vue 不同源，迁移成本高） |
-| **tag** | `variant: dashed` + `dynamic` 新增标签 |
+| **tag** | 🔶 **部分完成**（2026-09-22）：`variant: dashed`（`_DashedRRectPainter` 自绘虚线）；`dynamic` 动态新增标签未做（tag-group 能力，评估排期） |
 | **badge** | ✅ **已补**（2026-09-22）：`WotBadgeType` 预设色 / `WotBadgeShape`（circle/square）/ `text` 纯文本角标（value 支持 String）/ `showZero` / `offset` 偏移 |
 | **sidebar** | `scrollController`（锚点场景必需）+ `beforeChange` |
 | **keyboard** | `value` + `maxlength` + `SafeArea` |
