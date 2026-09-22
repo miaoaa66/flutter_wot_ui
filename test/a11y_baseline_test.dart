@@ -83,7 +83,7 @@ void main() {
   testWidgets('WotSwitch：checked 状态', (tester) async {
     final handle = tester.ensureSemantics();
     await _pump(tester, const WotSwitch(modelValue: true));
-    final node = tester.getSemantics(find.byType(WotSwitch));
+    final node = tester.getSemantics(find.byType(WotSwitch<bool>));
     expect(node.flagsCollection.isChecked, CheckedState.isTrue);
     handle.dispose();
   });
