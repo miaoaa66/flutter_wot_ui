@@ -223,12 +223,12 @@ Vue 版 `v-model` 无默认值（空），Flutter 因 `num` 不可空只能取 `
 
 | 组件 | 缺失项 |
 |---|---|
-| **cell** | `placeholder` / `layout`(vertical) / `padding` / `arrowDirection` / 四个 `TextStyle` |
+| **cell** | ✅ **已补**（2026-09-22）：`placeholder` / `layout`(vertical) / `padding` / `arrowDirection` / 四个 `TextStyle`（与三态色按字段合并） |
 | **cell_group** | `title` / `value` + InheritedWidget 下发通道（Vue 侧分组属性继承是标准用法） |
 | **text** | `mode`(date/phone/name/price) + `format` 脱敏 + `prefixWidget`/`suffixWidget` + `style` |
-| **switch** | `activeValue` / `inactiveValue`（对接 `'1'/'0'` 后端协议）+ `beforeChange` |
+| **switch** | ✅ **已补**（2026-09-22）：值域泛型化 `WotSwitch<T>`（activeValue/inactiveValue 对接 '1'/'0' 协议，默认 bool 零迁移）+ `beforeChange` 异步拦截 |
 | **qr_code** | `logo` / `dotType` / `gapless`+`margin` / `onError`（`qr_flutter` 已支持，仅需透传） |
-| **notify** | `position` / `color` / `background` / `closable` / `safeHeight` / `onClick` / `onOpened` / `onClosed`（15 项缺 9 项） |
+| **notify** | ✅ **已补**（2026-09-22）：`position`(top/bottom) / `color` / `background` / `closable` / `safeHeight` / `onClick` / `onOpened` / `onClosed`（统一关闭回调，覆盖超时/点击/手动三路径） |
 | **count_down** | `millisecond` 毫秒级（`SS` 当前恒为 00）+ `start`/`pause`/`reset` |
 | **count_to** | `startVal`（当前恒从 0 开始） |
 | **sort_button** | `allowReset` / `descFirst` |
@@ -239,7 +239,7 @@ Vue 版 `v-model` 无默认值（空），Flutter 因 `num` 不可空只能取 `
 | **img** | `imageProvider`（asset/文件/内存）+ `cacheWidth`/`cacheHeight` + `showLoading`/`showError` |
 | **skeleton** | `theme` + `rowCol` + `animation`(gradient/flashed)（现 API 与 Vue 不同源，迁移成本高） |
 | **tag** | `variant: dashed` + `dynamic` 新增标签 |
-| **badge** | `type` / `shape` / `value` 支持 String / `showZero` / `top`·`right` 偏移 |
+| **badge** | ✅ **已补**（2026-09-22）：`WotBadgeType` 预设色 / `WotBadgeShape`（circle/square）/ `text` 纯文本角标（value 支持 String）/ `showZero` / `offset` 偏移 |
 | **sidebar** | `scrollController`（锚点场景必需）+ `beforeChange` |
 | **keyboard** | `value` + `maxlength` + `SafeArea` |
 | **checkbox / radio** | `type: button` / `dot` 形态；radio 缺 `readonly`、`size` |
