@@ -44,6 +44,22 @@ D 类 P1 缺失配置项批量补齐（T3.4，三批 13 个组件条目）+ a11y
   自动推断 `T=bool`，无需迁移；测试中 `find.byType(WotSwitch)` 需改为
   `find.byType(WotSwitch<bool>)`（泛型组件 finder 必须写全类型参数）。
 - **WotCountDown SS/SSS 格式修正**：`SSS` 现为三位毫秒（原实现为 1 位值×2）。
+- **字符串参数枚举化**（T3.3，六批）——迁移对照：
+
+  | 组件参数 | 枚举 | 迁移示例 |
+  |---|---|---|
+  | `WotTabs.type` | `WotTabsType` | `type: 'card'` → `type: WotTabsType.card` |
+  | `WotToast.position`（全链路 8 方法） | `WotToastPosition` | `position: 'bottom'` → `position: WotToastPosition.bottom` |
+  | `WotCheckbox(.Group).shape`、`WotRadio(.Group).shape` | `WotCheckShape` | `shape: 'circle'` → `shape: WotCheckShape.circle` |
+  | `WotTooltip.trigger`、`WotPopover.trigger` | `WotTriggerMode` | `trigger: 'click'` → `trigger: WotTriggerMode.click` |
+  | `WotSegmented.shape` | `WotSegmentedShape` | `shape: 'pill'` → `shape: WotSegmentedShape.pill` |
+  | `WotSearch.shape` | `WotSearchShape` | `shape: 'round'` → `shape: WotSearchShape.round` |
+  | `WotSelectPicker.type`（含 show） | `WotSelectPickerType` | `type: 'radio'` → `type: WotSelectPickerType.radio` |
+
+  例外说明：`WotTriggerMode` 含 `manual`（原字符串取值 `manual` 为纯受控模式，
+  枚举化时一并纳入）；`WotInput.type` / `WotUpload.type` 未迁移（无比较消费，
+  疑似透传，待单独评估）；`WotSegmented.size` / `WotDropMenu.direction` 仍为
+  String（size 漏项待办，direction 为死参数待接布局）。
 
 ---
 
