@@ -36,7 +36,7 @@ class _WotCheckboxPageState extends State<WotCheckboxPage> {
             '基础多选（shape=square 方形）',
             WotCheckboxGroup(
               modelValue: _group,
-              shape: 'square',
+              shape: WotCheckShape.square,
               options: const [
                 WotCheckboxOption(label: '图书', value: 1),
                 WotCheckboxOption(label: '音乐', value: 2),
@@ -48,7 +48,7 @@ class _WotCheckboxPageState extends State<WotCheckboxPage> {
             'shape=circle 圆形',
             WotCheckboxGroup(
               modelValue: _square,
-              shape: 'circle',
+              shape: WotCheckShape.circle,
               options: const [
                 WotCheckboxOption(label: '圆形一', value: 1),
                 WotCheckboxOption(label: '圆形二', value: 2),

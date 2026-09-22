@@ -27,7 +27,7 @@ class _WotRadioPageState extends State<WotRadioPage> {
         demoBlock('基础单选（shape=circle）',
             WotRadioGroup(
               modelValue: _v1,
-              shape: 'circle',
+              shape: WotCheckShape.circle,
               options: const [
                 WotRadioOption(label: '选项一', value: 1),
                 WotRadioOption(label: '选项二', value: 2),
@@ -38,7 +38,7 @@ class _WotRadioPageState extends State<WotRadioPage> {
         demoBlock('shape=square 方形',
             WotRadioGroup(
               modelValue: _v2,
-              shape: 'square',
+              shape: WotCheckShape.square,
               options: const [
                 WotRadioOption(label: '方案 A', value: 'a', color: Colors.teal),
                 WotRadioOption(label: '方案 B', value: 'b'),
