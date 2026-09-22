@@ -29,7 +29,13 @@ class WotDialog {
     VoidCallback? onCancel,
     VoidCallback? onClose,
     Color? confirmColor,
+    Future<bool> Function()? beforeConfirm,
   }) async {
+    // 确认前拦截（D 类 P1）：返回 false 时取消本次弹窗，返回 false。
+    if (beforeConfirm != null) {
+      final pass = await beforeConfirm();
+      if (!pass || !context.mounted) return false;
+    }
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => WotDialogView(

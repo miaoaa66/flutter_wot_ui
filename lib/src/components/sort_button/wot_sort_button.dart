@@ -20,6 +20,8 @@ class WotSortButton extends StatefulWidget {
     this.color,
     this.activeColor,
     this.disabled = false,
+    this.allowReset = false,
+    this.descFirst = false,
   });
 
   final WotSortDirection modelValue;
@@ -28,6 +30,13 @@ class WotSortButton extends StatefulWidget {
   final Color? color;
   final Color? activeColor;
   final bool disabled;
+
+  /// 点击降序后是否允许再次点击重置回未排序（D 类 P1），默认 false
+  /// （循环为 none → 升序 → 降序 → 升序…）。
+  final bool allowReset;
+
+  /// 首次点击是否先降序（D 类 P1），默认 false（先升序）。
+  final bool descFirst;
 
   @override
   State<WotSortButton> createState() => _WotSortButtonState();
@@ -50,10 +59,15 @@ class _WotSortButtonState extends State<WotSortButton> {
 
   void _tap() {
     if (widget.disabled) return;
+    final descFirst = widget.descFirst;
     final next = switch (_dir) {
-      WotSortDirection.none => WotSortDirection.ascending,
-      WotSortDirection.ascending => WotSortDirection.descending,
-      WotSortDirection.descending => WotSortDirection.none,
+      // 首次点击方向由 descFirst 决定（D 类 P1）。
+      WotSortDirection.none => descFirst ? WotSortDirection.descending : WotSortDirection.ascending,
+      WotSortDirection.ascending => descFirst && widget.allowReset
+          ? WotSortDirection.none
+          : WotSortDirection.descending,
+      WotSortDirection.descending =>
+        widget.allowReset ? WotSortDirection.none : WotSortDirection.ascending,
     };
     setState(() => _dir = next);
     widget.onChange?.call(next);
