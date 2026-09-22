@@ -29,7 +29,12 @@ class WotSwiper extends StatefulWidget {
     this.height,
     this.onChange,
     this.children = const [],
-  });
+    this.itemCount,
+    this.itemBuilder,
+  }) : assert(
+          itemCount == null || itemBuilder != null,
+          'itemCount 必须与 itemBuilder 同时提供',
+        );
 
   /// 是否自动播放，默认 true（对齐 wot）。
   final bool autoplay;
@@ -58,8 +63,15 @@ class WotSwiper extends StatefulWidget {
   /// 页码变化回调，参数为当前页索引。
   final ValueChanged<int>? onChange;
 
-  /// 子项列表（每项对应一页，可为 [WotSwiperItem]）。
+  /// 子项列表（每项对应一页，可为 [WotSwiperItem]）；与 [itemBuilder] 二选一，
+  /// 同时提供时以 [itemBuilder] 为准。
   final List<Widget> children;
+
+  /// 数据驱动模式的页数；须与 [itemBuilder] 同时提供，提供后忽略 [children]。
+  final int? itemCount;
+
+  /// 数据驱动模式的页构建器：`(context, index) => Widget`，一般返回 [WotSwiperItem]。
+  final Widget Function(BuildContext, int)? itemBuilder;
 
   @override
   State<WotSwiper> createState() => _WotSwiperState();
@@ -76,10 +88,25 @@ class _WotSwiperState extends State<WotSwiper> with SingleTickerProviderStateMix
   /// PageView 的真实页索引（循环模式下会一直递增/递减）。
   int _raw = 0;
 
-  bool get _canLoop => widget.loop && widget.children.length > 1;
+  bool get _canLoop => widget.loop && _sourceCount > 1;
+
+  /// 数据驱动模式的页数；itemBuilder 未提供时回退 children。
+  int get _sourceCount {
+    if (widget.itemBuilder != null && widget.itemCount != null) {
+      return widget.itemCount!;
+    }
+    return widget.children.length;
+  }
+
+  /// 第 i 页内容（数据驱动模式经 itemBuilder 构建）。
+  Widget _sourceAt(BuildContext context, int i) {
+    final builder = widget.itemBuilder;
+    if (builder != null && widget.itemCount != null) return builder(context, i);
+    return widget.children[i];
+  }
 
   /// 子项数量；为空列表时至少按 1 计，避免取模除零。
-  int get _count => widget.children.isEmpty ? 1 : widget.children.length;
+  int get _count => _sourceCount == 0 ? 1 : _sourceCount;
 
   /// 对外暴露的逻辑页索引（0 .. count-1）。
   int get _realIndex => _canLoop ? _raw % _count : _raw;
@@ -123,7 +150,7 @@ class _WotSwiperState extends State<WotSwiper> with SingleTickerProviderStateMix
 
   void _startAutoPlay() {
     _timer?.cancel();
-    if (!widget.autoplay || widget.children.length < 2) return;
+    if (!widget.autoplay || _sourceCount < 2) return;
     _timer = Timer.periodic(Duration(milliseconds: widget.interval), (_) {
       if (!_controller.hasClients) return;
       // 循环模式下直接前进到下一页（索引无限增长），非循环模式到末尾即停。
@@ -153,7 +180,10 @@ class _WotSwiperState extends State<WotSwiper> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    final children = widget.children.isNotEmpty ? widget.children : [_emptySlot(context)];
+    final count = _sourceCount;
+    final children = count > 0
+        ? List.generate(count, (i) => _sourceAt(context, i))
+        : [_emptySlot(context)];
 
     return SizedBox(
       width: widget.width,
@@ -181,7 +211,7 @@ class _WotSwiperState extends State<WotSwiper> with SingleTickerProviderStateMix
     final indicators = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-          for (var i = 0; i < widget.children.length; i++)
+          for (var i = 0; i < _sourceCount; i++)
           AnimatedContainer(
             duration: Duration(milliseconds: widget.duration),
             width: i == _realIndex ? 18 : 6,

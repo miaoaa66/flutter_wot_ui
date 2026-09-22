@@ -884,7 +884,11 @@ flutter test             :: example 的 widget 测试
   count_down / sort_button / tag(dashed) / curtain / cell_group / dialog；
   剩余大件（fab 定位系 / swiper / skeleton / text / drop_menu / sidebar / keyboard /
   checkbox-radio 形态）转入 T5 评估排期
-- [ ] T3.5 builder 插槽体系化（cell / grid / picker / cascader / swiper）
+- [x] T3.5 builder 插槽体系化（cell / grid / picker / cascader / swiper）
+  —— cell: titleBuilder/valueBuilder；picker: optionBuilder 四层贯通
+  （Column→ViewColumn→View→弹层）；cascader: optionBuilder（行内容插槽，选中态
+  /下钻箭头仍由组件统一处理）；grid/swiper: itemCount + itemBuilder 数据驱动模式
+  （构造断言两者同时提供，提供后忽略 children）
 
 **Stage 4 质量保障**
 - [x] T4.1 Golden 测试 —— ✅ 已完成（2026-09-20 基线生成 + 2026-09-21 CI 实证）：

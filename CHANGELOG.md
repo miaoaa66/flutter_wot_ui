@@ -32,6 +32,14 @@ D 类 P1 缺失配置项批量补齐（T3.4，三批 13 个组件条目）+ a11y
 - **WotTag**：`WotTagVariant.dashed` 虚线边框（自绘 `_DashedRRectPainter`）。
 - **WotCurtain**：`src` 图片幕布 / `WotCurtainClosePosition`（inside/outside）。
 - **WotCellGroup**：`title`/`value` 标题区 + `WotCellGroupScope` 下发通道。
+- **builder 插槽体系化**（T3.5，五个组件）：
+  `WotCell.titleBuilder`/`valueBuilder`（富文本标题 / 高亮值，非空时优先于字符串参数；
+  valueBuilder 不参与省略号截断）、`WotPicker.optionBuilder`（四层贯通
+  Column→ViewColumn→View→弹层，选中药丸/放大/透明度仍由组件统一处理）、
+  `WotCascader.optionBuilder`（下钻列表行内容插槽，选中态/箭头由组件统一处理）、
+  `WotGrid.itemCount`+`itemBuilder`（数据驱动宫格，提供后忽略 children）、
+  `WotSwiper.itemCount`+`itemBuilder`（数据驱动轮播页，循环/指示点/自动播放
+  均按新计数工作）。
 - 测试基线：`test/a11y_baseline_test.dart`（7 组件语义断言）、`test/i18n_en_test.dart`
   （en_US 五层验证）、`test/switch_value_test.dart`（值域 + beforeChange 四用例）。
 

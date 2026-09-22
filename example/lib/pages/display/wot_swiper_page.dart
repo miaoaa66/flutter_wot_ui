@@ -160,6 +160,19 @@ class _WotSwiperPageState extends State<WotSwiperPage> {
                 ),
               ),
             ])),
+
+        demoSection('数据驱动（itemCount + itemBuilder）'),
+        demoBlock(
+          'itemBuilder(context, index) 从数据批量生成页面，'
+          '提供后忽略 children；适合轮播页数由接口数据决定的场景。',
+          SizedBox(
+            height: 120,
+            child: WotSwiper(
+              itemCount: 5,
+              itemBuilder: (context, index) =>
+                  WotSwiperItem(child: _slide(index, Colors.primaries[index % 18])),
+            ),
+          )),
       ],
     );
   }
