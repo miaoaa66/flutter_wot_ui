@@ -25,9 +25,9 @@ class WotToastPage extends StatelessWidget {
         demoSection('位置（position）'),
         demoBlock('top / center / bottom',
             Wrap(spacing: 8, runSpacing: 8, children: [
-              WotButton(text: '顶部', size: WotButtonSize.small, onClick: () => WotToast.text(context, '顶部提示', position: 'top')),
-              WotButton(text: '居中', size: WotButtonSize.small, onClick: () => WotToast.text(context, '居中提示', position: 'center')),
-              WotButton(text: '底部', size: WotButtonSize.small, onClick: () => WotToast.text(context, '底部提示', position: 'bottom')),
+              WotButton(text: '顶部', size: WotButtonSize.small, onClick: () => WotToast.text(context, '顶部提示', position: WotToastPosition.top)),
+              WotButton(text: '居中', size: WotButtonSize.small, onClick: () => WotToast.text(context, '居中提示', position: WotToastPosition.center)),
+              WotButton(text: '底部', size: WotButtonSize.small, onClick: () => WotToast.text(context, '底部提示', position: WotToastPosition.bottom)),
             ])),
         demoSection('自定义（show / icon / duration）'),
         demoBlock('自定义图标 + 时长',

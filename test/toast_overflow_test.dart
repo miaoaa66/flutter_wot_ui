@@ -26,7 +26,7 @@ void main() {
                       child: const Text('loading'),
                     ),
                     ElevatedButton(
-                      onPressed: () => WotToast.warning(ctx, '底部警告提示', position: 'bottom'),
+                      onPressed: () => WotToast.warning(ctx, '底部警告提示', position: WotToastPosition.bottom),
                       child: const Text('底部'),
                     ),
                   ],

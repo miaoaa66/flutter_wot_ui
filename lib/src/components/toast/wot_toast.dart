@@ -5,6 +5,9 @@ import 'package:flutter/material.dart';
 import '../../theme/wot_theme.dart';
 import '../loading/wot_loading.dart';
 
+/// toast 展示位置（T3.3 枚举化，对齐 wot `position`：top/center/bottom）。
+enum WotToastPosition { top, center, bottom }
+
 /// 轻提示内容类型。
 enum WotToastType { success, warning, error, loading, info }
 
@@ -25,7 +28,7 @@ class WotToast {
     BuildContext context, {
     required Widget child,
     Duration? duration = const Duration(milliseconds: 2000),
-    String position = 'center',
+    WotToastPosition position = WotToastPosition.center,
   }) {
     final overlay = _overlayOf(context);
     if (overlay == null) return;
@@ -52,13 +55,18 @@ class WotToast {
     _current = null;
   }
 
-  static void text(BuildContext context, String msg,
-      {Duration? duration, String position = 'center'}) {
+  static void text(
+    BuildContext context,
+    String msg, {
+    Duration? duration,
+    WotToastPosition position = WotToastPosition.center,
+  }) {
     _show(
-        context,
-        child: _ToastText(msg: msg),
-        duration: duration ?? const Duration(milliseconds: 2000),
-        position: position);
+      context,
+      child: _ToastText(msg: msg),
+      duration: duration ?? const Duration(milliseconds: 2000),
+      position: position,
+    );
   }
 
   /// 带图标状态 toast。
@@ -70,7 +78,7 @@ class WotToast {
     String msg, {
     WotToastType type = WotToastType.info,
     Duration? duration,
-    String position = 'center',
+    WotToastPosition position = WotToastPosition.center,
     IconData? icon,
   }) {
     _show(
@@ -82,42 +90,67 @@ class WotToast {
   }
 
   /// 成功提示。
-  static void success(BuildContext context, String msg,
-          {Duration? duration, String position = 'center'}) =>
-      show(context, msg,
-          type: WotToastType.success,
-          duration: duration,
-          position: position);
+  static void success(
+    BuildContext context,
+    String msg, {
+    Duration? duration,
+    WotToastPosition position = WotToastPosition.center,
+  }) => show(
+    context,
+    msg,
+    type: WotToastType.success,
+    duration: duration,
+    position: position,
+  );
 
   /// 失败提示。
-  static void error(BuildContext context, String msg,
-          {Duration? duration, String position = 'center'}) =>
-      show(context, msg,
-          type: WotToastType.error,
-          duration: duration,
-          position: position);
+  static void error(
+    BuildContext context,
+    String msg, {
+    Duration? duration,
+    WotToastPosition position = WotToastPosition.center,
+  }) => show(
+    context,
+    msg,
+    type: WotToastType.error,
+    duration: duration,
+    position: position,
+  );
 
   /// 警告提示。
-  static void warning(BuildContext context, String msg,
-          {Duration? duration, String position = 'center'}) =>
-      show(context, msg,
-          type: WotToastType.warning,
-          duration: duration,
-          position: position);
+  static void warning(
+    BuildContext context,
+    String msg, {
+    Duration? duration,
+    WotToastPosition position = WotToastPosition.center,
+  }) => show(
+    context,
+    msg,
+    type: WotToastType.warning,
+    duration: duration,
+    position: position,
+  );
 
   /// 常规提示（info 语义）。
-  static void info(BuildContext context, String msg,
-          {Duration? duration, String position = 'center'}) =>
-      show(context, msg, duration: duration, position: position);
+  static void info(
+    BuildContext context,
+    String msg, {
+    Duration? duration,
+    WotToastPosition position = WotToastPosition.center,
+  }) => show(context, msg, duration: duration, position: position);
 
   /// 加载中（不自动关闭，须显式调用 [close]）。
-  static void loading(BuildContext context, String msg,
-      {String position = 'center'}) {
+  static void loading(
+    BuildContext context,
+    String msg, {
+    WotToastPosition position = WotToastPosition.center,
+  }) {
     _show(
-        context,
-        child: _ToastIcon(type: WotToastType.loading, msg: msg),
-        duration: null,
-        position: position);
+      context,
+      child: _ToastIcon(type: WotToastType.loading, msg: msg),
+      duration: null,
+      position: position,
+    );
   }
 
   /// 关闭当前 toast（wot `close` 语义别名）。
@@ -132,9 +165,12 @@ class WotToast {
 }
 
 class _ToastOverlay extends StatelessWidget {
-  const _ToastOverlay({required this.child, this.position = 'center'});
+  const _ToastOverlay({
+    required this.child,
+    this.position = WotToastPosition.center,
+  });
   final Widget child;
-  final String position;
+  final WotToastPosition position;
 
   @override
   Widget build(BuildContext context) {
@@ -143,25 +179,23 @@ class _ToastOverlay extends StatelessWidget {
       left: 0,
       right: 0,
       bottom: 0,
-      child: IgnorePointer(
-        child: _positioned(child),
-      ),
+      child: IgnorePointer(child: _positioned(child)),
     );
   }
 
   Widget _positioned(Widget child) {
     switch (position) {
-      case 'top':
+      case WotToastPosition.top:
         return Padding(
           padding: const EdgeInsets.only(top: 80),
           child: Align(alignment: Alignment.topCenter, child: child),
         );
-      case 'bottom':
+      case WotToastPosition.bottom:
         return Padding(
           padding: const EdgeInsets.only(bottom: 100),
           child: Align(alignment: Alignment.bottomCenter, child: child),
         );
-      default:
+      case WotToastPosition.center:
         return Align(alignment: Alignment.center, child: child);
     }
   }
@@ -180,7 +214,10 @@ class _ToastText extends StatelessWidget {
         color: scheme.opacTooltipToastCover,
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(msg, style: const TextStyle(color: Colors.white, fontSize: 14)),
+      child: Text(
+        msg,
+        style: const TextStyle(color: Colors.white, fontSize: 14),
+      ),
     );
   }
 }
@@ -232,10 +269,10 @@ class _ToastIcon extends StatelessWidget {
   }
 
   IconData _iconOf(WotToastType t) => switch (t) {
-        WotToastType.success => Icons.check_circle,
-        WotToastType.warning => Icons.error_outline,
-        WotToastType.error => Icons.cancel,
-        WotToastType.info => Icons.info_outline,
-        WotToastType.loading => Icons.autorenew,
-      };
+    WotToastType.success => Icons.check_circle,
+    WotToastType.warning => Icons.error_outline,
+    WotToastType.error => Icons.cancel,
+    WotToastType.info => Icons.info_outline,
+    WotToastType.loading => Icons.autorenew,
+  };
 }
