@@ -821,7 +821,11 @@ flutter test             :: example 的 widget 测试
 标记：`[ ]` 未开始　`[~]` 进行中　`[x]` 完成（附日期）　`[!]` 阻塞
 
 **Stage 1 无障碍**
-- [ ] T1.1 建 `test/a11y_baseline_test.dart` 输出语义节点基线表（必须有数字）
+- [x] T1.1 建 `test/a11y_baseline_test.dart` 输出语义节点基线表 —— ✅ 已完成（2026-09-21 落地，
+  经六轮校准 2026-09-22 全绿确认）：7 个核心交互组件语义断言（button tap 动作 / checkbox-radio-switch
+  checked / slider increase-decrease / input-search isTextField）。**断言分层**：自建 Semantics 用
+  flagsCollection 字段（isChecked 等），框架内建（InkWell/EditableText）走 SemanticsData 快照。
+  语义被删 / 降级 / 角色变化时对应用例变红，守护体系与 golden 同构
 - [x] T1.2 交互类第一批 —— ✅ 已完成（2026-09-20）：`checkbox` / `radio` / `switch` / `slider` 四个
   **自绘裸 GestureDetector** 组件补齐 Semantics（`checked` / `slider` / `value` / `increasedValue` /
   `decreasedValue` / `onIncrease` / `onDecrease` / `enabled` / `onTap`；radio 组内加 `inMutuallyExclusiveGroup`），
