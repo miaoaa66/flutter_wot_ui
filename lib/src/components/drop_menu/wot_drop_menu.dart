@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
 
+/// 下拉菜单展开方向。
+enum WotDropMenuDirection { down, up }
+
 /// 下拉菜单，对应 wot `wd-drop-menu`。
 ///
 /// 顶部菜单项，点击下弹出对应的 [WotDropMenu] 高度内容面板；支持遮罩关闭。
@@ -11,7 +14,7 @@ class WotDropMenu extends StatefulWidget {
     this.menuBarHeight = 40,
     this.activeColor,
     this.duration = const Duration(milliseconds: 200),
-    this.direction = 'down',
+    this.direction = WotDropMenuDirection.down,
     this.closeOnClickOverlay = true,
     required this.menus,
   });
@@ -25,8 +28,9 @@ class WotDropMenu extends StatefulWidget {
   /// 展开/收起动画时长，默认 200ms。
   final Duration duration;
 
-  /// 菜单展开方向：'down' 向下 / 'up' 向上，默认 'down'。
-  final String direction;
+  /// 菜单展开方向：[WotDropMenuDirection.down] 面板在菜单栏下方（默认）/
+  /// [WotDropMenuDirection.up] 面板在菜单栏上方，默认 down。
+  final WotDropMenuDirection direction;
 
   /// 点击遮罩是否关闭菜单；默认 true。
   final bool closeOnClickOverlay;
@@ -127,50 +131,60 @@ class _WotDropMenuState extends State<WotDropMenu> {
       for (final m in menus) if (m is WotDropMenuItem) _titleOf(m),
     ];
 
+    final menuBar = Container(
+      height: widget.menuBarHeight,
+      decoration: BoxDecoration(
+        color: scheme.filledOppo,
+        border: Border(bottom: BorderSide(color: scheme.borderLight, width: 0.5)),
+      ),
+      child: Row(
+        children: [
+          for (var i = 0; i < menus.length; i++)
+            Expanded(
+              child: InkWell(
+                onTap: () => _toggle(i),
+                child: Center(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        i < titles.length ? titles[i] : '',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: _open == i ? active : scheme.textMain,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        _open == i ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                        size: 16,
+                        color: _open == i ? active : scheme.iconAuxiliary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+
+    // 展开区（无展开时为 0 高度占位，由 AnimatedSize 驱动展开/收起动画）。
+    final panel = AnimatedSize(
+      duration: widget.duration,
+      curve: Curves.ease,
+      child: (_open != null && _open! < menus.length)
+          ? _buildPanel(context, menus[_open!], _open!)
+          : const SizedBox.shrink(),
+    );
+
+    // up 方向面板在菜单栏上方，down 方向在下方。
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 菜单栏。
-        Container(
-          height: widget.menuBarHeight,
-          decoration: BoxDecoration(
-            color: scheme.filledOppo,
-            border: Border(bottom: BorderSide(color: scheme.borderLight, width: 0.5)),
-          ),
-          child: Row(
-            children: [
-              for (var i = 0; i < menus.length; i++)
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _toggle(i),
-                    child: Center(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            i < titles.length ? titles[i] : '',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: _open == i ? active : scheme.textMain,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Icon(
-                            _open == i ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-                            size: 16,
-                            color: _open == i ? active : scheme.iconAuxiliary,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-        // 展开区。
-        if (_open != null && _open! < menus.length)
-          _buildPanel(context, menus[_open!], _open!),
+        if (widget.direction == WotDropMenuDirection.up) panel,
+        menuBar,
+        if (widget.direction == WotDropMenuDirection.down) panel,
       ],
     );
   }

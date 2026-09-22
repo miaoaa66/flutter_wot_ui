@@ -60,7 +60,8 @@
 
 **另有 2 处"参数名不副实"**（非 bug，属文档误导，建议标注）：
 - `wot_img_cropper` 的 `outputType=jpg` 与 `quality`：`:335-341` 代码注释已说明 Flutter 原生 `toByteData` 仅支持 PNG，故恒输出 PNG。建议加 `@Deprecated` 或在文档注明。
-- `wot_drop_menu` 的 `closeOnClickOverlay` 与 `duration`：均无对应实现（无蒙层、无动画）。
+- `wot_drop_menu` 的 `closeOnClickOverlay`：无蒙层实现，点击外部不关闭（蒙层属 T5 大件，见 D 类表）。
+  ~~`duration` 无对应实现~~ **已修复（2026-09-23）**：接入 `AnimatedSize` 展开/收起动画。
 
 ---
 
@@ -874,11 +875,16 @@ flutter test             :: example 的 widget 测试
   规范落于 `lib/src/theme/wot_state.dart`，覆盖 **16 个组件 + 19 个示例页**，详见第十一节（2026-09-20）
 - [x] T3.2 checkbox / radio 接入 Form 值登记 —— ✅ 已完成（2026-09-20）：修掉 **4 个死参数**
   （`WotCheckbox.name` / `WotCheckboxGroup.name` / `WotRadio.name` / `WotRadioGroup.name`），示例页已补演示
-- [x] T3.3 外观参数枚举化 —— ✅ 已完成（2026-09-22，六批）：tabs.type / toast.position /
-  checkbox·radio.shape / tooltip·popover.trigger / segmented.shape / search.shape /
-  select_picker.type 共 7 参数迁移为共用枚举（WotTabsType / WotToastPosition /
-  WotCheckShape / WotTriggerMode / WotSegmentedShape / WotSearchShape /
-  WotSelectPickerType），BREAKING 迁移对照见 CHANGELOG；input/upload.type 待评估
+- [x] T3.3 外观参数枚举化 —— ✅ 已完成（2026-09-22 六批 + 2026-09-23 扫尾批）：
+  tabs.type / toast.position / checkbox·radio.shape / tooltip·popover.trigger /
+  segmented.shape / search.shape / select_picker.type 共 7 参数 + 扫尾批
+  segmented.size（WotSegmentedSize）与 drop_menu.direction（WotDropMenuDirection，
+  **死参数转正：up 时面板渲染在菜单栏上方，duration 同步接入 AnimatedSize 展开/
+  收起动画**）迁移为枚举，BREAKING 迁移对照见 CHANGELOG。
+  input/upload.type **评估结论（2026-09-23）**：均有消费非死参数——
+  `WotInput.type` 经 `_keyboardTypeOf` 映射 TextInputType（保留 String，对齐 wot
+  传参协议；T5 再评估与 number/password 布尔的统一设计）；`upload.type` 是
+  `WotUploadFile` 模型字段（MIME/扩展名，作上传 contentType），非组件外观参数。
 - [x] T3.4 D 类 P1 补齐 —— ✅ 已完成（2026-09-22，三批 13 个组件条目，D 类 P1 表已
   逐条勾选）：switch / badge / cell / notify / count_to / qr_code / img / fab /
   count_down / sort_button / tag(dashed) / curtain / cell_group / dialog；

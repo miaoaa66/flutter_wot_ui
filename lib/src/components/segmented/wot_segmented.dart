@@ -27,6 +27,9 @@ class WotSegmentedOption {
   final String? icon;
 }
 
+/// 分段控制器尺寸。
+enum WotSegmentedSize { small, medium, large }
+
 /// 分段控制器，对应 wot `wd-segmented`。
 ///
 /// 受控（v-model:value）：通过 [modelValue]/[onChange] 匹配 [WotSegmentedOption.value]。
@@ -39,7 +42,7 @@ class WotSegmented extends StatelessWidget {
     this.block = false,
     this.activeColor,
     this.shape = WotSegmentedShape.pill,
-    this.size = 'medium',
+    this.size = WotSegmentedSize.medium,
   });
 
   /// 当前选中的值（受控）。
@@ -60,8 +63,8 @@ class WotSegmented extends StatelessWidget {
   /// 形状：pill（胶囊）/round（圆角）/square（方形）。
   final WotSegmentedShape shape;
 
-  /// 尺寸：small/medium/large。
-  final String size;
+  /// 尺寸，默认 medium。
+  final WotSegmentedSize size;
 
   @override
   Widget build(BuildContext context) {
@@ -73,14 +76,14 @@ class WotSegmented extends StatelessWidget {
       WotSegmentedShape.pill => BorderRadius.circular(22),
     };
     final vPadding = switch (size) {
-      'small' => 4.0,
-      'large' => 10.0,
-      _ => 7.0,
+      WotSegmentedSize.small => 4.0,
+      WotSegmentedSize.large => 10.0,
+      WotSegmentedSize.medium => 7.0,
     };
     final fontSize = switch (size) {
-      'small' => 12.0,
-      'large' => 16.0,
-      _ => 14.0,
+      WotSegmentedSize.small => 12.0,
+      WotSegmentedSize.large => 16.0,
+      WotSegmentedSize.medium => 14.0,
     };
 
     final row = Row(
