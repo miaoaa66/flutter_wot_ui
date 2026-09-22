@@ -70,6 +70,7 @@ class WotFab extends StatefulWidget {
     this.safeArea = false,
     this.closeOnClickOverlay = false,
     this.status = false,
+    this.disabled = false,
   });
 
   /// 是否展示（v-model:value / modelValue）。
@@ -129,6 +130,10 @@ class WotFab extends StatefulWidget {
   /// 是否在主按钮右上角显示红色状态小圆点，默认 false。
   final bool status;
 
+  /// 是否禁用（D 类 P1，对齐 wot `disabled`）：主按钮与动作列表均不可点，
+  /// 整体半透明灰化。默认 false。
+  final bool disabled;
+
   @override
   State<WotFab> createState() => _WotFabState();
 }
@@ -152,6 +157,7 @@ class _WotFabState extends State<WotFab> {
 
   /// 切换展开/收起。
   void _toggle() {
+    if (widget.disabled) return;
     if (!_hasActions) {
       // 无动作菜单时仅触发点击回调。
       widget.onClick?.call();
@@ -253,7 +259,7 @@ class _WotFabState extends State<WotFab> {
       child: InkWell(
         // 圆角统一用 StadiumBorder，保证点击水波与形状一致。
         customBorder: hasText ? const StadiumBorder() : const CircleBorder(),
-        onTap: _toggle,
+        onTap: widget.disabled ? null : _toggle,
         child: ConstrainedBox(
           constraints: hasText ? const BoxConstraints(minHeight: 48) : const BoxConstraints(minWidth: 48, minHeight: 48),
           child: Padding(
@@ -299,6 +305,10 @@ class _WotFabState extends State<WotFab> {
         ],
       );
     }
+    // 禁用灰化（D 类 P1）：主按钮整体半透明。
+    if (widget.disabled) {
+      button = Opacity(opacity: 0.5, child: button);
+    }
     return button;
   }
 
@@ -333,14 +343,18 @@ class _WotFabState extends State<WotFab> {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      // 无障碍：动作按钮补 button 角色 + 点按动作（遮罩收起按惯例不进语义树）。
+      // 无障碍：动作按钮补 button 角色 + 点按动作（遮罩收起按惯例不进语义树）；
+      // disabled 时整体禁用（不注册动作）。
       child: Semantics(
-        button: true,
-        onTap: a.onClick,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: a.onClick,
-          child: circle,
+        button: !widget.disabled,
+        onTap: widget.disabled ? null : a.onClick,
+        child: Opacity(
+          opacity: widget.disabled ? 0.5 : 1,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.disabled ? null : a.onClick,
+            child: circle,
+          ),
         ),
       ),
     );
