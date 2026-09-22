@@ -261,13 +261,29 @@ class _WotGridPageState extends State<WotGridPage> {
         demoBlock(
           'reverse 与「外部手动 .reversed.toList()」的区别：'
           'reverse 由 WotGrid 内部处理，children 动态变化时不会与外部受控状态打架。',
+              WotGrid(
+                columnNum: 3,
+                reverse: true,
+                children: [
+                  for (var i = 1; i <= 6; i++)
+                    WotGridItem(text: '第 $i 项', onClick: () {}),
+                ],
+              ),
+        ),
+
+        demoSection('数据驱动（itemCount + itemBuilder）'),
+        demoBlock(
+          'itemBuilder(context, index) 从数据批量生成宫格项，'
+          '提供后忽略 children；适合列表长度由接口数据决定的场景。',
           WotGrid(
-            columnNum: 3,
-            reverse: true,
-            children: [
-              for (var i = 1; i <= 6; i++)
-                WotGridItem(text: '第 $i 项', onClick: () {}),
-            ],
+            columnNum: 4,
+            itemCount: 8,
+            itemBuilder: (context, index) => WotGridItem(
+              iconName: 'star',
+              text: '数据 $index',
+              badge: index == 0 ? 6 : null,
+              onClick: () {},
+            ),
           ),
         ),
       ],
