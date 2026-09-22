@@ -864,7 +864,10 @@ flutter test             :: example 的 widget 测试
   ⏳ 遗留：`tour`（show 的 4 个按钮文案参数默认值）、`upload`（addText 构造默认值）、
   `select_picker`（placeholder / emptyText 构造默认值）需**参数/字段可空化**（同 calendar 模式，API 放宽）；
   `form` 的「$label校验未通过」为带参数拼接，需 tr() 支持占位符。
-- [ ] T2.4 提供 en_US 包并验证
+- [x] T2.4 提供 en_US 包并验证 —— ✅ 已完成（2026-09-22）：en 表内置（48 key × 2 语言，
+  T2.2 / T2.3 / 批次 6 累计接入），`test/i18n_en_test.dart` 五层全链路验证（locale 取值 /
+  占位符替换 / normalize 别名归一 / 自定义语言包优先级 / 组件级语言切换）+12 全绿，
+  进 CI 长期守护语言表
 
 **Stage 3 组件能力**
 - [x] T3.1 disabled / readonly / error 三态语义规范 + 试点（input / cell / form_item）—— ✅ 已完成并**超额推广**：
