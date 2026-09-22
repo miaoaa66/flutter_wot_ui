@@ -79,6 +79,7 @@ class WotPickerColumn extends StatefulWidget {
     required this.options,
     required this.selectedIndex,
     this.onChange,
+    this.optionBuilder,
     double? height,
     this.itemExtent = 40,
     this.visibleItemCount = 5,
@@ -89,6 +90,11 @@ class WotPickerColumn extends StatefulWidget {
   final List<WotColumnOption> options;
   final int selectedIndex;
   final ValueChanged<int>? onChange;
+
+  /// 选项自定义渲染插槽（T3.5 builder 插槽）：非空时优先于默认文本渲染。
+  /// 入参为选项数据与选中态；选中药丸背景、放大与透明度仍由组件统一处理。
+  final Widget? Function(BuildContext context, WotColumnOption option, bool selected)?
+      optionBuilder;
   final double height;
   final double itemExtent;
 
@@ -198,35 +204,38 @@ class _WotPickerColumnState extends State<WotPickerColumn> {
             magnification: 1.1,
             overAndUnderCenterOpacity: 0.4,
             children: [
-              for (final o in widget.options)
+              for (var i = 0; i < widget.options.length; i++)
                 Center(
                   child: Container(
                     height: widget.itemExtent,
                     alignment: Alignment.center,
                     padding: const EdgeInsets.symmetric(horizontal: 4),
-                    decoration: iIsSelected(widget.options.indexOf(o))
+                    decoration: iIsSelected(i)
                         ? BoxDecoration(
                             // 选中项药丸背景与文字同框，保证高亮与文字天然对齐。
                             color: highlight.withValues(alpha: 0.14),
                             borderRadius: BorderRadius.circular(8),
                           )
                         : null,
-                    child: Text(
-                      o.text,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: iIsSelected(widget.options.indexOf(o))
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                        color: o.disabled
-                            ? scheme.textDisabled
-                            : (iIsSelected(widget.options.indexOf(o))
-                                ? highlight
-                                : scheme.textAuxiliary),
-                      ),
-                    ),
+                    child: widget.optionBuilder != null
+                        ? widget.optionBuilder!(
+                            context, widget.options[i], iIsSelected(i))
+                        : Text(
+                            widget.options[i].text,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: iIsSelected(i)
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: widget.options[i].disabled
+                                  ? scheme.textDisabled
+                                  : (iIsSelected(i)
+                                      ? highlight
+                                      : scheme.textAuxiliary),
+                            ),
+                          ),
                   ),
                 ),
             ],
@@ -267,6 +276,7 @@ class WotPickerViewColumn extends StatelessWidget {
     required this.options,
     required this.value,
     required this.onChange,
+    this.optionBuilder,
     this.color,
     double? height,
     this.itemExtent = 40,
@@ -278,6 +288,10 @@ class WotPickerViewColumn extends StatelessWidget {
   final List<WotColumnOption> options;
   final Object? value;
   final ValueChanged<Object?> onChange;
+
+  /// 选项自定义渲染插槽（T3.5），透传给底层 [WotPickerColumn]。
+  final Widget? Function(BuildContext context, WotColumnOption option, bool selected)?
+      optionBuilder;
   final Color? color;
   final double height;
   final double itemExtent;
@@ -307,6 +321,7 @@ class WotPickerViewColumn extends StatelessWidget {
               itemExtent: itemExtent,
               visibleItemCount: visibleItemCount,
               color: color,
+              optionBuilder: optionBuilder,
               disabled: disabled || loading,
               onChange: (i) {
                 if (i >= 0 && i < options.length) onChange(options[i].value!);
@@ -339,6 +354,7 @@ class WotPickerView extends StatelessWidget {
     required this.values,
     required this.onChange,
     this.color,
+    this.optionBuilder,
     double? height,
     this.itemExtent = 40,
     this.visibleItemCount = 5,
@@ -375,6 +391,10 @@ class WotPickerView extends StatelessWidget {
   /// 是否显示加载中状态（覆盖加载动画并禁用交互）。
   final bool loading;
 
+  /// 选项自定义渲染插槽（T3.5），透传给每列的 [WotPickerColumn]。
+  final Widget? Function(BuildContext context, WotColumnOption option, bool selected)?
+      optionBuilder;
+
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -390,6 +410,7 @@ class WotPickerView extends StatelessWidget {
               visibleItemCount: visibleItemCount,
               disabled: disabled,
               loading: loading,
+              optionBuilder: optionBuilder,
               onChange: (v) {
                 final next = [...values];
                 while (next.length <= c) {

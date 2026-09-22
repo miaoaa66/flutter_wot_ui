@@ -25,6 +25,7 @@ class WotPicker extends StatefulWidget {
     this.readonly = false,
     this.loading = false,
     this.showCancel = true,
+    this.optionBuilder,
   });
 
   /// 每列的选项列表（二维数组）。
@@ -65,6 +66,10 @@ class WotPicker extends StatefulWidget {
 
   /// 是否显示左侧取消按钮；默认 true。
   final bool showCancel;
+
+  /// 选项自定义渲染插槽（T3.5），透传给内部 [WotPickerView]。
+  final Widget? Function(BuildContext context, WotColumnOption option, bool selected)?
+      optionBuilder;
 
   /// 命令式弹出并返回选中值列表；取消返回 null。
   static Future<List<Object?>?> show(
@@ -206,6 +211,7 @@ class _WotPickerState extends State<WotPicker> {
             disabled: locked,
             loading: widget.loading,
             onChange: (v) => setState(() => _values = v),
+            optionBuilder: widget.optionBuilder,
           ),
         ),
         Container(height: MediaQuery.of(context).padding.bottom, color: scheme.filledContent),
