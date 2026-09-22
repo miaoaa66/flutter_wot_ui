@@ -70,7 +70,7 @@ class _WotTabsPageState extends State<WotTabsPage>
               child: WotTabs(
                 modelValue: _index,
                 onChange: (i) => setState(() => _index = i),
-                type: 'card',
+                type: WotTabsType.card,
                 children: [
                   for (var i = 0; i < 5; i++)
                     WotTab(title: '选项${i + 1}', width: 80, child: _panel(context, '内容${i + 1}')),

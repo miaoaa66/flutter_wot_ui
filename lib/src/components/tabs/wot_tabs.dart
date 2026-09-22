@@ -98,9 +98,12 @@ class WotTab extends StatelessWidget {
   Widget build(BuildContext context) => child;
 }
 
+/// 标签页样式（T3.3 枚举化，对齐 wot `type`：line/card）。
+enum WotTabsType { line, card }
+
 /// 标签页组件，对应 wot `wd-tabs`。
 ///
-/// 支持 `type`（line/card）、`grow`（均分）、颜色与指示器样式参数。
+/// 支持 [WotTabsType]（line/card）、`grow`（均分）、颜色与指示器样式参数。
 /// 通过 [modelValue]/[onChange] 受控（v-model，索引）。
 ///
 /// 也可注入 Flutter 标准 [controller]（[TabController]）以接入
@@ -115,7 +118,7 @@ class WotTabs extends StatefulWidget {
     this.onClick,
     this.onDisabled,
     this.onPageChanged,
-    this.type = 'line',
+    this.type = WotTabsType.line,
     this.color,
     this.inactiveColor,
     this.activeColor,
@@ -149,7 +152,7 @@ class WotTabs extends StatefulWidget {
   final ValueChanged<int>? onPageChanged;
 
   /// Tabs 样式：line（下划线）/ card（卡片式高亮）。
-  final String type;
+  final WotTabsType type;
 
   /// 主色（指示器/激活色基底）。
   final Color? color;
@@ -378,7 +381,7 @@ class _WotTabsState extends State<WotTabs> {
 
   Widget _buildHeader(WotScheme scheme, Color activeColor, Color inactiveColor,
       Color primary, int count) {
-    final isCard = widget.type == 'card';
+    final isCard = widget.type == WotTabsType.card;
 
     return LayoutBuilder(
       builder: (context, constraints) {
