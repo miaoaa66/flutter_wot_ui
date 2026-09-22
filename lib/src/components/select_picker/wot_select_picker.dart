@@ -10,6 +10,9 @@ import '../empty/wot_empty.dart';
 import '../icon/wot_icon.dart';
 import '../search/wot_search.dart';
 
+/// 选择器选择模式（T3.3 枚举化）：checkbox 多选 / radio 单选。
+enum WotSelectPickerType { checkbox, radio }
+
 /// 列表选择器选项，对应 wot `wd-select-picker` 的选项。
 ///
 /// 既可用本结构体，也可直接传 `String` 或 `Map`（配合 [WotSelectPicker.valueKey]
@@ -44,7 +47,7 @@ class WotSelectPicker extends StatefulWidget {
   const WotSelectPicker({
     super.key,
     this.columns = const [],
-    this.type = 'checkbox',
+    this.type = WotSelectPickerType.checkbox,
     this.modelValue,
     this.modelVisible,
     this.onChange,
@@ -76,7 +79,7 @@ class WotSelectPicker extends StatefulWidget {
   final List<Object> columns;
 
   /// 选择类型：`radio`（单选）或 `checkbox`（多选，默认，对齐 wot）。
-  final String type;
+  final WotSelectPickerType type;
 
   /// 当前选中值（受控 v-model）。radio 存单个值；checkbox 存 `List<Object?>`。
   final Object? modelValue;
@@ -203,7 +206,7 @@ class WotSelectPicker extends StatefulWidget {
   static Future<T?> show<T>(
     BuildContext context, {
     List<Object> columns = const [],
-    String type = 'checkbox',
+    WotSelectPickerType type = WotSelectPickerType.checkbox,
     Object? initialValue,
     String? title,
     bool filterable = false,
@@ -287,7 +290,7 @@ class _WotSelectPickerState extends State<WotSelectPicker> {
   }
 
   void _clear() {
-    final empty = widget.type == 'checkbox' ? <Object?>[] : null;
+    final empty = widget.type == WotSelectPickerType.checkbox ? <Object?>[] : null;
     widget.onConfirm?.call(empty);
     widget.onChange?.call(empty);
   }
@@ -395,7 +398,7 @@ class _WotSelectPickerSheet extends StatefulWidget {
   });
 
   final List<Object> columns;
-  final String type;
+  final WotSelectPickerType type;
   final Object? initialValue;
   final String? title;
   final bool filterable;
@@ -453,7 +456,7 @@ class _WotSelectPickerSheetState extends State<_WotSelectPickerSheet> {
     ];
   }
 
-  bool get _isCheckbox => widget.type == 'checkbox';
+  bool get _isCheckbox => widget.type == WotSelectPickerType.checkbox;
 
   List<Object?> get _checkedList => (_value is List) ? (_value! as List<Object?>) : [];
 

@@ -5,6 +5,9 @@ import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
 
+/// 搜索框形状（T3.3 枚举化）：round（胶囊，默认）/ square。
+enum WotSearchShape { round, square }
+
 /// 搜索框，对应 wot `wd-search`。
 class WotSearch extends StatefulWidget {
   const WotSearch({
@@ -20,7 +23,7 @@ class WotSearch extends StatefulWidget {
     this.readonly = false,
     this.error = false,
     this.clearable = true,
-    this.shape = 'round',
+    this.shape = WotSearchShape.round,
     this.background,
     this.showAction = false,
     this.actionText,
@@ -64,7 +67,7 @@ class WotSearch extends StatefulWidget {
   final bool clearable;
 
   /// 形状：round（胶囊/圆角）/square，默认 round。
-  final String shape;
+  final WotSearchShape shape;
 
   /// 背景颜色，默认使用主题填充色。
   final Color? background;
@@ -135,7 +138,7 @@ class _WotSearchState extends State<WotSearch> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
-    final radius = widget.shape == 'round'
+    final radius = widget.shape == WotSearchShape.round
         ? const BorderRadius.all(Radius.circular(18))
         : const BorderRadius.all(Radius.circular(6));
 

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
 
+/// 分段控制器形状（T3.3 枚举化）。
+enum WotSegmentedShape { pill, square, round }
+
 /// 分段选项。
 class WotSegmentedOption {
   const WotSegmentedOption({
@@ -35,7 +38,7 @@ class WotSegmented extends StatelessWidget {
     this.options = const [],
     this.block = false,
     this.activeColor,
-    this.shape = 'pill',
+    this.shape = WotSegmentedShape.pill,
     this.size = 'medium',
   });
 
@@ -55,7 +58,7 @@ class WotSegmented extends StatelessWidget {
   final Color? activeColor;
 
   /// 形状：pill（胶囊）/round（圆角）/square（方形）。
-  final String shape;
+  final WotSegmentedShape shape;
 
   /// 尺寸：small/medium/large。
   final String size;
@@ -65,9 +68,9 @@ class WotSegmented extends StatelessWidget {
     final scheme = context.wotScheme;
     final active = activeColor ?? scheme.primaryOf(6);
     final radius = switch (shape) {
-      'square' => BorderRadius.zero,
-      'round' => BorderRadius.circular(4),
-      _ => BorderRadius.circular(22),
+      WotSegmentedShape.square => BorderRadius.zero,
+      WotSegmentedShape.round => BorderRadius.circular(4),
+      WotSegmentedShape.pill => BorderRadius.circular(22),
     };
     final vPadding = switch (size) {
       'small' => 4.0,

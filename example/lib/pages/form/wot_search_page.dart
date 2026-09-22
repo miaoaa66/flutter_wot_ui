@@ -29,7 +29,7 @@ class _WotSearchPageState extends State<WotSearchPage> {
             WotSearch(modelValue: _v1, onChange: (v) => setState(() => _v1 = v))),
         demoBlock('预设值', WotSearch(modelValue: _v3, onChange: (v) => setState(() => _v3 = v))),
         demoSection('形状与清除'),
-        demoBlock('shape=round 胶囊', WotSearch(modelValue: _v1, onChange: (v) => setState(() => _v1 = v), shape: 'round')),
+        demoBlock('shape=round 胶囊', WotSearch(modelValue: _v1, onChange: (v) => setState(() => _v1 = v), shape: WotSearchShape.round)),
         demoSection('action 按钮（showAction / actionText）'),
         demoBlock(
             'showAction + onSearch',
