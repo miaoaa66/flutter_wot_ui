@@ -58,6 +58,27 @@ class _WotSwitchPageState extends State<WotSwitchPage> {
             Row(children: [
               const Expanded(child: Text('确认切换')), WotSwitch(modelValue: _on2, loading: _loading, onChange: (v) {}),
             ])),
+        demoSection('新增（D 类 P1）：自定义值域 / beforeChange'),
+        demoBlock(
+            '1/0 后端协议（activeValue / inactiveValue）',
+            Row(children: [
+              const Expanded(child: Text('协议开关')),
+              WotSwitch<String>(
+                  modelValue: _on1 ? '1' : '0',
+                  activeValue: '1',
+                  inactiveValue: '0',
+                  onChange: (v) => setState(() => _on1 = v == '1')),
+            ])),
+        demoBlock(
+            'beforeChange 二次确认（弹窗确认后才切换）',
+            Row(children: [
+              const Expanded(child: Text('确认切换')),
+              WotSwitch<bool>(
+                  modelValue: _on1,
+                  beforeChange: (v) async =>
+                      await WotDialog.confirm(context, message: v ? '确认开启？' : '确认关闭？'),
+                  onChange: (v) => setState(() => _on1 = v)),
+            ])),
       ],
     );
   }

@@ -30,6 +30,26 @@ class WotNotifyPage extends StatelessWidget {
                 onClick: () => WotNotify.show(context, message: '3 秒后关闭', type: WotNotifyType.info, onClose: () => demoToast(context, 'onClose 已触发')),
               ),
             ])),
+        demoSection('新增（D 类 P1）：closable / position / onClick / onClosed'),
+        demoBlock(
+            'closable 关闭按钮 + onClick 点击回调',
+            FilledButton(
+                onPressed: () => WotNotify.show(context,
+                    message: '点击右侧 × 可关闭，点条体触发 onClick',
+                    type: WotNotifyType.primary,
+                    closable: true,
+                    onClick: () => WotNotify.show(context,
+                        message: '通知条被点击了', type: WotNotifyType.success)),
+                child: const Text('可关闭通知'))),
+        demoBlock(
+            'position 底部显示',
+            FilledButton.tonal(
+                onPressed: () => WotNotify.show(context,
+                    message: '底部通知（关闭后触发 onClosed）',
+                    type: WotNotifyType.warning,
+                    position: WotNotifyPosition.bottom,
+                    onClosed: () {}),
+                child: const Text('底部通知'))),
       ],
     );
   }

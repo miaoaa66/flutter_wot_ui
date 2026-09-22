@@ -163,6 +163,10 @@ class _WotCountToPageState extends State<WotCountToPage> {
             ],
           ),
         ),
+        demoSection('新增（D 类 P1）：startVal 起始数值'),
+        demoBlock('从 1000 滚动到 9999（startVal）',
+            WotCountTo(modelValue: 9999, startVal: 1000, duration: const Duration(milliseconds: 2500))),
+        demoBlock('startVal + decimals 小数', WotCountTo(modelValue: 99.5, startVal: 20, decimals: 1, duration: const Duration(milliseconds: 2000))),
       ],
     );
   }

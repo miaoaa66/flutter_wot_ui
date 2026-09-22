@@ -53,6 +53,27 @@ class WotCellPage extends StatelessWidget {
         demoBlock(
             '自定义尾部',
             WotCell(title: '自定义尾部', value: '只读', trailing: const WotTag(text: '只读', type: WotTagType.primary), border: false)),
+        demoSection('新增（D 类 P1）：placeholder / layout / 箭头方向 / 样式合并'),
+        WotCell(title: '占位符', placeholder: '暂无数据'),
+        WotCell(
+          title: '纵向布局',
+          value: '标题在上、值在下',
+          layout: WotCellLayout.vertical,
+          isLink: true,
+        ),
+        WotCell(
+          title: '箭头方向',
+          value: '向下',
+          isLink: true,
+          arrowDirection: WotArrowDirection.down,
+        ),
+        WotCell(
+          title: '自定义标题样式',
+          value: '仅覆盖字号，颜色保留三态默认',
+          titleStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          isLink: true,
+          arrowDirection: WotArrowDirection.up,
+        ),
       ],
     );
   }

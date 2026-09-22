@@ -99,6 +99,38 @@ class WotDialogPage extends StatelessWidget {
                       type: WotDialogType.error,
                       confirmButtonText: '仍要删除',
                     ))),
+        demoSection('新增（D 类 P1）：beforeConfirm / actionLayout / actions'),
+        demoBlock(
+            'beforeConfirm 确认拦截（返回 false 取消弹窗）',
+            FilledButton(
+                onPressed: () async {
+                  final ok = await WotDialog.confirm(context,
+                      title: '删除确认',
+                      message: '确定删除该项吗？',
+                      beforeConfirm: () async {
+                        // 这里可弹二次确认或做前置校验。
+                        return true;
+                      });
+                  if (!ok || !context.mounted) return;
+                  WotDialog.alert(context, message: '已删除');
+                },
+                child: const Text('beforeConfirm 拦截'))),
+        demoBlock(
+            'actions 自定义按钮组 + vertical 纵排',
+            FilledButton.tonal(
+                onPressed: () => WotDialog.show(
+                    context,
+                    WotDialogView(
+                      title: '选择操作',
+                      message: '自定义按钮组示例',
+                      actions: [
+                        WotDialogAction(text: '收藏', onClick: () {}),
+                        WotDialogAction(text: '分享', onClick: () {}),
+                        WotDialogAction(text: '取消', onClick: () {}),
+                      ],
+                      actionLayout: WotDialogActionLayout.vertical,
+                    )),
+                child: const Text('actions + vertical'))),
       ],
     );
   }

@@ -184,6 +184,23 @@ class _WotImgPageState extends State<WotImgPage> {
             )),
 
         // TODO: showLoading / showError（关闭默认占位）待组件支持后补演示
+        demoSection('新增（D 类 P1）：showLoading / showError 开关'),
+        demoBlock(
+            'showError=false：加载失败渲染空白（显式 error slot 优先）',
+            WotImg(
+              src: 'https://invalid.example.com/not-exist.png',
+              width: 120,
+              height: 90,
+              showError: false,
+            )),
+        demoBlock(
+            'showLoading=false：加载中渲染空白',
+            WotImg(
+              src: 'https://picsum.photos/240/180',
+              width: 120,
+              height: 90,
+              showLoading: false,
+            )),
       ],
     );
   }

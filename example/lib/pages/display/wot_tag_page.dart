@@ -52,6 +52,15 @@ class _WotTagPageState extends State<WotTagPage> {
         demoBlock('自定义颜色', Wrap(spacing: 8, runSpacing: 8, children: [WotTag(text: '自定义色', color: const Color(0xFF8B5CF6), variant: WotTagVariant.plain)])),
         demoBlock('可点击 onClick', Wrap(spacing: 8, runSpacing: 8, children: [WotTag(text: '可点击', onClick: () => demoToast(context, '点击标签'))])),
         demoBlock('closable 可关闭', Wrap(spacing: 8, runSpacing: 8, children: [if (!_closed.contains('c1')) WotTag(text: '可关闭', closable: true, onClose: () => setState(() => _closed.add('c1'))) else const WotTag(text: '已关闭')])),
+        demoSection('新增（D 类 P1）：dashed 虚线变体'),
+        demoBlock(
+            'dashed 虚线描边（透明底，bgColor 兼作边框色）',
+            Wrap(spacing: 12, runSpacing: 8, children: [
+              const WotTag(text: '虚线标签', variant: WotTagVariant.dashed),
+              const WotTag(text: '危险', variant: WotTagVariant.dashed, type: WotTagType.danger),
+              const WotTag(text: '直角', variant: WotTagVariant.dashed, round: false),
+              const WotTag(text: '自定义边框色', variant: WotTagVariant.dashed, bgColor: Color(0xFF12B886)),
+            ])),
       ],
     );
   }
