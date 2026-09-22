@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
+import '../cell_group/wot_cell_group.dart';
 import '../icon/wot_icon.dart';
 
 /// 单元格布局方向，对应 wot `layout`。
@@ -146,6 +147,12 @@ class WotCell extends StatelessWidget {
             ? scheme.dangerMain
             : scheme.textAuxiliary;
     final subColor = disabled ? scheme.textDisabled : scheme.textAuxiliary;
+
+    // 分割线（D 类 P1 分组属性继承）：显式 border 参数 > 分组下发 >
+    // 默认 true。处于 WotCellGroup 内且组 bordered=false 时跟随组隐藏分割线。
+    final groupScope = WotCellGroupScope.of(context);
+    final border =
+        this.border && (groupScope?.bordered ?? true);
 
     // 禁用态不可点击。
     final clickable =
