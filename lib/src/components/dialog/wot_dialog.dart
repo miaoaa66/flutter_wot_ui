@@ -102,6 +102,21 @@ class WotDialog {
 /// 对话框类型（决定左侧辅助色条，对齐 wot `WotDialogType`）。
 enum WotDialogType { info, warning, error, success }
 
+/// 按钮排列方向（D 类 P1）：horizontal 横排平分（默认）、vertical 纵排全宽。
+enum WotDialogActionLayout { horizontal, vertical }
+
+/// 自定义动作按钮（D 类 P1，对齐 wot `actions`）：传入 [WotDialogView.actions]
+/// 后替代默认确认/取消按钮组。
+class WotDialogAction {
+  const WotDialogAction({required this.text, this.onClick});
+
+  /// 按钮文案。
+  final String text;
+
+  /// 点击回调（弹窗关闭后触发）。
+  final VoidCallback? onClick;
+}
+
 /// 对话框内容视图（内部用于命令式，也可内嵌）。
 class WotDialogView extends StatelessWidget {
   const WotDialogView({
@@ -123,6 +138,8 @@ class WotDialogView extends StatelessWidget {
     this.confirmButtonText,
     this.cancelButtonText,
     this.showClose = false,
+    this.actionLayout = WotDialogActionLayout.horizontal,
+    this.actions,
   });
 
   /// 标题文案。
@@ -178,6 +195,13 @@ class WotDialogView extends StatelessWidget {
   /// 是否显示右上角关闭按钮（对齐 wot `showClose`）；点击触发 [onClose]。
   final bool showClose;
 
+  /// 按钮排列方向（D 类 P1）：horizontal 横排平分（默认）/ vertical 纵排全宽。
+  final WotDialogActionLayout actionLayout;
+
+  /// 自定义动作按钮组（D 类 P1，对齐 wot `actions`）：非空时替代默认的
+  /// 确认/取消按钮组，每个按钮点击后关闭弹窗。
+  final List<WotDialogAction>? actions;
+
   /// [type] 对应的左侧辅助色条颜色。
   Color _accent(WotScheme scheme, Color primary) => switch (type) {
         WotDialogType.success => scheme.successMain,
@@ -206,11 +230,35 @@ class WotDialogView extends StatelessWidget {
               )
             : null);
 
-    final buttons = <Widget>[];
-    if (showCancelButton) {
-      buttons.add(
-        Expanded(
-          child: SizedBox(
+    // 按钮区（D 类 P1）：actions 自定义按钮组优先，否则用默认确认/取消；
+    // actionLayout 决定横排（Expanded 平分）或纵排（全宽堆叠）。
+    final flatButtons = <Widget>[];
+    if (actions != null && actions!.isNotEmpty) {
+      for (final a in actions!) {
+        flatButtons.add(
+          SizedBox(
+            height: 40,
+            child: TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: scheme.filledContent,
+                foregroundColor: scheme.textMain,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+              onPressed: () {
+                a.onClick?.call();
+                Navigator.of(context).pop();
+              },
+              child: Text(a.text),
+            ),
+          ),
+        );
+      }
+    } else {
+      if (showCancelButton) {
+        flatButtons.add(
+          SizedBox(
             height: 40,
             child: TextButton(
               // 与确认按钮保持一致的圆角；用浅灰实心底，使其与弹窗白底区分开来。
@@ -229,14 +277,11 @@ class WotDialogView extends StatelessWidget {
                   style: TextStyle(color: scheme.textMain)),
             ),
           ),
-        ),
-      );
-    }
-    if (showConfirmButton) {
-      if (buttons.isNotEmpty) buttons.add(const SizedBox(width: 12));
-      buttons.add(
-        Expanded(
-          child: SizedBox(
+        );
+      }
+      if (showConfirmButton) {
+        flatButtons.add(
+          SizedBox(
             height: 40,
             child: TextButton(
               style: TextButton.styleFrom(
@@ -253,8 +298,27 @@ class WotDialogView extends StatelessWidget {
               child: Text(confirmLabel),
             ),
           ),
-        ),
-      );
+        );
+      }
+    }
+
+    Widget? buttonsBlock;
+    if (flatButtons.isNotEmpty) {
+      if (actionLayout == WotDialogActionLayout.horizontal) {
+        final row = <Widget>[];
+        for (var i = 0; i < flatButtons.length; i++) {
+          if (i > 0) row.add(const SizedBox(width: 12));
+          row.add(Expanded(child: flatButtons[i]));
+        }
+        buttonsBlock = Row(children: row);
+      } else {
+        final col = <Widget>[];
+        for (var i = 0; i < flatButtons.length; i++) {
+          if (i > 0) col.add(const SizedBox(height: 8));
+          col.add(flatButtons[i]);
+        }
+        buttonsBlock = Column(children: col);
+      }
     }
 
     return Dialog(
@@ -291,9 +355,9 @@ class WotDialogView extends StatelessWidget {
                   const SizedBox(height: 12),
                 ],
                 ?messageWidget,
-                if (buttons.isNotEmpty) ...[
+                if (buttonsBlock != null) ...[
                   const SizedBox(height: 20),
-                  Row(children: buttons),
+                  buttonsBlock,
                 ],
               ],
             ),
