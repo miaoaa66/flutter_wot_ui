@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../../theme/wot_scheme.dart';
 import '../../theme/wot_theme.dart';
 
+/// 触发方式（T3.3 枚举化，tooltip / popover 共用，对齐 wot `trigger`）。
+/// `manual` 为纯受控模式（仅由 show/visible 控制显隐）。
+enum WotTriggerMode { click, hover, auto, longpress, manual }
+
 /// 气泡提示，对应 wot `wd-tooltip`。
 ///
 /// 点击/悬浮/长按锚点弹出带气泡文案。支持受控显隐（[show]/[visible]）与非受控。
@@ -19,7 +23,7 @@ class WotTooltip extends StatefulWidget {
     this.offset = Offset.zero,
     this.tooltipStyle,
     this.maxWidth = 200,
-    this.trigger = 'hover',
+    this.trigger = WotTriggerMode.hover,
     this.disabled = false,
     required this.child,
   });
@@ -55,7 +59,7 @@ class WotTooltip extends StatefulWidget {
   final double maxWidth;
 
   /// 触发方式：`hover`（悬浮）、`click`（点击）、`auto`（智能，桌面悬浮/移动点击）、`longpress`、`manual`。
-  final String trigger;
+  final WotTriggerMode trigger;
 
   /// 是否禁用，禁用后不会显示提示层。
   final bool disabled;
@@ -82,7 +86,8 @@ class _WotTooltipState extends State<WotTooltip> {
 
   bool get _hasVisible => widget.visible ?? widget.show;
 
-  bool get _handleVisible => _hasVisible || (widget.trigger != 'manual' && _show);
+  bool get _handleVisible =>
+      _hasVisible || (widget.trigger != WotTriggerMode.manual && _show);
 
   void _ensureOverlay() {
     if (_entry != null) return;
@@ -148,10 +153,10 @@ class _WotTooltipState extends State<WotTooltip> {
 
   @override
   Widget build(BuildContext context) {
-    final isHover = widget.trigger == 'hover';
-    final isAuto = widget.trigger == 'auto';
-    final isLongPress = widget.trigger == 'longpress';
-    final isClick = widget.trigger == 'click';
+    final isHover = widget.trigger == WotTriggerMode.hover;
+    final isAuto = widget.trigger == WotTriggerMode.auto;
+    final isLongPress = widget.trigger == WotTriggerMode.longpress;
+    final isClick = widget.trigger == WotTriggerMode.click;
 
     final anchor = MouseRegion(
       onEnter: isHover || isAuto ? (_) => _open() : null,
@@ -197,7 +202,7 @@ class _WotTooltipState extends State<WotTooltip> {
     return Stack(
       children: [
         // 点击其它区域关闭（非 hover/manual 触发时）。
-        if (widget.trigger == 'click' || widget.trigger == 'auto')
+        if (widget.trigger == WotTriggerMode.click || widget.trigger == WotTriggerMode.auto)
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,

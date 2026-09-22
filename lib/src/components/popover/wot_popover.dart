@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/wot_scheme.dart';
 import '../../theme/wot_theme.dart';
+import '../tooltip/wot_tooltip.dart';
 
 /// 气泡弹出层（锚点触发），对应 wot `wd-popover`。
 ///
@@ -19,7 +20,7 @@ class WotPopover extends StatefulWidget {
     this.placement = WotPopoverPlacement.bottom,
     this.showArrow = true,
     this.flip = true,
-    this.trigger = 'click',
+    this.trigger = WotTriggerMode.click,
     this.content = const [],
     this.width = 120,
     this.mask = false,
@@ -57,7 +58,7 @@ class WotPopover extends StatefulWidget {
   final bool flip;
 
   /// 触发方式：`click`（点击）、`hover`（悬浮）、`manual`（仅受控）。
-  final String trigger;
+  final WotTriggerMode trigger;
 
   /// 内容列表（通常是菜单项）。
   final List<Widget> content;
@@ -188,8 +189,8 @@ class _WotPopoverState extends State<WotPopover> {
 
   @override
   Widget build(BuildContext context) {
-    final isClick = widget.trigger == 'click';
-    final isHover = widget.trigger == 'hover';
+    final isClick = widget.trigger == WotTriggerMode.click;
+    final isHover = widget.trigger == WotTriggerMode.hover;
 
     final anchor = MouseRegion(
       onEnter: isHover
@@ -239,7 +240,7 @@ class _WotPopoverState extends State<WotPopover> {
 
   Widget _buildOverlay() {
     final scheme = context.wotScheme;
-    final isHover = widget.trigger == 'hover';
+    final isHover = widget.trigger == WotTriggerMode.hover;
     final anchor = _anchorRect();
     final screen = MediaQuery.of(context).size;
     final effective =
@@ -315,7 +316,7 @@ class _WotPopoverState extends State<WotPopover> {
   /// 一次性绘制为同一块面（连续边框 + 阴影，无接缝）。
   Widget _bubble(WotScheme scheme, [WotPopoverPlacement? effectivePlacement]) {
     final placement = effectivePlacement ?? widget.placement;
-    final isHover = widget.trigger == 'hover';
+    final isHover = widget.trigger == WotTriggerMode.hover;
     final showArrow = widget.showArrow;
     final side = showArrow ? _arrowSideFor(placement) : null;
     final align = showArrow ? _arrowAlignFor(placement) : _ArrowAlign.center;

@@ -135,14 +135,14 @@ class _WotPopoverPageState extends State<WotPopoverPage> {
         demoSection('触发方式（trigger）'),
         demoBlock('trigger: hover —— 鼠标移入即弹出（桌面端生效）',
             WotPopover(
-              trigger: 'hover',
+              trigger: WotTriggerMode.hover,
               content: const [Text('移入弹出')],
               child: WotButton(text: '悬浮触发', size: WotButtonSize.small),
             )),
         demoBlock('trigger: manual —— 只能由外部 visible 控制，点锚点无效',
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               WotPopover(
-                trigger: 'manual',
+                trigger: WotTriggerMode.manual,
                 visible: _manualOpen,
                 content: const [Text('仅受控显示')],
                 // 受控用法：onChange 必须回写 state，否则外部 visible 恒为 true，
@@ -167,7 +167,7 @@ class _WotPopoverPageState extends State<WotPopoverPage> {
                 '且 onOpen / onClose 回写到日志',
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               WotPopover(
-                trigger: 'manual',
+                trigger: WotTriggerMode.manual,
                 visible: _controlledOpen,
                 placement: WotPopoverPlacement.bottom,
                 content: const [Text('受控气泡')],
