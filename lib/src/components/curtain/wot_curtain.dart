@@ -7,6 +7,9 @@ import '../icon/wot_icon.dart';
 /// 幕布位置。
 enum WotCurtainPosition { center, bottom, top, left, right }
 
+/// 关闭按钮位置（D 类 P1）。
+enum WotCurtainClosePosition { outside, inside }
+
 /// 幕布，对应 wot `wd-curtain`。
 ///
 /// 用于整屏遮挡并展示广告/公告等内容。参数对齐 wot：`modelValue`（是否可见）、
@@ -27,8 +30,27 @@ class WotCurtain extends StatefulWidget {
     this.onOpen,
     this.onClose,
     this.onModelUpdate,
+    this.src,
+    this.width,
+    this.height,
+    this.closePosition = WotCurtainClosePosition.outside,
     this.child,
   });
+
+  /// 幕布背景图链接（D 类 P1）：传入后面板渲染为该图片（src 图片能力，
+  /// 典型广告幕布用法），尺寸由 [width]/[height] 控制，缺省 300×360；
+  /// [child] 传入时优先于 [src]。
+  final String? src;
+
+  /// [src] 图片宽度，缺省 300。
+  final double? width;
+
+  /// [src] 图片高度，缺省 360。
+  final double? height;
+
+  /// 关闭按钮位置（D 类 P1）：outside 悬出面板右上角（默认，与历史行为一致，
+  /// 布局预留 18px 保证命中可达）；inside 叠在面板内右上角，面板更贴合内容。
+  final WotCurtainClosePosition closePosition;
 
   /// 是否显示幕布（v-model）。
   final bool modelValue;
@@ -127,7 +149,35 @@ class _WotCurtainState extends State<WotCurtain> {
 
   Widget _buildCurtain(BuildContext context) {
     final scheme = context.wotScheme;
-    final panel = widget.child ?? const SizedBox.shrink();
+    // 面板内容（D 类 P1）：src 图片模式优先级低于 child；缺省 300×360。
+    final Widget panel;
+    if (widget.child != null) {
+      panel = widget.child!;
+    } else if (widget.src != null && widget.src!.isNotEmpty) {
+      panel = ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          widget.src!,
+          width: widget.width ?? 300,
+          height: widget.height ?? 360,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => Container(
+            width: widget.width ?? 300,
+            height: widget.height ?? 360,
+            color: scheme.filledStrong,
+            alignment: Alignment.center,
+            child: WotIcon(name: 'error', size: 24, color: scheme.iconDisabled),
+          ),
+        ),
+      );
+    } else {
+      panel = const SizedBox.shrink();
+    }
+
+    // 关闭按钮位置：outside 悬出（布局预留 18px 保证命中可达，历史行为），
+    // inside 叠在面板内右上角、无预留。
+    final outside =
+        widget.closePosition == WotCurtainClosePosition.outside;
 
     Alignment align;
     switch (widget.position) {
@@ -165,11 +215,14 @@ class _WotCurtainState extends State<WotCurtain> {
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  Padding(padding: const EdgeInsets.all(18), child: panel),
-                  // 关闭按钮：中心恰在面板右上角（悬出 18px 的视觉效果不变）。
+                  Padding(
+                    padding: EdgeInsets.all(outside ? 18 : 0),
+                    child: panel,
+                  ),
+                  // 关闭按钮：outside 时中心恰在面板右上角（悬出 18px 的视觉效果不变）。
                   Positioned(
-                    top: 0,
-                    right: 0,
+                    top: outside ? 0 : 4,
+                    right: outside ? 0 : 4,
                     // 无障碍：关闭是图标按钮，补 button 角色 + 文案（图标本身对读屏不可读）；
                     // 遮罩点击不进语义树（读屏用户走本按钮），符合惯例。
                     child: Semantics(
