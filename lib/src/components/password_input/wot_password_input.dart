@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../theme/wot_state.dart';
@@ -73,11 +73,15 @@ class WotPasswordInput extends StatefulWidget {
   State<WotPasswordInput> createState() => _WotPasswordInputState();
 }
 
-class _WotPasswordInputState extends State<WotPasswordInput> {
+class _WotPasswordInputState extends State<WotPasswordInput>
+    with SingleTickerProviderStateMixin {
   late final FocusNode _focus;
   late final TextEditingController _controller;
   final GlobalKey<EditableTextState> _fieldKey = GlobalKey<EditableTextState>();
   String _value = '';
+
+  /// 光标闪烁动画：聚焦时周期往复，模拟输入框光标闪动。
+  late final AnimationController _blink;
 
   /// 上一帧键盘可见高度，用于探测「键盘被系统收起」。
   double _lastViewInsets = 0;
@@ -91,6 +95,10 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
     _value = widget.modelValue;
     _focus = FocusNode()..addListener(_onFocusChange);
     _controller = TextEditingController(text: widget.modelValue);
+    _blink = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+    )..addListener(_onBlink);
   }
 
   @override
@@ -134,6 +142,9 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
     _focus
       ..removeListener(_onFocusChange)
       ..dispose();
+    _blink
+      ..removeListener(_onBlink)
+      ..dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -146,6 +157,11 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
     } else {
       widget.onBlur?.call();
     }
+  }
+
+  /// 光标闪烁一帧后通知重建，驱动 `'|'` 显隐。
+  void _onBlink() {
+    if (mounted) setState(() {});
   }
 
   void _tap() {
@@ -201,6 +217,13 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
     );
     // 锁定时不再显示聚焦光标态。
     final focus = _isFocused && !disabled && !readonly;
+    // 光标闪烁：聚焦时周期往复，失焦/锁定即停并复位到可见。
+    if (focus && !_blink.isAnimating) {
+      _blink.repeat(reverse: true);
+    } else if (!focus && _blink.isAnimating) {
+      _blink.stop();
+    }
+    final cursorVisible = _blink.value >= 0.5;
     final mask = widget.maskable ?? widget.obscure;
 
     final field = GestureDetector(
@@ -270,7 +293,7 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
                           style: TextStyle(fontSize: 16, color: style.text),
                         ))
                   : Text(
-                      i == _value.length && focus ? '|' : '',
+                      i == _value.length && focus && cursorVisible ? '|' : '',
                       style: TextStyle(
                         fontSize: 16,
                         color: focus ? (widget.focusColor ?? scheme.primaryOf(6)) : style.border,
