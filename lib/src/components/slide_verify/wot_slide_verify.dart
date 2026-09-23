@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 
 /// 滑动验证，对应 wot `wd-slide-verify`。
@@ -10,9 +13,9 @@ class WotSlideVerify extends StatefulWidget {
     super.key,
     this.modelValue = false,
     this.onChange,
-    this.text = '向右滑动完成验证',
-    this.successText = '验证通过',
-    this.errorText = '验证失败',
+    this.text,
+    this.successText,
+    this.errorText,
     this.disabled = false,
     this.color,
     this.height = 44,
@@ -20,9 +23,9 @@ class WotSlideVerify extends StatefulWidget {
 
   final bool modelValue;
   final ValueChanged<bool>? onChange;
-  final String text;
-  final String successText;
-  final String errorText;
+  final String? text;
+  final String? successText;
+  final String? errorText;
   final bool disabled;
   final Color? color;
   final double height;
@@ -34,17 +37,43 @@ class WotSlideVerify extends StatefulWidget {
 class _WotSlideVerifyState extends State<WotSlideVerify> {
   double _offset = 0;
   bool _success = false;
+  bool _failed = false;
   late double _width = 0;
+  Timer? _resetTimer;
+
+  /// 失败文案展示时长。
+  static const Duration _errorDuration = Duration(milliseconds: 1200);
 
   @override
   void didUpdateWidget(WotSlideVerify old) {
     super.didUpdateWidget(old);
-    if (old.modelValue != widget.modelValue) _success = widget.modelValue;
+    if (old.modelValue != widget.modelValue) {
+      _success = widget.modelValue;
+      if (!_success) {
+        // 程序复位（modelValue true→false）：滑块退回左侧，并清除失败态残留。
+        _clearFailed();
+        _offset = 0;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _resetTimer?.cancel();
+    super.dispose();
   }
 
   void _update(double dx) {
     if (widget.disabled || _success) return;
+    // 重新拖动即清除失败态。
+    if (_failed) _clearFailed();
     setState(() => _offset = dx);
+  }
+
+  void _clearFailed() {
+    _resetTimer?.cancel();
+    _resetTimer = null;
+    _failed = false;
   }
 
   void _end() {
@@ -54,11 +83,21 @@ class _WotSlideVerifyState extends State<WotSlideVerify> {
       setState(() {
         _offset = threshold;
         _success = true;
+        _failed = false;
       });
       widget.onChange?.call(true);
     } else {
-      setState(() => _offset = 0);
+      setState(() {
+        _offset = 0;
+        _failed = true;
+      });
       widget.onChange?.call(false);
+      // 短暂展示失败文案后自动复原。
+      _resetTimer?.cancel();
+      _resetTimer = Timer(_errorDuration, () {
+        if (!mounted) return;
+        setState(() => _clearFailed());
+      });
     }
   }
 
@@ -87,31 +126,39 @@ class _WotSlideVerifyState extends State<WotSlideVerify> {
               children: [
                 Center(
                   child: Text(
-                    _success ? widget.successText : widget.text,
+                    _success
+                        ? widget.successText ??
+                            tr(context, 'wot.slideVerify.success')
+                        : (_failed
+                            ? widget.errorText ??
+                                tr(context, 'wot.slideVerify.error')
+                            : widget.text ??
+                                tr(context, 'wot.slideVerify.slide')),
                     style: TextStyle(fontSize: 14, color: scheme.textSecondary),
                   ),
                 ),
-                // 滑块。
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 100),
-                  left: _offset.clamp(0, _width - widget.height),
-                  top: 0,
-                  bottom: 0,
-                  child: Container(
-                    width: widget.height,
-                    decoration: BoxDecoration(
-                      color: _success ? scheme.successClicked : primary,
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4),
-                      ],
-                    ),
-                    child: Icon(
-                      _success ? Icons.check : Icons.arrow_forward,
-                      size: 20,
-                      color: Colors.white,
+                // 滑块：成功态不显示（整个轨道已是绿底 successText，无需再留滑块）。
+                if (!_success)
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 100),
+                    left: _offset.clamp(0, _width - widget.height),
+                    top: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: widget.height,
+                      decoration: BoxDecoration(
+                        color: primary,
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward,
+                        size: 20,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),

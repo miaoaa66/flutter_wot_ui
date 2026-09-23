@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -15,17 +16,17 @@ class WotWatermark extends StatefulWidget {
     super.key,
     this.content = '',
     this.image,
-    this.imageWidth = 40,
+    this.imageWidth = 100,
     this.imageHeight = 40,
-    this.fullScreen = false,
+    this.fullScreen = true,
     this.fontSize = 14,
     this.fontColor,
     this.color,
     this.opacity = 0.15,
-    this.rotate = -22,
+    this.rotate = -25,
     this.lineHeight = 80,
     this.gap,
-    this.zIndex,
+    @Deprecated('zIndex 从未生效，将在后续版本移除。') this.zIndex,
     this.repeat = true,
     this.fontWeight,
     this.fontStyle = FontStyle.normal,
@@ -45,7 +46,10 @@ class WotWatermark extends StatefulWidget {
   /// 水印图片高度（逻辑像素），默认 40。
   final double imageHeight;
 
-  /// 是否铺满全屏（借助全屏透明定位）；否则平铺在 [child] 区域内。
+  /// 是否铺满全屏，默认 true（对齐 wot）。
+  ///
+  /// 为 true 时水印通过 Overlay 脱离 [child] 布局、覆盖整个屏幕；
+  /// 为 false 时仅在 [child] 区域内平铺。
   final bool fullScreen;
 
   /// 水印字号（逻辑像素），默认 14。
@@ -60,7 +64,7 @@ class WotWatermark extends StatefulWidget {
   /// 水印透明度，取值范围 0~1，默认 0.15。
   final double opacity;
 
-  /// 水印旋转角度（度），默认 -22。
+  /// 水印旋转角度（度），默认 -25。
   final double rotate;
 
   /// 行间距（旧参数，兼容保留）；[gap] 未指定时作为水印单元间距使用。
@@ -69,8 +73,11 @@ class WotWatermark extends StatefulWidget {
   /// 水印单元 X/Y 间距（逻辑像素）；为空时取 [lineHeight]。
   final double? gap;
 
-  /// 水印层级；可为任意整数。Flutter Stack 按绘制顺序分层，水印恒定在 [child] 之上，
-  /// 该值用于表达期望的目标层级（高值表示更靠上/更可见）。
+  /// **已废弃**：该参数从未被 `build` 消费（死参数），仅表达"期望层级"。
+  ///
+  /// Flutter 的 `Stack` 按绘制顺序分层，水印恒定在 [child] 之上，无法通过数值调整。
+  /// 如需把水印浮到整页之上，请改用 [fullScreen]。
+  @Deprecated('zIndex 从未生效（Flutter Stack 按绘制顺序分层）。如需浮到整页之上请改用 fullScreen。')
   final int? zIndex;
 
   /// 是否平铺，默认 true；为 false 时仅在区域中心渲染一个水印。
@@ -92,27 +99,71 @@ class WotWatermark extends StatefulWidget {
   State<WotWatermark> createState() => _WotWatermarkState();
 }
 
-class _WotWatermarkState extends State<WotWatermark> {
+class _WotWatermarkState extends State<WotWatermark>
+    with AutomaticKeepAliveClientMixin {
   ui.Image? _image;
   ImageStream? _stream;
   ImageStreamListener? _listener;
+
+  /// 全屏模式下承载水印的浮层；非全屏模式下为 null。
+  OverlayEntry? _overlayEntry;
+
+  /// 全屏水印是屏幕级浮层，须随页面存活、不随 ListView 滚动卸载被移除。
+  /// 仅 fullScreen 时保持存活（内嵌模式无关）。
+  @override
+  bool get wantKeepAlive => widget.fullScreen;
 
   @override
   void initState() {
     super.initState();
     _loadImage();
+    _syncOverlay();
   }
 
   @override
   void didUpdateWidget(WotWatermark oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.image != widget.image) _loadImage();
+    _syncOverlay();
   }
 
   @override
   void dispose() {
+    _removeOverlay();
     _removeListener();
     super.dispose();
+  }
+
+  /// 依据 [WotWatermark.fullScreen] 同步浮层的插入、刷新或移除。
+  ///
+  /// 插入必须延后到当前帧结束，避免在 build 阶段操作 Overlay 触发
+  /// 「markedNeedsBuild during build」一类错误。
+  void _syncOverlay() {
+    if (!widget.fullScreen) {
+      _removeOverlay();
+      return;
+    }
+    final existing = _overlayEntry;
+    if (existing != null) {
+      existing.markNeedsBuild();
+      return;
+    }
+    final entry = OverlayEntry(builder: (_) => _buildFullScreenOverlay());
+    _overlayEntry = entry;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _overlayEntry != entry) return;
+      final overlay = Overlay.maybeOf(context);
+      if (overlay == null) {
+        _overlayEntry = null;
+        return;
+      }
+      overlay.insert(entry);
+    });
+  }
+
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
   }
 
   void _removeListener() {
@@ -132,6 +183,7 @@ class _WotWatermarkState extends State<WotWatermark> {
     final listener = ImageStreamListener((info, _) {
       if (!mounted) return;
       setState(() => _image = info.image);
+      _syncOverlay();
     }, onError: (_, _) {
       // 图片加载失败时静默回退为空（不显示水印）。
     });
@@ -142,13 +194,12 @@ class _WotWatermarkState extends State<WotWatermark> {
 
   double get _gapSize => widget.gap ?? widget.lineHeight;
 
-  @override
-  Widget build(BuildContext context) {
+  /// 构造水印绘制器，全屏浮层与内嵌模式共用。
+  _WatermarkPainter _buildPainter() {
     final scheme = context.wotScheme;
     final base = widget.color ?? widget.fontColor ?? scheme.textSecondary;
     final color = base.withValues(alpha: widget.opacity);
-
-    final painter = _WatermarkPainter(
+    return _WatermarkPainter(
       content: widget.content,
       image: _image,
       imageWidth: widget.imageWidth,
@@ -162,9 +213,30 @@ class _WotWatermarkState extends State<WotWatermark> {
       fontStyle: widget.fontStyle,
       fontFamily: widget.fontFamily,
     );
+  }
+
+  /// 全屏模式下承载的水印内容：铺满整个屏幕且不拦截手势。
+  Widget _buildFullScreenOverlay() {
+    return IgnorePointer(
+      child: CustomPaint(
+        painter: _buildPainter(),
+        child: const SizedBox.expand(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context); // AutomaticKeepAliveClientMixin 必要调用。
+    // 全屏模式下水印由 Overlay 承载，这里只渲染下层内容。
+    // 浮层的插入/刷新/移除统一由 initState、didUpdateWidget、dispose 驱动，
+    // 避免在 build 阶段操作 Overlay 触发重入错误。
+    if (widget.fullScreen) {
+      return widget.child ?? const SizedBox.shrink();
+    }
 
     final watermark = CustomPaint(
-      painter: painter,
+      painter: _buildPainter(),
       child: const SizedBox.expand(),
     );
 
@@ -251,10 +323,18 @@ class _WatermarkPainter extends CustomPainter {
       if (step <= 0) {
         _drawOne(canvas, Offset(-halfW, -halfH));
       } else {
-        final rows = (size.height / step).ceil() + 2;
-        final cols = (size.width / step).ceil() + 2;
-        for (var r = -rows ~/ 2; r < rows ~/ 2; r++) {
-          for (var c = -cols ~/ 2; c < cols ~/ 2; c++) {
+        // 旋转后必须按「屏幕在旋转坐标系下的半外接矩形」计算行列数，
+        // 否则窄长页面/中大角度旋转时对角会超出未旋转的矩形范围，
+        // 出现未覆盖的空角。
+        final a = (rotate * 3.141592653589793 / 180).abs();
+        final cosA = math.cos(a);
+        final sinA = math.sin(a);
+        final extentX = size.width / 2 * cosA + size.height / 2 * sinA;
+        final extentY = size.width / 2 * sinA + size.height / 2 * cosA;
+        final cols = (extentX / step).ceil() * 2 + 3;
+        final rows = (extentY / step).ceil() * 2 + 3;
+        for (var r = -rows ~/ 2; r <= rows ~/ 2; r++) {
+          for (var c = -cols ~/ 2; c <= cols ~/ 2; c++) {
             _drawOne(canvas, Offset(c * step - halfW, r * step - halfH));
           }
         }

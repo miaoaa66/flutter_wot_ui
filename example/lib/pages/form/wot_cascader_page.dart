@@ -15,6 +15,8 @@ class _WotCascaderPageState extends State<WotCascaderPage> {
   List<Object?> _region = ['gd', 'gz'];
   List<Object?> _empty = [];
   bool _disabled = false;
+  bool _readonly = false;
+  bool _error = false;
 
   static const List<WotCascadeOption> _options = [
     WotCascadeOption(text: '浙江', value: 'zj', children: [
@@ -40,12 +42,19 @@ class _WotCascaderPageState extends State<WotCascaderPage> {
         demoBlock(
             'placeholder 占位（未选择）',
             WotCascader(options: _options, modelValue: _empty, placeholder: '请选择所在地区', onChange: (v) => setState(() => _empty = v))),
-        demoSection('状态（disabled）'),
-        Row(children: [
-          Flexible(child: FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled'))),
+        demoSection('三态（disabled / readonly / error）'),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled')),
+          FilledButton.tonal(onPressed: () => setState(() => _readonly = !_readonly), child: Text('readonly: $_readonly')),
+          FilledButton.tonal(onPressed: () => setState(() => _error = !_error), child: Text('error: $_error')),
         ]),
         const SizedBox(height: 8),
-        demoBlock('disabled 禁用', WotCascader(options: _options, modelValue: _region, disabled: _disabled, onChange: (v) => setState(() => _region = v))),
+        demoBlock('disabled 禁用（浅灰底 + 灰字，不可弹出）',
+            WotCascader(options: _options, modelValue: _region, disabled: _disabled, onChange: (v) => setState(() => _region = v))),
+        demoBlock('readonly 只读（去边框、正常字色，不可弹出 —— 区别于 disabled 的灰化）',
+            WotCascader(options: _options, modelValue: _region, readonly: _readonly, onChange: (v) => setState(() => _region = v))),
+        demoBlock('error 校验失败（触发区描红边）',
+            WotCascader(options: _options, modelValue: _region, error: _error, onChange: (v) => setState(() => _region = v))),
       ],
     );
   }

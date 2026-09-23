@@ -78,11 +78,15 @@ class WotPopup extends StatefulWidget {
   /// [customStyle] 非空时优先）。
   final EdgeInsetsGeometry? customStyle;
 
-  /// 是否适配系统安全区。
+  /// 是否四边全适配系统安全区，默认 false。
+  ///
+  /// false（默认）时只避让「贴屏幕边」的那一侧：底部弹层避让底部、
+  /// 顶部弹层避让顶部、左右弹层避让各自贴边侧 + 上下、居中弹层四边中除顶部外的三边。
+  /// true 时四边统一避让。
   final bool safeArea;
 
-  /// 底部弹层是否适配底部安全区（wot `safe-area-inset-bottom`，与 [safeArea] 互为别名；
-  /// 仅底部弹出时有意义；[safeAreaInsetBottom] 非空时优先）。
+  /// 单独控制底边是否适配安全区（wot `safe-area-inset-bottom`）。
+  /// 非空时覆盖 [safeArea] 与 position 推导出的底边取值。
   final bool? safeAreaInsetBottom;
 
   /// 自定义遮罩颜色（优先于遮罩默认的主遮罩色）。
@@ -98,7 +102,10 @@ class WotPopup extends StatefulWidget {
   State<WotPopup> createState() => _WotPopupState();
 }
 
-class _WotPopupState extends State<WotPopup> {
+class _WotPopupState extends State<WotPopup> with SingleTickerProviderStateMixin {
+  /// 驱动弹层本体（滑入/缩放）的动画控制器；遮罩动画由 [WotOverlay] 自行管理。
+  late AnimationController _controller;
+
   /// 实际可见性：[show] 优先于 [visible]。
   bool get _visible => widget.show ?? widget.visible;
 
@@ -114,19 +121,49 @@ class _WotPopupState extends State<WotPopup> {
   bool _pendingSelfClose = false;
 
   @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: widget.duration);
+    // 初始即为可见时直接停在终态，避免首帧播放一次入场动画。
+    if (_visible) _controller.value = 1.0;
+  }
+
+  /// 把回调延后到本帧构建结束后再发出，避免在 build 阶段触发调用方的 setState。
+  void _notify(VoidCallback? cb) {
+    if (cb == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      cb();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   void didUpdateWidget(covariant WotPopup oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.duration != widget.duration) {
+      _controller.duration = widget.duration;
+    }
     final wasOn = oldWidget.show ?? oldWidget.visible;
     final nowOn = _visible;
+    // didUpdateWidget 处于 build 阶段，回调必须延后一帧，
+    // 否则调用方在回调里 setState 会撞上「setState() called during build」。
     if (!wasOn && nowOn) {
-      widget.onOpen?.call();
+      _controller.forward();
+      _notify(widget.onOpen);
       return;
     }
     if (wasOn && !nowOn) {
+      _controller.reverse();
       if (_pendingSelfClose) {
         _pendingSelfClose = false;
       } else {
-        widget.onClose?.call();
+        _notify(widget.onClose);
       }
     }
   }
@@ -161,6 +198,20 @@ class _WotPopupState extends State<WotPopup> {
       };
     }
 
+    // 安全区适配：默认只避让「贴屏幕边」的那一侧（由 position 推导）；
+    // safeArea: true 时四边全避让；safeAreaInsetBottom 非空时单独覆盖底边。
+    final bottomInset = widget.safeAreaInsetBottom ??
+        (widget.safeArea ||
+            position == WotPopupPosition.bottom ||
+            position == WotPopupPosition.center);
+    final leftInset = widget.safeArea ||
+        position == WotPopupPosition.left ||
+        position == WotPopupPosition.center;
+    final rightInset = widget.safeArea ||
+        position == WotPopupPosition.right ||
+        position == WotPopupPosition.center;
+    final topInset = widget.safeArea || position == WotPopupPosition.top;
+
     // 内容内边距 + 自定义弹层样式（作为内容外层的额外内边距）。
     final style = _style;
     Widget padded = child;
@@ -177,10 +228,10 @@ class _WotPopupState extends State<WotPopup> {
       borderRadius: borderRadius,
       clipBehavior: Clip.antiAlias,
       child: SafeArea(
-        left: position == WotPopupPosition.left || position == WotPopupPosition.center,
-        right: position == WotPopupPosition.right || position == WotPopupPosition.center,
-        top: position == WotPopupPosition.top,
-        bottom: position == WotPopupPosition.bottom || position == WotPopupPosition.center,
+        left: leftInset,
+        right: rightInset,
+        top: topInset,
+        bottom: bottomInset,
         minimum: EdgeInsets.zero,
         child: padded,
       ),
@@ -190,31 +241,31 @@ class _WotPopupState extends State<WotPopup> {
     switch (position) {
       case WotPopupPosition.top:
         popup = SlideTransition(
-          position: _slide(_visible, Alignment.topCenter, offset: const Offset(0, -1)),
+          position: _slide(const Offset(0, -1)),
           child: popup,
         );
         break;
       case WotPopupPosition.bottom:
         popup = SlideTransition(
-          position: _slide(_visible, Alignment.bottomCenter, offset: const Offset(0, 1)),
+          position: _slide(const Offset(0, 1)),
           child: popup,
         );
         break;
       case WotPopupPosition.left:
         popup = SlideTransition(
-          position: _slide(_visible, Alignment.centerLeft, offset: const Offset(-1, 0)),
+          position: _slide(const Offset(-1, 0)),
           child: popup,
         );
         break;
       case WotPopupPosition.right:
         popup = SlideTransition(
-          position: _slide(_visible, Alignment.centerRight, offset: const Offset(1, 0)),
+          position: _slide(const Offset(1, 0)),
           child: popup,
         );
         break;
       case WotPopupPosition.center:
         popup = ScaleTransition(
-          scale: _scale(_visible),
+          scale: _scale(),
           child: popup,
         );
         break;
@@ -252,13 +303,18 @@ class _WotPopupState extends State<WotPopup> {
         WotPopupPosition.right => Alignment.centerRight,
       };
 
-  Animation<Offset> _slide(bool on, Alignment align, {required Offset offset}) {
-    return on
-        ? const AlwaysStoppedAnimation(Offset.zero)
-        : AlwaysStoppedAnimation(offset);
+  /// 由 [offset] 滑入到原位（[WotPopup.duration] 时长，easeOutCubic）。
+  Animation<Offset> _slide(Offset offset) {
+    return Tween<Offset>(begin: offset, end: Offset.zero).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
   }
 
-  Animation<double> _scale(bool on) {
-    return on ? const AlwaysStoppedAnimation(1.0) : const AlwaysStoppedAnimation(0.8);
+  /// 由 0 放大到 1.0（居中弹层的入场动画）。
+  /// 起点必须为 0：否则关闭态（controller 停在 0）仍残留 0.8 缩放、内容常驻可见。
+  Animation<double> _scale() {
+    return Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
+    );
   }
 }

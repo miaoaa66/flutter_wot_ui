@@ -37,6 +37,10 @@ class _WotSortButtonPageState extends State<WotSortButtonPage> {
             )),
         demoBlock('默认排序图标',
             const WotSortButton()),
+        demoSection('新增（D 类 P1）：allowReset / descFirst'),
+        demoBlock('allowReset：降序后再点回到未排序', WotSortButton(allowReset: true)),
+        demoBlock('descFirst：首次点击先降序', WotSortButton(descFirst: true)),
+        demoBlock('组合：descFirst + allowReset（升序点击可直接重置）', WotSortButton(allowReset: true, descFirst: true)),
       ],
     );
   }

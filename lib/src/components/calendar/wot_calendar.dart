@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 
 import '../../theme/wot_scheme.dart';
+import '../../theme/wot_state.dart';
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 import '../picker_view/wot_picker_view.dart';
 
@@ -101,7 +103,7 @@ class WotCalendarShortcut {
   /// 展示文案。
   final String text;
 
-  /// 对应值（单选返回 DateTime，范围返回 List<DateTime>）。
+  /// 对应值（单选返回 `DateTime`，范围返回 `List<DateTime>`）。
   final Object value;
 }
 
@@ -122,9 +124,9 @@ class WotCalendar extends StatelessWidget {
     super.key,
     this.modelValue,
     this.onChange,
-    this.title = '选择日期',
-    this.confirmText = '确定',
-    this.cancelText = '取消',
+    this.title,
+    this.confirmText,
+    this.cancelText,
     this.minDate,
     this.maxDate,
     this.color,
@@ -132,7 +134,7 @@ class WotCalendar extends StatelessWidget {
     this.initialValues,
     this.onConfirm,
     this.onCancel,
-    this.firstDayOfWeek = 1,
+    this.firstDayOfWeek = 0,
     this.formatter,
     this.innerDisplayFormat,
     this.maxRange,
@@ -147,23 +149,31 @@ class WotCalendar extends StatelessWidget {
     this.beforeConfirm,
     this.confirmLeft,
     this.confirmRight,
-    this.switchMode = WotCalendarSwitchMode.month,
+    this.switchMode = WotCalendarSwitchMode.none,
+    this.disabled = false,
+    this.readonly = false,
   });
 
   /// 当前选中日期（v-model，仅对单选 [WotCalendarType.single] 生效）。
   final DateTime? modelValue;
 
+  /// 是否禁用（锁选择交互并整体淡化），默认 false。
+  final bool disabled;
+
+  /// 是否只读：锁选择交互但保持正常配色（仅供查看），默认 false。
+  final bool readonly;
+
   /// 确定选中单日时触发的回调。
   final ValueChanged<DateTime>? onChange;
 
-  /// 标题文案，默认「选择日期」。
-  final String title;
+  /// 标题文案；不传时按当前语言取默认（zh_CN：选择日期）。
+  final String? title;
 
-  /// 确认按钮文案，默认「确定」。
-  final String confirmText;
+  /// 确认按钮文案；不传时按当前语言取默认（zh_CN：确定）。
+  final String? confirmText;
 
-  /// 取消按钮文案，默认「取消」。
-  final String cancelText;
+  /// 取消按钮文案；不传时按当前语言取默认（zh_CN：取消）。
+  final String? cancelText;
 
   /// 可选日期范围的最小日期。
   final DateTime? minDate;
@@ -186,7 +196,7 @@ class WotCalendar extends StatelessWidget {
   /// 点击取消（或关闭且未确认）时触发的回调。
   final VoidCallback? onCancel;
 
-  /// 周起始日：0=周日，1=周一（默认周一，对应 wot `first-day-of-week`）。
+  /// 周起始日：0=周日，1=周一，默认 0（即周日起始，对齐 wot `first-day-of-week`）。
   final int firstDayOfWeek;
 
   /// 日期单元格格式化回调（对应 wot `formatter`）。
@@ -231,7 +241,8 @@ class WotCalendar extends StatelessWidget {
   /// 确定按钮区域右侧拓展组件（对应 wot `confirm-right` 插槽）。
   final Widget? confirmRight;
 
-  /// 月份面板切换模式（对应 wot `switch-mode`）。
+  /// 月份面板切换模式（对应 wot `switch-mode`），默认 none（平铺展示所有月份，对齐 wot）；
+  /// month 为按月切换、yearMonth 为年+月切换。
   final WotCalendarSwitchMode switchMode;
 
   /// 便捷静态方法：单选弹窗。等同于打开一个仅单选类型的日历。
@@ -242,25 +253,34 @@ class WotCalendar extends StatelessWidget {
     DateTime? minDate,
     DateTime? maxDate,
     Color? color,
+    bool disabled = false,
+    bool readonly = false,
   }) {
     return showModalBottomSheet<DateTime>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      builder: (_) => _CalendarSheet(
+      // 回落到 WotCalendar 本体，使三态（disabled / readonly）的包裹生效。
+      builder: (_) => WotCalendar(
         modelValue: modelValue,
         title: title ?? '选择日期',
         minDate: minDate,
         maxDate: maxDate,
         color: color,
+        disabled: disabled,
+        readonly: readonly,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return _CalendarSheet(
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = this.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final readonly = this.readonly || (fieldScope?.state == WotFieldState.readonly);
+
+    final sheet = _CalendarSheet(
       modelValue: modelValue,
       title: title,
       confirmText: confirmText,
@@ -290,6 +310,12 @@ class WotCalendar extends StatelessWidget {
       confirmRight: confirmRight,
       switchMode: switchMode,
     );
+
+    // 弹层形态三态：readonly 锁选择交互、配色不变；disabled 额外整体淡化。
+    // 锁住整片 sheet（关闭仍可点蒙层）。
+    final locked = disabled || readonly;
+    final wrapped = locked ? IgnorePointer(child: sheet) : sheet;
+    return disabled ? Opacity(opacity: 0.5, child: wrapped) : wrapped;
   }
 }
 
@@ -297,9 +323,9 @@ class _CalendarSheet extends StatefulWidget {
   const _CalendarSheet({
     this.modelValue,
     this.onChange,
-    this.title = '选择日期',
-    this.confirmText = '确定',
-    this.cancelText = '取消',
+    this.title,
+    this.confirmText,
+    this.cancelText,
     this.minDate,
     this.maxDate,
     this.color,
@@ -307,7 +333,7 @@ class _CalendarSheet extends StatefulWidget {
     this.initialValues,
     this.onConfirm,
     this.onCancel,
-    this.firstDayOfWeek = 1,
+    this.firstDayOfWeek = 0,
     this.formatter,
     this.innerDisplayFormat,
     this.maxRange,
@@ -322,13 +348,13 @@ class _CalendarSheet extends StatefulWidget {
     this.beforeConfirm,
     this.confirmLeft,
     this.confirmRight,
-    this.switchMode = WotCalendarSwitchMode.month,
+    this.switchMode = WotCalendarSwitchMode.none,
   });
   final DateTime? modelValue;
   final ValueChanged<DateTime>? onChange;
-  final String title;
-  final String confirmText;
-  final String cancelText;
+  final String? title;
+  final String? confirmText;
+  final String? cancelText;
   final DateTime? minDate;
   final DateTime? maxDate;
   final Color? color;
@@ -764,10 +790,14 @@ class _CalendarSheetState extends State<_CalendarSheet> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Row(
         children: [
-          InkWell(onTap: _cancel, child: Text(widget.cancelText, style: TextStyle(fontSize: 14, color: scheme.textSecondary))),
+          InkWell(
+              onTap: _cancel,
+              child: Text(widget.cancelText ?? tr(context, 'wot.common.cancel'),
+                  style: TextStyle(fontSize: 14, color: scheme.textSecondary))),
           Expanded(
             child: Center(
-              child: Text(widget.title, style: TextStyle(fontSize: 16, color: scheme.textMain, fontWeight: FontWeight.w600)),
+              child: Text(widget.title ?? tr(context, 'wot.calendar.title'),
+                  style: TextStyle(fontSize: 16, color: scheme.textMain, fontWeight: FontWeight.w600)),
             ),
           ),
           const Text('    '),
@@ -854,7 +884,7 @@ class _CalendarSheetState extends State<_CalendarSheet> {
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           itemCount: widget.shortcuts.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          separatorBuilder: (_, index) => const SizedBox(width: 8),
           itemBuilder: (context, index) {
             final s = widget.shortcuts[index];
             return GestureDetector(
@@ -909,7 +939,9 @@ class _CalendarSheetState extends State<_CalendarSheet> {
                 height: 40,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(color: primary, borderRadius: BorderRadius.circular(8)),
-                child: Text(widget.confirmText, style: const TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w600)),
+                child: Text(
+                    widget.confirmText ?? tr(context, 'wot.common.confirm'),
+                    style: const TextStyle(fontSize: 15, color: Colors.white, fontWeight: FontWeight.w600)),
               ),
             ),
           ),
@@ -924,17 +956,21 @@ class _CalendarSheetState extends State<_CalendarSheet> {
     final scheme = context.wotScheme;
     final primary = widget.color ?? scheme.primaryOf(6);
 
-    final list = <Widget>[
-      _buildHeader(scheme, primary),
-      if (_buildTypeSwitch(scheme, primary) case final w?) w,
-      if (_buildShortcuts(scheme, primary) case final w2?) w2,
-      if (_buildRangeBar(scheme) case final w3?) w3,
+    final list = <Widget>[];
+    list.add(_buildHeader(scheme, primary));
+    final typeSwitch = _buildTypeSwitch(scheme, primary);
+    if (typeSwitch != null) list.add(typeSwitch);
+    final shortcuts = _buildShortcuts(scheme, primary);
+    if (shortcuts != null) list.add(shortcuts);
+    final rangeBar = _buildRangeBar(scheme);
+    if (rangeBar != null) list.add(rangeBar);
+    list.add(
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: _isMonthType ? _buildMonthBody(primary) : _buildDayBody(scheme, primary),
       ),
-      _buildConfirmArea(scheme, primary),
-    ];
+    );
+    list.add(_buildConfirmArea(scheme, primary));
 
     final content = Column(
       mainAxisSize: MainAxisSize.min,
@@ -1007,9 +1043,9 @@ class _MonthGrid extends StatefulWidget {
     required this.color,
     this.minDate,
     this.maxDate,
-    this.firstDayOfWeek = 1,
+    this.firstDayOfWeek = 0,
     this.formatter,
-    this.switchMode = WotCalendarSwitchMode.month,
+    this.switchMode = WotCalendarSwitchMode.none,
     required this.onDay,
   });
 
@@ -1056,9 +1092,23 @@ class _MonthGridState extends State<_MonthGrid> {
 
   bool _same(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
 
+  /// 默认最小日期：当前日期往前 6 个月（对齐 wot `min-date` 默认值）。
+  DateTime _defaultMinDate() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month - 6, now.day);
+  }
+
+  /// 默认最大日期：当前日期往后 6 个月（对齐 wot `max-date` 默认值）。
+  DateTime _defaultMaxDate() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month + 6, now.day);
+  }
+
   bool _isDisabled(DateTime d) {
-    if (widget.minDate != null && d.isBefore(widget.minDate!)) return true;
-    if (widget.maxDate != null && d.isAfter(widget.maxDate!)) return true;
+    final minDate = widget.minDate ?? _defaultMinDate();
+    final maxDate = widget.maxDate ?? _defaultMaxDate();
+    if (d.isBefore(minDate)) return true;
+    if (d.isAfter(maxDate)) return true;
     final fmt = widget.formatter;
     if (fmt != null && fmt(d).disabled) return true;
     return false;
@@ -1080,8 +1130,10 @@ class _MonthGridState extends State<_MonthGrid> {
   }
 
   Future<void> _openYearMonthPicker(BuildContext context) async {
-    final yMin = widget.minDate?.year ?? (_year - 20);
-    final yMax = widget.maxDate?.year ?? (_year + 20);
+    final minDate = widget.minDate ?? _defaultMinDate();
+    final maxDate = widget.maxDate ?? _defaultMaxDate();
+    final yMin = minDate.year;
+    final yMax = maxDate.year;
     final years = <WotColumnOption>[
       for (var y = yMin; y <= yMax; y++) WotColumnOption(text: '$y', value: y),
     ];
@@ -1097,13 +1149,13 @@ class _MonthGridState extends State<_MonthGrid> {
     if (res == null || res.length < 2 || !mounted) return;
     final picked = DateTime((res[0] as num).toInt(), (res[1] as num).toInt(), 1);
     var year = picked.year, month = picked.month;
-    if (widget.minDate != null && picked.isBefore(widget.minDate!)) {
-      year = widget.minDate!.year;
-      month = widget.minDate!.month;
+    if (picked.isBefore(minDate)) {
+      year = minDate.year;
+      month = minDate.month;
     }
-    if (widget.maxDate != null && picked.isAfter(widget.maxDate!)) {
-      year = widget.maxDate!.year;
-      month = widget.maxDate!.month;
+    if (picked.isAfter(maxDate)) {
+      year = maxDate.year;
+      month = maxDate.month;
     }
     setState(() {
       _year = year;

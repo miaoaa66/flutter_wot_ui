@@ -13,6 +13,7 @@ class WotCurtainPage extends StatefulWidget {
 
 class _WotCurtainPageState extends State<WotCurtainPage> {
   bool _show = false;
+  bool _showSrc = false;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +44,21 @@ class _WotCurtainPageState extends State<WotCurtainPage> {
                   ),
                 ),
             ])),
+        demoSection('新增（D 类 P1）：src 图片幕布 + closePosition'),
+        demoBlock(
+            'src 图片幕布（width/height 自定义尺寸）',
+            FilledButton(
+                onPressed: () => setState(() => _showSrc = true),
+                child: const Text('打开图片幕布'))),
+        WotCurtain(
+          modelValue: _showSrc,
+          src: 'https://picsum.photos/300/360',
+          width: 300,
+          height: 360,
+          maskClose: true,
+          closePosition: WotCurtainClosePosition.inside,
+          onModelUpdate: (v) => setState(() => _showSrc = v),
+        ),
       ],
     );
   }

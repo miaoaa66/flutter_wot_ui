@@ -31,40 +31,52 @@ class _StepCircle extends StatelessWidget {
   const _StepCircle({
     required this.index,
     required this.active,
+    this.status = WotStepDataStatus.waiting,
     this.activeColor,
     this.inactiveColor,
   });
 
   final int index;
   final int active;
+  final WotStepDataStatus status;
   final Color? activeColor;
   final Color? inactiveColor;
 
-  bool get _done => index < active;
-  bool get _current => index == active;
+  /// [WotStepDataStatus.waiting] 视为「未显式指定」，仍按 [active] 索引推导，
+  /// 以保证既有用法的表现不变。
+  bool get _explicit => status != WotStepDataStatus.waiting;
+  bool get _error => status == WotStepDataStatus.error;
+  bool get _done =>
+      status == WotStepDataStatus.finished || (!_explicit && index < active);
+  bool get _current =>
+      status == WotStepDataStatus.process || (!_explicit && index == active);
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
-    final color = index >= active
-        ? (_current
-            ? (activeColor ?? scheme.primaryOf(6))
-            : (inactiveColor ?? scheme.textDisabled))
-        : (activeColor ?? scheme.successMain);
+    final color = _error
+        ? scheme.dangerMain
+        : _done
+            ? (activeColor ?? scheme.successMain)
+            : _current
+                ? (activeColor ?? scheme.primaryOf(6))
+                : (inactiveColor ?? scheme.textDisabled);
     return Container(
       width: 24,
       height: 24,
       decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       alignment: Alignment.center,
-      child: _done
-          ? const Icon(Icons.check, size: 14, color: Colors.white)
-          : Text(
-              '${index + 1}',
-              style: TextStyle(
-                fontSize: 12,
-                color: _current || _done ? Colors.white : scheme.textSecondary,
-              ),
-            ),
+      child: _error
+          ? const Icon(Icons.close, size: 14, color: Colors.white)
+          : _done
+              ? const Icon(Icons.check, size: 14, color: Colors.white)
+              : Text(
+                  '${index + 1}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _current || _done ? Colors.white : scheme.textSecondary,
+                  ),
+                ),
     );
   }
 }
@@ -112,6 +124,7 @@ class WotStep extends StatelessWidget {
       child: _StepCircle(
         index: index,
         active: active,
+        status: data.status,
         activeColor: activeColor,
         inactiveColor: inactiveColor,
       ),
@@ -230,6 +243,7 @@ class WotSteps extends StatelessWidget {
                 child: _StepCircle(
                   index: i,
                   active: active,
+                  status: data.status,
                   activeColor: activeColor,
                   inactiveColor: inactiveColor,
                 ),
@@ -253,8 +267,11 @@ class WotSteps extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,
-                    color:
-                        isCurrent || isDone ? scheme.textMain : scheme.textDisabled,
+                    color: data.status == WotStepDataStatus.error
+                        ? scheme.dangerMain
+                        : (isCurrent || isDone
+                            ? scheme.textMain
+                            : scheme.textDisabled),
                   ),
                 ),
                 if (data.description != null) ...[
@@ -275,7 +292,13 @@ class WotSteps extends StatelessWidget {
         Expanded(
           child: onChange == null
               ? column
-              : GestureDetector(onTap: () => onChange!(i), child: column),
+              // 无障碍：可点击步骤补 button 角色 + 点按动作（步骤文案读屏可读）。
+              : Semantics(
+                  button: true,
+                  onTap: () => onChange!(i),
+                  child: GestureDetector(
+                      onTap: () => onChange!(i), child: column),
+                ),
         ),
       );
     }

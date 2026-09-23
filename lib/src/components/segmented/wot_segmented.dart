@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../theme/wot_theme.dart';
 
+/// 分段控制器形状（T3.3 枚举化）。
+enum WotSegmentedShape { pill, square, round }
+
 /// 分段选项。
 class WotSegmentedOption {
   const WotSegmentedOption({
@@ -24,6 +27,9 @@ class WotSegmentedOption {
   final String? icon;
 }
 
+/// 分段控制器尺寸。
+enum WotSegmentedSize { small, medium, large }
+
 /// 分段控制器，对应 wot `wd-segmented`。
 ///
 /// 受控（v-model:value）：通过 [modelValue]/[onChange] 匹配 [WotSegmentedOption.value]。
@@ -35,8 +41,8 @@ class WotSegmented extends StatelessWidget {
     this.options = const [],
     this.block = false,
     this.activeColor,
-    this.shape = 'pill',
-    this.size = 'medium',
+    this.shape = WotSegmentedShape.pill,
+    this.size = WotSegmentedSize.medium,
   });
 
   /// 当前选中的值（受控）。
@@ -55,29 +61,29 @@ class WotSegmented extends StatelessWidget {
   final Color? activeColor;
 
   /// 形状：pill（胶囊）/round（圆角）/square（方形）。
-  final String shape;
+  final WotSegmentedShape shape;
 
-  /// 尺寸：small/medium/large。
-  final String size;
+  /// 尺寸，默认 medium。
+  final WotSegmentedSize size;
 
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
     final active = activeColor ?? scheme.primaryOf(6);
     final radius = switch (shape) {
-      'square' => BorderRadius.zero,
-      'round' => BorderRadius.circular(4),
-      _ => BorderRadius.circular(22),
+      WotSegmentedShape.square => BorderRadius.zero,
+      WotSegmentedShape.round => BorderRadius.circular(4),
+      WotSegmentedShape.pill => BorderRadius.circular(22),
     };
     final vPadding = switch (size) {
-      'small' => 4.0,
-      'large' => 10.0,
-      _ => 7.0,
+      WotSegmentedSize.small => 4.0,
+      WotSegmentedSize.large => 10.0,
+      WotSegmentedSize.medium => 7.0,
     };
     final fontSize = switch (size) {
-      'small' => 12.0,
-      'large' => 16.0,
-      _ => 14.0,
+      WotSegmentedSize.small => 12.0,
+      WotSegmentedSize.large => 16.0,
+      WotSegmentedSize.medium => 14.0,
     };
 
     final row = Row(
@@ -125,8 +131,14 @@ class WotSegmented extends StatelessWidget {
       child: row,
     );
 
-    return block
-        ? Container(child: container)
-        : SizedBox(width: options.length * 88.0, child: container);
+    // 无障碍：整段读出「当前选中项」，读屏可感知分段选择器的状态。
+    final selectedLabel =
+        options.where((o) => o.value == modelValue).map((o) => o.label).join('、');
+    return Semantics(
+      value: selectedLabel.isEmpty ? null : '当前选中：$selectedLabel',
+      child: block
+          ? Container(child: container)
+          : SizedBox(width: options.length * 88.0, child: container),
+    );
   }
 }

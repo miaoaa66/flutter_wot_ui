@@ -25,6 +25,23 @@ class WotCellGroupPage extends StatelessWidget {
               WotCell(title: '卡片项一', value: '内容'),
               WotCell(title: '卡片项二', value: '内容'),
             ])),
+        demoSection('新增（D 类 P1）：title / value 标题区 + bordered 下发'),
+        WotCellGroup(
+          title: '分组标题',
+          value: '右侧说明',
+          children: const [
+            WotCell(title: '标题一', value: '内容'),
+            WotCell(title: '标题二', value: '内容'),
+          ],
+        ),
+        const SizedBox(height: 12),
+        WotCellGroup(
+          title: 'bordered=false 组',
+          children: const [
+            WotCell(title: '组内分割线跟随组关闭', value: '无分割线'),
+            WotCell(title: '标题二', value: '内容'),
+          ],
+        ),
       ],
     );
   }

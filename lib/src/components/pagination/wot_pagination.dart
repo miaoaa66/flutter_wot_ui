@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 import '../../theme/wot_scheme.dart';
 
@@ -157,10 +158,11 @@ class _WotPaginationState extends State<WotPagination> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _button(widget.prevText ?? '上一页', primary, current > 1 ? () => _change(current - 1) : null, scheme),
+        _button(widget.prevText ?? tr(context, 'wot.pagination.prev'),
+            primary, current > 1 ? () => _change(current - 1) : null, scheme),
         const SizedBox(width: 8),
         _button(
-          widget.nextText ?? '下一页',
+          widget.nextText ?? tr(context, 'wot.pagination.next'),
           primary,
           (pageCount > 0 && current < pageCount) ? () => _change(current + 1) : null,
           scheme,
@@ -334,10 +336,10 @@ class _SettingsDialogContentState extends State<_SettingsDialogContent> {
     final text = _jumpController.text.trim();
     if (text.isEmpty) return null;
     final parsed = int.tryParse(text);
-    if (parsed == null) return '请输入有效数字';
+    if (parsed == null) return tr(context, 'wot.pagination.invalidPage');
     final pc = _currentPageCount;
     if (pc > 0 && (parsed < 1 || parsed > pc)) {
-      return '请输入 1~$pc 之间的页码';
+      return tr(context, 'wot.pagination.pageRange', params: {'max': '$pc'});
     }
     return null;
   }
@@ -352,11 +354,12 @@ class _SettingsDialogContentState extends State<_SettingsDialogContent> {
       if (text.isNotEmpty) {
         final parsed = int.tryParse(text);
         if (parsed == null) {
-          setState(() => _jumpError = '请输入有效数字');
+          setState(() => _jumpError = tr(context, 'wot.pagination.invalidPage'));
           return;
         }
         if (pageCount > 0 && (parsed < 1 || parsed > pageCount)) {
-          setState(() => _jumpError = '请输入 1~$pageCount 之间的页码');
+          setState(() => _jumpError = tr(context, 'wot.pagination.pageRange',
+              params: {'max': '$pageCount'}));
           return;
         }
         jumpPage = parsed;
@@ -387,7 +390,7 @@ class _SettingsDialogContentState extends State<_SettingsDialogContent> {
               children: [
                 // 标题
                 Text(
-                  '分页设置',
+                  tr(context, 'wot.pagination.settings'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 16,
@@ -398,14 +401,15 @@ class _SettingsDialogContentState extends State<_SettingsDialogContent> {
                 const SizedBox(height: 16),
                 // 统计信息（随 pageSize 实时更新）
                 Text(
-                  '共 ${widget.total} 条，共 $pageCount 页',
+                  tr(context, 'wot.pagination.total',
+                      params: {'total': '${widget.total}', 'pages': '$pageCount'}),
                   style: TextStyle(fontSize: 14, color: scheme.textSecondary),
                 ),
                 const SizedBox(height: 16),
                 // 每页条数选项
                 if (widget.showPageSizeOptions && widget.pageSizeOptions.isNotEmpty) ...[
                   Text(
-                    '每页显示',
+                    tr(context, 'wot.pagination.perPage'),
                     style: TextStyle(fontSize: 14, color: scheme.textMain, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 8),
@@ -424,7 +428,8 @@ class _SettingsDialogContentState extends State<_SettingsDialogContent> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              '$option 条/页',
+                              tr(context, 'wot.pagination.perPageItem',
+                                  params: {'n': '$option'}),
                               style: TextStyle(
                                 fontSize: 14,
                                 color: _selectedPageSize == option ? widget.primary : scheme.textMain,
@@ -439,13 +444,14 @@ class _SettingsDialogContentState extends State<_SettingsDialogContent> {
                 // 跳转页码
                 if (widget.showJumper) ...[
                   Text(
-                    '跳转到',
+                    tr(context, 'wot.pagination.jumpTo'),
                     style: TextStyle(fontSize: 14, color: scheme.textMain, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Text('第', style: TextStyle(fontSize: 14, color: scheme.textMain)),
+                      Text(tr(context, 'wot.pagination.pagePrefix'),
+                          style: TextStyle(fontSize: 14, color: scheme.textMain)),
                       const SizedBox(width: 8),
                       SizedBox(
                         width: 80,
@@ -490,7 +496,8 @@ class _SettingsDialogContentState extends State<_SettingsDialogContent> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text('页', style: TextStyle(fontSize: 14, color: scheme.textMain)),
+                      Text(tr(context, 'wot.pagination.pageSuffix'),
+                          style: TextStyle(fontSize: 14, color: scheme.textMain)),
                     ],
                   ),
                   if (_jumpError != null) ...[
@@ -517,7 +524,8 @@ class _SettingsDialogContentState extends State<_SettingsDialogContent> {
                             ),
                           ),
                           onPressed: () => Navigator.of(context).pop(),
-                          child: Text('取消', style: TextStyle(color: scheme.textMain)),
+                          child: Text(tr(context, 'wot.common.cancel'),
+                              style: TextStyle(color: scheme.textMain)),
                         ),
                       ),
                     ),
@@ -534,7 +542,7 @@ class _SettingsDialogContentState extends State<_SettingsDialogContent> {
                             ),
                           ),
                           onPressed: _handleConfirm,
-                          child: const Text('确定'),
+                          child: Text(tr(context, 'wot.common.confirm')),
                         ),
                       ),
                     ),

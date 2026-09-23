@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
 
@@ -26,7 +27,8 @@ class WotNoticeBar extends StatefulWidget {
     this.closeable = false,
     this.leftIcon = true,
     this.delay = 1,
-    this.speed = 60,
+    this.speed = 50,
+    this.duration,
     this.onClose,
     this.onNext,
     this.onClick,
@@ -66,11 +68,17 @@ class WotNoticeBar extends StatefulWidget {
   /// 是否显示左侧默认图标；为 false 时图标随 [icon] 决定。
   final bool leftIcon;
 
-  /// 滚动/轮播动画初始延时（秒）。
+  /// 垂直轮播时每条文案的停留/切换间隔（秒），即上一条滑出、下一条滑入之间的停顿；默认 1。
+  /// 这是“停顿”而非动画时长，动画时长另见 [duration]。
   final int delay;
 
-  /// 滚动速度（px/s）。
+  /// 滚动速度（px/s），默认 50。影响横向跑马灯速度；纵向轮播仅当 [duration] 为 null 时，
+  /// 按 pageH/speed 推算“默认”切换时长。
   final int speed;
+
+  /// 垂直轮播切换动画时长（毫秒）。为 null 时按 [speed] 与行高推算（约 pageH/speed）。
+  /// 调大更慢更柔和，调小更利落。与 [delay] 独立：一次完整切换周期 = 停留(delay) + 动画(duration)。
+  final int? duration;
 
   /// 点击关闭按钮（closeable 模式，动画结束后）时回调。
   final VoidCallback? onClose;
@@ -222,18 +230,26 @@ class _WotNoticeBarState extends State<WotNoticeBar>
           return Text(content, style: style, maxLines: 1, overflow: TextOverflow.ellipsis);
         }
 
+        // 跑马灯：滚动内容放进横向 SingleChildScrollView（不可滚动）。
+        // 它会给孩子 unbounded 宽度，子 Row 按内容尺寸布局、不再被视口宽度约束而溢出报错；
+        // 外层 ClipRect 仍按视口裁切。
         return ClipRect(
           child: AnimatedBuilder(
             animation: _ctrl,
             builder: (_, _) => Transform.translate(
               offset: Offset(-_ctrl.value * (contentW + gap), 0),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(width: contentW, child: Text(content, style: style, maxLines: 1)),
-                  const SizedBox(width: gap),
-                  SizedBox(width: contentW, child: Text(content, style: style, maxLines: 1)),
-                ],
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const NeverScrollableScrollPhysics(),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  textDirection: TextDirection.ltr,
+                  children: [
+                    SizedBox(width: contentW, child: Text(content, style: style, maxLines: 1)),
+                    const SizedBox(width: gap),
+                    SizedBox(width: contentW, child: Text(content, style: style, maxLines: 1)),
+                  ],
+                ),
               ),
             ),
           ),
@@ -248,23 +264,47 @@ class _WotNoticeBarState extends State<WotNoticeBar>
 
     if (list.length > 1 && widget.scrollable) {
       final spd = widget.speed > 0 ? widget.speed : 1.0;
-      final interval = Duration(
-        milliseconds: (widget.delay * 1000 + (pageH / spd * 1000).round()),
-      );
-      _syncVerticalTimer(interval);
+      // 切换动画时长：优先用显式 duration，否则按 speed 与行高推算（与横向跑马灯同源）。
+      final animMs = widget.duration ?? ((pageH / spd * 1000).round());
+      final animDuration = Duration(milliseconds: animMs);
+      // 完整切换周期 = 停留(delay 秒) + 动画(animMs)；动画只用于滑动过程，停顿时文本静止，
+      // 解决此前“动画时长 == 周期、文字一直连轴上滚、没有停顿”的生硬感。
+      final period = Duration(milliseconds: widget.delay * 1000 + animMs);
+      _syncVerticalTimer(period);
       final current = list[_vIndex % list.length];
       return SizedBox(
         height: pageH,
         child: ClipRect(
           child: AnimatedSwitcher(
-            duration: interval,
+            duration: animDuration,
+            // 自定义 layoutBuilder：显式裁剪，长短文案切换时不出现横向溢出/位移。
+            // 注意：本 SDK 不支持空感知集合元素（currentChild?）语法，故用 .add 形式，
+            // 既能把进入的子组件纳入 Stack，又规避 use_null_aware_elements 提示。
+            layoutBuilder: (currentChild, previousChildren) {
+              final children = <Widget>[...previousChildren];
+              if (currentChild != null) children.add(currentChild);
+              return Stack(
+                clipBehavior: Clip.hardEdge,
+                children: children,
+              );
+            },
             transitionBuilder: (child, anim) => SlideTransition(
               position: Tween(begin: const Offset(0, 1), end: Offset.zero).animate(anim),
               child: child,
             ),
             child: KeyedSubtree(
               key: ValueKey<int>(_vIndex),
-              child: Text(current, style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
+              // 文案容器撑满宽度并左对齐：长短文案切换时位置稳定，不再“右移”。
+              child: SizedBox(
+                width: double.infinity,
+                child: Text(
+                  current,
+                  style: style,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.left,
+                ),
+              ),
             ),
           ),
         ),
@@ -287,10 +327,15 @@ class _WotNoticeBarState extends State<WotNoticeBar>
     }
     final cur = widget.text ?? (widget.texts?.isNotEmpty == true ? widget.texts!.first : '');
     final idx = _currentIndex();
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    // 无障碍：公告栏本体可点，补 button 角色 + 点按动作（公告文本读屏可读）。
+    return Semantics(
+      button: true,
       onTap: () => widget.onClick?.call(cur, idx),
-      child: Align(alignment: Alignment.centerLeft, child: content),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => widget.onClick?.call(cur, idx),
+        child: Align(alignment: Alignment.centerLeft, child: content),
+      ),
     );
   }
 
@@ -316,18 +361,32 @@ class _WotNoticeBarState extends State<WotNoticeBar>
     const baseFontSize = 13.0;
 
     final trailing = switch (mode) {
-      WotNoticeMode.closeable => GestureDetector(
-          behavior: HitTestBehavior.opaque,
+      WotNoticeMode.closeable => Semantics(
+          // 无障碍：关闭是图标按钮，补 button 角色 + 文案（图标本身对读屏不可读）。
+          button: true,
+          label: tr(context, 'wot.common.close'),
           onTap: _handleClose,
-          child: WotIcon(name: 'close', size: 14, color: fg),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _handleClose,
+            child: WotIcon(name: 'close', size: 14, color: fg),
+          ),
         ),
-      WotNoticeMode.link => GestureDetector(
-          behavior: HitTestBehavior.opaque,
+      WotNoticeMode.link => Semantics(
+          // 无障碍：链接图标补 button 角色 + 点按动作（图标名 WotIcon 已带语义）。
+          button: true,
           onTap: () {
             final cur = widget.text ?? (widget.texts?.isNotEmpty == true ? widget.texts!.first : '');
             widget.onClick?.call(cur, 0);
           },
-          child: WotIcon(name: 'arrow-right', size: 14, color: fg),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () {
+              final cur = widget.text ?? (widget.texts?.isNotEmpty == true ? widget.texts!.first : '');
+              widget.onClick?.call(cur, 0);
+            },
+            child: WotIcon(name: 'arrow-right', size: 14, color: fg),
+          ),
         ),
       WotNoticeMode.normal => const SizedBox.shrink(),
     };

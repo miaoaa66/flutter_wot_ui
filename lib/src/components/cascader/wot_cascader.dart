@@ -1,6 +1,8 @@
 ﻿import 'package:flutter/material.dart';
 
 import '../../theme/wot_scheme.dart';
+import '../../theme/wot_state.dart';
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
 
@@ -28,11 +30,14 @@ class WotCascader extends StatelessWidget {
     super.key,
     this.modelValue = const [],
     this.onChange,
-    this.placeholder = '请选择',
+    this.placeholder,
     this.disabled = false,
+    this.readonly = false,
+    this.error = false,
     this.color,
     this.name,
     this.options = const [],
+    this.optionBuilder,
   });
 
   /// 当前选中路径值数组。
@@ -42,10 +47,16 @@ class WotCascader extends StatelessWidget {
   final ValueChanged<List<Object?>>? onChange;
 
   /// 未选择时展示的占位文案，默认「请选择」。
-  final String placeholder;
+  final String? placeholder;
 
-  /// 是否禁用，禁用后不可点击，默认 false。
+  /// 是否禁用，禁用后不可点击，默认 false。禁用时触发区灰化。
   final bool disabled;
+
+  /// 是否只读：不可弹出选择，但触发区保持正常配色（只读展示当前值），默认 false。
+  final bool readonly;
+
+  /// 是否处于校验失败态（error 态）。命中时触发区描红边。
+  final bool error;
 
   /// 主题色。
   final Color? color;
@@ -55,6 +66,11 @@ class WotCascader extends StatelessWidget {
 
   /// 根级选项。
   final List<WotCascadeOption> options;
+
+  /// 选项自定义渲染插槽（T3.5）：非空时优先于默认文本渲染；
+  /// 下钻箭头与选中高亮仍由组件统一处理。
+  final Widget? Function(BuildContext context, WotCascadeOption node, bool selected)?
+      optionBuilder;
 
   String _display() {
     final parts = <String>[];
@@ -79,28 +95,50 @@ class WotCascader extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
     final display = _display();
+
+    // 触发区是框类形态，套用框类三态规则：显式传参 > WotFieldScope 下发 > 默认。
+    final fieldScope = WotFieldScope.of(context);
+    final isDisabled = disabled || (fieldScope?.state == WotFieldState.disabled);
+    final isReadonly = readonly || (fieldScope?.state == WotFieldState.readonly);
+    final hasError = error || (fieldScope?.error ?? false);
+    final state = isDisabled
+        ? WotFieldState.disabled
+        : isReadonly
+            ? WotFieldState.readonly
+            : WotFieldState.editable;
+    final style = wotFieldStyle(
+      scheme,
+      state,
+      error: hasError,
+      baseBorder: scheme.borderMain,
+    );
+    // 禁用给浅灰底；只读 / 可编辑透明（只读额外去掉边框）。
+    final bg = isDisabled ? style.background : scheme.borderZero;
+    final auxIconColor = isDisabled ? scheme.iconDisabled : scheme.iconAuxiliary;
+
     return InkWell(
-      onTap: disabled
-          ? null
-          : () => _open(context),
+      onTap: (isDisabled || isReadonly) ? null : () => _open(context),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          border: Border.all(color: disabled ? scheme.borderLight : scheme.borderMain),
+          color: bg,
+          border: Border.all(color: style.border),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
           children: [
             Expanded(
               child: Text(
-                display.isEmpty ? placeholder : display,
+                display.isEmpty
+                    ? placeholder ?? tr(context, 'wot.common.pleaseSelect')
+                    : display,
                 style: TextStyle(
                   fontSize: 14,
-                  color: display.isEmpty ? scheme.textPlaceholder : scheme.textMain,
+                  color: display.isEmpty ? style.placeholder : style.text,
                 ),
               ),
             ),
-            WotIcon(name: 'arrow-down', size: 14, color: scheme.iconAuxiliary),
+            WotIcon(name: 'arrow-down', size: 14, color: auxIconColor),
           ],
         ),
       ),
@@ -112,16 +150,25 @@ class WotCascader extends StatelessWidget {
       context: context,
       showDragHandle: true,
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      builder: (_) => _CascaderSheet(options: options, values: modelValue),
+      builder: (_) => _CascaderSheet(
+          options: options, values: modelValue, optionBuilder: optionBuilder),
     );
     if (res != null) onChange?.call(res);
   }
 }
 
 class _CascaderSheet extends StatefulWidget {
-  const _CascaderSheet({required this.options, required this.values});
+  const _CascaderSheet({
+    required this.options,
+    required this.values,
+    this.optionBuilder,
+  });
   final List<WotCascadeOption> options;
   final List<Object?> values;
+
+  /// 选项自定义渲染插槽（T3.5），透传给选项行。
+  final Widget? Function(BuildContext context, WotCascadeOption node, bool selected)?
+      optionBuilder;
 
   @override
   State<_CascaderSheet> createState() => _CascaderSheetState();
@@ -218,14 +265,20 @@ class _CascaderSheetState extends State<_CascaderSheet> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              InkWell(onTap: _cancel, child: Text('取消', style: TextStyle(fontSize: 14, color: scheme.textSecondary))),
+              InkWell(
+                  onTap: _cancel,
+                  child: Text(tr(context, 'wot.common.cancel'),
+                      style: TextStyle(fontSize: 14, color: scheme.textSecondary))),
               Expanded(
                 child: Center(
-                  child: Text('选择地区',
+                  child: Text(tr(context, 'wot.cascader.title'),
                       style: TextStyle(fontSize: 16, color: scheme.textMain, fontWeight: FontWeight.w600)),
                 ),
               ),
-              InkWell(onTap: _confirm, child: Text('确定', style: TextStyle(fontSize: 14, color: primary, fontWeight: FontWeight.w600))),
+              InkWell(
+                  onTap: _confirm,
+                  child: Text(tr(context, 'wot.common.confirm'),
+                      style: TextStyle(fontSize: 14, color: primary, fontWeight: FontWeight.w600))),
             ],
           ),
         ),
@@ -233,7 +286,9 @@ class _CascaderSheetState extends State<_CascaderSheet> {
         Container(height: 1, color: scheme.dividerLight),
         Expanded(
           child: _levels.isEmpty
-              ? Center(child: Text('暂无数据', style: TextStyle(color: scheme.textAuxiliary)))
+              ? Center(
+                  child: Text(tr(context, 'wot.table.empty'),
+                      style: TextStyle(color: scheme.textAuxiliary)))
               : ListView.separated(
                   padding: EdgeInsets.zero,
                   itemCount: current.length,
@@ -289,13 +344,14 @@ class _CascaderSheetState extends State<_CascaderSheet> {
   }
 
   String _labelOf(int i) {
-    if (i >= _path.length) return '请选择';
+    if (i >= _path.length) return tr(context, 'wot.common.pleaseSelect');
     final opt = _find(_levels[i], _path[i]);
-    return opt?.text ?? '请选择';
+    return opt?.text ?? tr(context, 'wot.common.pleaseSelect');
   }
 
   Widget _buildRow(WotScheme scheme, Color primary, WotCascadeOption node) {
     final selected = _active < _path.length && _path[_active] == node.value;
+    final Widget? custom = widget.optionBuilder?.call(context, node, selected);
     return InkWell(
       onTap: () {
         final isLeaf = _onSelect(_active, node.value);
@@ -306,24 +362,26 @@ class _CascaderSheetState extends State<_CascaderSheet> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         color: selected ? scheme.filledContent : Colors.transparent,
         alignment: Alignment.centerLeft,
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                node.text,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: selected ? primary : scheme.textMain,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                ),
+        child: custom != null
+            ? Row(children: [Expanded(child: custom)])
+            : Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      node.text,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: selected ? primary : scheme.textMain,
+                        fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  if (node.children.isNotEmpty)
+                    Icon(Icons.chevron_right, size: 16, color: scheme.iconAuxiliary),
+                ],
               ),
-            ),
-            if (node.children.isNotEmpty)
-              Icon(Icons.chevron_right, size: 16, color: scheme.iconAuxiliary),
-          ],
-        ),
       ),
     );
   }

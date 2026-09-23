@@ -44,11 +44,13 @@ import 'display/wot_badge_page.dart';
 import 'display/wot_barcode_page.dart';
 import 'display/wot_card_page.dart';
 import 'display/wot_collapse_page.dart';
-import 'display/wot_expand_page.dart';
 import 'display/wot_curtain_page.dart';
+import 'display/wot_expand_page.dart';
 import 'display/wot_grid_page.dart';
 import 'display/wot_img_cropper_page.dart';
 import 'display/wot_img_page.dart';
+import 'display/wot_theme_btn_page.dart';
+import 'display/wot_image_preview_page.dart';
 import 'display/wot_loadmore_page.dart';
 import 'display/wot_qr_code_page.dart';
 import 'display/wot_skeleton_page.dart';
@@ -79,21 +81,41 @@ import 'form/wot_slider_page.dart';
 import 'form/wot_switch_page.dart';
 import 'form/wot_upload_page.dart';
 
-/// 示例 App 首页：按 wot 分组（基础/导航/录入/反馈/展示）列出各组件入口。
-class WotIndexPage extends StatelessWidget {
+/// 示例 App 首页：按 wot 分组（基础/导航/录入/反馈/展示）以折叠面板列出各组件入口。
+class WotIndexPage extends StatefulWidget {
   const WotIndexPage({
     super.key,
     required this.dark,
     required this.onToggleDark,
+    required this.locale,
+    required this.onToggleLocale,
   });
 
   final bool dark;
   final VoidCallback onToggleDark;
 
+  /// 当前 wot 语言（zh_CN / en_US），由根级 [WotConfigProvider] 维护。
+  final String locale;
+  final VoidCallback onToggleLocale;
+
+  @override
+  State<WotIndexPage> createState() => _WotIndexPageState();
+}
+
+class _WotIndexPageState extends State<WotIndexPage> {
+  /// 折叠面板当前展开的分组名集合；初始化为全部分组 => 默认全部展开。
+  final Set<String> _activeGroups = {
+    'basic',
+    'nav',
+    'form',
+    'feedback',
+    'display',
+  };
+
   @override
   Widget build(BuildContext context) {
     final groups = [
-      _Group('基础 Basic', [
+      _Group('basic', '基础 Basic', [
         _Entry('Button', '按钮', () => _push(context, const WotButtonPage())),
         _Entry('Icon', '图标', () => _push(context, const WotIconPage())),
         _Entry('Text', '文本', () => _push(context, const WotTextPage())),
@@ -106,7 +128,7 @@ class WotIndexPage extends StatelessWidget {
         _Entry('Loading', '加载', () => _push(context, const WotLoadingPage())),
         _Entry('Fab', '悬浮按钮', () => _push(context, const WotFabPage())),
       ]),
-      _Group('导航 Navigation', [
+      _Group('nav', '导航 Navigation', [
         _Entry('Navbar', '顶部导航栏', () => _push(context, const WotNavbarPage())),
         _Entry('Tabs', '标签页', () => _push(context, const WotTabsPage())),
         _Entry('Tabbar', '底部标签栏', () => _push(context, const WotTabbarPage())),
@@ -117,7 +139,7 @@ class WotIndexPage extends StatelessWidget {
         _Entry('Backtop', '回到顶部', () => _push(context, const WotBacktopPage())),
         _Entry('Transition', '过渡动画', () => _push(context, const WotTransitionPage())),
       ]),
-      _Group('录入 Form', [
+      _Group('form', '录入 Form', [
         _Entry('Form', '表单·校验·动态字段', () => _push(context, const WotFormPage())),
         _Entry('Input/Textarea', '输入框·文本域', () => _push(context, const WotInputPage())),
         _Entry('InputNumber', '数字输入框', () => _push(context, const WotInputNumberPage())),
@@ -139,7 +161,7 @@ class WotIndexPage extends StatelessWidget {
         _Entry('SlideVerify', '滑动验证', () => _push(context, const WotSlideVerifyPage())),
         _Entry('Keyboard', '数字键盘', () => _push(context, const WotKeyboardPage())),
       ]),
-      _Group('反馈 Feedback', [
+      _Group('feedback', '反馈 Feedback', [
         _Entry('Toast', '轻提示', () => _push(context, const WotToastPage())),
         _Entry('Notify', '顶部通知', () => _push(context, const WotNotifyPage())),
         _Entry('Dialog', '对话框', () => _push(context, const WotDialogPage())),
@@ -159,7 +181,7 @@ class WotIndexPage extends StatelessWidget {
         _Entry('Empty', '空状态', () => _push(context, const WotEmptyPage())),
         _Entry('Tour', '新手引导', () => _push(context, const WotTourPage())),
       ]),
-      _Group('展示 Display', [
+      _Group('display', '展示 Display', [
         _Entry('Tag', '标签', () => _push(context, const WotTagPage())),
         _Entry('Badge', '徽标', () => _push(context, const WotBadgePage())),
         _Entry('Avatar', '头像', () => _push(context, const WotAvatarPage())),
@@ -171,6 +193,8 @@ class WotIndexPage extends StatelessWidget {
         _Entry('Skeleton', '骨架屏', () => _push(context, const WotSkeletonPage())),
         _Entry('Loadmore', '加载更多', () => _push(context, const WotLoadmorePage())),
         _Entry('Img', '图片', () => _push(context, const WotImgPage())),
+        _Entry('ImagePreview', '图片预览',
+            () => _push(context, const WotImagePreviewPage())),
         _Entry('Swiper', '轮播', () => _push(context, const WotSwiperPage())),
         _Entry('Table', '表格', () => _push(context, WotTablePage())),
         _Entry('Watermark', '水印', () => _push(context, const WotWatermarkPage())),
@@ -179,6 +203,7 @@ class WotIndexPage extends StatelessWidget {
         _Entry('Curtain', '幕布', () => _push(context, const WotCurtainPage())),
         _Entry('ImgCropper', '图片裁剪', () => _push(context, const WotImgCropperPage())),
         _Entry('VideoPreview', '视频预览', () => _push(context, const WotVideoPreviewPage())),
+        _Entry('ThemeBtn', '主题切换按钮', () => _push(context, const WotThemeBtnPage())),
       ]),
     ];
 
@@ -186,43 +211,68 @@ class WotIndexPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Wot UI Flutter'),
         actions: [
-          IconButton(
-            tooltip: dark ? '切换浅色' : '切换深色',
-            icon: Icon(dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
-            onPressed: onToggleDark,
+          TextButton(
+            onPressed: widget.onToggleLocale,
+            child: Text(
+              widget.locale == 'zh_CN' ? 'EN' : '中文',
+              style: TextStyle(
+                color: widget.dark ? Colors.white : Colors.black87,
+              ),
+            ),
+          ),
+          Tooltip(
+            message: widget.dark ? '切换浅色' : '切换深色',
+            child: WotThemeBtn(
+              value: widget.dark,
+              shadow: widget.dark ? WotThemeBtnShadow.light : WotThemeBtnShadow.dark,
+              size: 100,
+              onChanged: (_) => widget.onToggleDark(),
+            ),
           ),
         ],
       ),
       body: ListView(
         children: [
-          for (final g in groups) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-              child: WotText(g.title, size: 14, bold: true, type: WotTextType.wotDefault),
+          Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            clipBehavior: Clip.antiAlias,
+            child: WotCollapse(
+              accordion: false,
+              showArrow: true,
+              modelValue: _activeGroups.toList(),
+              onChange: (names) => setState(() {
+                _activeGroups
+                  ..clear()
+                  ..addAll(names);
+              }),
+              children: [
+                for (final g in groups)
+                  WotCollapseItem(
+                    data: WotCollapseItemData(name: g.key, title: g.title),
+                    children: g.entries.isEmpty
+                        ? const [
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              child: WotText('待实现（后续 Phase 补充）',
+                                  type: WotTextType.error, size: 13),
+                            ),
+                          ]
+                        : [
+                            for (final e in g.entries)
+                              ListTile(
+                                leading: WotIcon(
+                                    name: _entryIcons[e.name] ?? 'category',
+                                    size: 16),
+                                title: Text(e.name),
+                                subtitle: Text(e.desc),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: e.onTap,
+                              ),
+                          ],
+                  ),
+              ],
             ),
-            if (g.entries.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                child: WotText('待实现（后续 Phase 补充）', type: WotTextType.error, size: 13),
-              )
-            else
-              Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  children: [
-                    for (final e in g.entries)
-                      ListTile(
-                        leading: const WotIcon(name: 'arrow-right', size: 16),
-                        title: Text(e.name),
-                        subtitle: Text(e.desc),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: e.onTap,
-                      ),
-                  ],
-                ),
-              ),
-          ],
+          ),
           const SizedBox(height: 16),
         ],
       ),
@@ -234,8 +284,98 @@ class WotIndexPage extends StatelessWidget {
   }
 }
 
+/// 二级菜单（各组件入口）左侧图标：按组件英文名映射到 wot 图标名（Material 兜底渲染）。
+/// 替换原先「所有条目都用 arrow-right」的重复感，按组件语义给出更有辨识度的图标。
+const Map<String, String> _entryIcons = <String, String>{
+  // 基础
+  'Button': 'check',
+  'Icon': 'star',
+  'Text': 'text',
+  'Cell': 'list',
+  'CellGroup': 'category',
+  'Row/Col': 'view',
+  'Gap': 'exchange',
+  'Divider': 'minus',
+  'Overlay': 'eye-close',
+  'Loading': 'loading',
+  'Fab': 'add',
+  // 导航
+  'Navbar': 'view',
+  'Tabs': 'category',
+  'Tabbar': 'home',
+  'Segmented': 'more',
+  'Sidebar': 'list',
+  'Pagination': 'double-right',
+  'IndexBar': 'list',
+  'Backtop': 'arrow-up',
+  'Transition': 'refresh',
+  // 录入
+  'Form': 'edit',
+  'Input/Textarea': 'text',
+  'InputNumber': 'filter',
+  'Search': 'search',
+  'Checkbox': 'check',
+  'Radio': 'check-circle',
+  'Switch': 'exchange',
+  'Rate': 'star',
+  'Slider': 'exchange',
+  'SelectPicker': 'more',
+  'Picker': 'sort',
+  'PickerView': 'sort',
+  'Cascader': 'category',
+  'Calendar': 'calendar',
+  'DatetimePicker': 'clock',
+  'Signature': 'edit',
+  'Upload': 'upload',
+  'PasswordInput': 'eye-close',
+  'SlideVerify': 'exchange',
+  'Keyboard': 'edit',
+  // 反馈
+  'Toast': 'info',
+  'Notify': 'message',
+  'Dialog': 'chat',
+  'ActionSheet': 'more',
+  'Progress': 'view',
+  'Circle': 'check-circle',
+  'Popup': 'more',
+  'NoticeBar': 'newspaper',
+  'CountDown': 'clock',
+  'CountTo': 'sort',
+  'SortButton': 'sort',
+  'Tooltip': 'info',
+  'Popover': 'more',
+  'DropMenu': 'category',
+  'FloatingPanel': 'view',
+  'SwipeAction': 'exchange',
+  'Empty': 'empty',
+  'Tour': 'location',
+  // 展示
+  'Tag': 'star-o',
+  'Badge': 'star',
+  'Avatar': 'person',
+  'Card': 'view',
+  'Grid': 'category',
+  'Collapse': 'down',
+  'Expand': 'down',
+  'Steps': 'view',
+  'Skeleton': 'view',
+  'Loadmore': 'more',
+  'Img': 'image',
+  'ImagePreview': 'image',
+  'Swiper': 'play',
+  'Table': 'list',
+  'Watermark': 'view',
+  'QrCode': 'qrcode',
+  'Barcode': 'qr',
+  'Curtain': 'view',
+  'ImgCropper': 'camera',
+  'VideoPreview': 'video',
+  'ThemeBtn': 'moon',
+};
+
 class _Group {
-  const _Group(this.title, this.entries);
+  const _Group(this.key, this.title, this.entries);
+  final String key;
   final String title;
   final List<_Entry> entries;
 }

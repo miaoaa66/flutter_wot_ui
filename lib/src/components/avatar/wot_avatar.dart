@@ -78,7 +78,13 @@ class WotAvatar extends StatelessWidget {
     );
 
     if (onClick == null) return avatar;
-    return GestureDetector(behavior: HitTestBehavior.opaque, onTap: onClick, child: avatar);
+    // 无障碍：头像可点时补 button 角色 + 点按动作。
+    return Semantics(
+      button: true,
+      onTap: onClick,
+      child: GestureDetector(
+          behavior: HitTestBehavior.opaque, onTap: onClick, child: avatar),
+    );
   }
 
   Widget _fallback(BuildContext context, Color fg) {

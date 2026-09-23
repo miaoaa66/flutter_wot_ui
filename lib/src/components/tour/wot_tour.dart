@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_scheme.dart';
 import '../../theme/wot_theme.dart';
 
@@ -157,14 +158,14 @@ class WotTour {
     bool closeOnClickMask = false,
     bool clickMaskNext = false,
     double maskPadding = 8,
-    double borderRadius = 8,
-    double offset = 16,
+    double borderRadius = 4,
+    double offset = 20,
     WotTourPlacement placement = WotTourPlacement.auto,
     double maxWidth = 260,
-    String skipButtonText = '跳过',
-    String prevButtonText = '上一步',
-    String nextButtonText = '下一步',
-    String finishButtonText = '完成',
+    String? skipButtonText,
+    String? prevButtonText,
+    String? nextButtonText,
+    String? finishButtonText,
     ValueChanged<int>? onChange,
     ValueChanged<int>? onNext,
     ValueChanged<int>? onPrev,
@@ -221,10 +222,10 @@ class _WotTourView extends StatefulWidget {
     required this.offset,
     required this.placement,
     required this.maxWidth,
-    required this.skipButtonText,
-    required this.prevButtonText,
-    required this.nextButtonText,
-    required this.finishButtonText,
+    this.skipButtonText,
+    this.prevButtonText,
+    this.nextButtonText,
+    this.finishButtonText,
     required this.controller,
     this.onChange,
     this.onNext,
@@ -244,10 +245,10 @@ class _WotTourView extends StatefulWidget {
   final double offset;
   final WotTourPlacement placement;
   final double maxWidth;
-  final String skipButtonText;
-  final String prevButtonText;
-  final String nextButtonText;
-  final String finishButtonText;
+  final String? skipButtonText;
+  final String? prevButtonText;
+  final String? nextButtonText;
+  final String? finishButtonText;
   final WotTourController controller;
   final ValueChanged<int>? onChange;
   final ValueChanged<int>? onNext;
@@ -591,10 +592,10 @@ class _TourBubble extends StatelessWidget {
   final int index;
   final int total;
   final WotTourStep step;
-  final String nextButtonText;
-  final String prevButtonText;
-  final String skipButtonText;
-  final String finishButtonText;
+  final String? nextButtonText;
+  final String? prevButtonText;
+  final String? skipButtonText;
+  final String? finishButtonText;
   final bool showPrev;
   final bool isLast;
   final VoidCallback onPrev;
@@ -671,13 +672,23 @@ class _TourBubble extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              _textButton(skipButtonText, scheme.textSecondary, onSkip),
+              _textButton(
+                  skipButtonText ?? tr(context, 'wot.tour.skip'),
+                  scheme.textSecondary,
+                  onSkip),
               const Spacer(),
               if (showPrev) ...[
-                _textButton(prevButtonText, scheme.textSecondary, onPrev),
+                _textButton(
+                    prevButtonText ?? tr(context, 'wot.tour.prev'),
+                    scheme.textSecondary,
+                    onPrev),
                 const SizedBox(width: 8),
               ],
-              _filledButton(isLast ? finishButtonText : nextButtonText, onNext),
+              _filledButton(
+                  isLast
+                      ? finishButtonText ?? tr(context, 'wot.common.done')
+                      : nextButtonText ?? tr(context, 'wot.tour.next'),
+                  onNext),
             ],
           ),
         ],

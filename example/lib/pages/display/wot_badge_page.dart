@@ -57,6 +57,22 @@ class _WotBadgePageState extends State<WotBadgePage> {
             )),
         demoBlock('slot 自定义图标角标',
             WotBadge(slot: const Icon(Icons.star, color: Colors.amber, size: 18), child: _box(context))),
+        demoSection('新增（D 类 P1）：type 预设色 / shape / text / offset'),
+        demoBlock(
+            'type 预设配色',
+            Wrap(spacing: 24, runSpacing: 16, children: [
+              WotBadge(modelValue: 3, type: WotBadgeType.primary, child: const Icon(Icons.message, size: 28)),
+              WotBadge(modelValue: 5, type: WotBadgeType.success, child: const Icon(Icons.shopping_cart, size: 28)),
+              WotBadge(modelValue: 9, type: WotBadgeType.warning, child: const Icon(Icons.notifications, size: 28)),
+              WotBadge(modelValue: 12, type: WotBadgeType.info, child: const Icon(Icons.mail, size: 28)),
+            ])),
+        demoBlock(
+            'text 纯文本角标 / square 形状 / offset 微调',
+            Wrap(spacing: 24, runSpacing: 16, children: [
+              WotBadge(text: 'NEW', child: const Icon(Icons.star, size: 28)),
+              WotBadge(modelValue: 6, shape: WotBadgeShape.square, child: const Icon(Icons.folder, size: 28)),
+              WotBadge(modelValue: 8, offset: const Offset(4, -4), child: const Icon(Icons.chat_bubble, size: 28)),
+            ])),
       ],
     );
   }

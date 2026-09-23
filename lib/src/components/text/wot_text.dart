@@ -103,9 +103,14 @@ class WotText extends StatelessWidget {
       overflow: lines == null ? null : TextOverflow.ellipsis,
     );
     if (onTap == null) return child;
-    return GestureDetector(
+    // 无障碍：可点击文本补 button 角色 + 点按动作（文本内容本身读屏可读）。
+    return Semantics(
+      button: true,
       onTap: onTap,
-      child: child,
+      child: GestureDetector(
+        onTap: onTap,
+        child: child,
+      ),
     );
   }
 }

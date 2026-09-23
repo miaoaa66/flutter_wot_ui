@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
+import '../form/wot_form.dart';
 
 /// 数字输入框，对应 wot `wd-input-number`。受控（v-model:value）。
 class WotInputNumber extends StatefulWidget {
@@ -10,12 +13,13 @@ class WotInputNumber extends StatefulWidget {
     super.key,
     this.modelValue = 0,
     this.onChange,
-    this.min = 0,
-    this.max = 100,
+    this.min = 1,
+    this.max = 9007199254740991,
     this.step = 1,
     this.precision,
     this.disabled = false,
     this.readonly = false,
+    this.error = false,
     this.inputWidth = 40,
     this.buttonSize = 28,
     this.longPress = false,
@@ -28,10 +32,10 @@ class WotInputNumber extends StatefulWidget {
   /// 值变化时回调。
   final ValueChanged<num>? onChange;
 
-  /// 最小值；默认 0，小于该值的输入会被夹取到该值。
+  /// 最小值；默认 1（对齐 wot），小于该值的输入会被夹取到该值。
   final num min;
 
-  /// 最大值；默认 100。
+  /// 最大值；默认 Number.MAX_SAFE_INTEGER（对齐 wot）。
   final num max;
 
   /// 每次增减的步长；默认 1。
@@ -40,11 +44,14 @@ class WotInputNumber extends StatefulWidget {
   /// 数值精度（保留的小数位数），为空表示不限制小数位数。
   final int? precision;
 
-  /// 是否禁用（按钮与输入框均不可操作）。
+  /// 是否禁用（按钮与输入框均不可操作），禁用时输入框灰化。
   final bool disabled;
 
   /// 是否只读（仅按钮可操作，输入框不可编辑）。
   final bool readonly;
+
+  /// 是否处于校验失败态（error 态）。命中时输入框描红边。
+  final bool error;
 
   /// 输入框宽度（逻辑像素）。
   final double inputWidth;
@@ -66,6 +73,26 @@ class _WotInputNumberState extends State<WotInputNumber> {
   late final TextEditingController _c;
   late num _value;
 
+  /// 长按连续增减的定时器；仅 [WotInputNumber.longPress] 为 true 时启用。
+  Timer? _repeatTimer;
+
+  /// 长按触发间隔（毫秒）。
+  static const int _repeatInterval = 120;
+
+  void _stopRepeat() {
+    _repeatTimer?.cancel();
+    _repeatTimer = null;
+  }
+
+  void _startRepeat(num delta) {
+    if (!widget.longPress) return;
+    _stopRepeat();
+    _repeatTimer = Timer.periodic(const Duration(milliseconds: _repeatInterval), (_) {
+      // 到达 min/max 后 _step 不再变化，此时主动停止，避免空转。
+      if (!_step(delta)) _stopRepeat();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -84,6 +111,7 @@ class _WotInputNumberState extends State<WotInputNumber> {
 
   @override
   void dispose() {
+    _stopRepeat();
     _c.dispose();
     super.dispose();
   }
@@ -108,18 +136,29 @@ class _WotInputNumberState extends State<WotInputNumber> {
 
   void _emit(num v) {
     _value = v;
+    wotFormPushValue(context, widget.name, v);
     widget.onChange?.call(v);
   }
 
-  void _step(double delta) {
-    if (widget.disabled || widget.readonly) return;
+  /// 是否锁定交互：显式 disabled / readonly，或父级 WotFieldScope 下发的禁用 / 只读。
+  /// 用 [WotFieldScope.read]（不建立依赖），以便在回调中安全调用。
+  bool get _isLocked {
+    if (widget.disabled || widget.readonly) return true;
+    final s = WotFieldScope.read(context)?.state;
+    return s == WotFieldState.disabled || s == WotFieldState.readonly;
+  }
+
+  /// 步进一次；返回数值是否真的发生变化（到边界时为 false）。
+  bool _step(num delta) {
+    if (_isLocked) return false;
     final next = _round((_value + delta * widget.step).clamp(widget.min, widget.max).toDouble());
-    if (next == _value) return;
+    if (next == _value) return false;
     setState(() {
       _value = next;
       _syncText();
       _emit(next);
     });
+    return true;
   }
 
   void _parseAndEmit(String s) {
@@ -140,29 +179,43 @@ class _WotInputNumberState extends State<WotInputNumber> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
-    final btnColor = widget.disabled ? scheme.textDisabled : scheme.primaryOf(6);
+    // 三态：显式 disabled / readonly 优先，其次取父级 WotFieldScope 下发。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = widget.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final readonly = widget.readonly || (fieldScope?.state == WotFieldState.readonly);
+    final hasError = widget.error || (fieldScope?.error ?? false);
+    final locked = disabled || readonly;
+    final style = wotFieldStyle(
+      scheme,
+      disabled ? WotFieldState.disabled : WotFieldState.editable,
+      error: hasError,
+      baseBorder: scheme.borderLight,
+    );
+    final btnColor = disabled ? scheme.textDisabled : scheme.primaryOf(6);
     final disableMinus = _value <= widget.min;
     final disablePlus = _value >= widget.max;
 
-    final minus = _button(Icons.remove, disableMinus, () => _step(-1), btnColor);
-    final plus = _button(Icons.add, disablePlus, () => _step(1), btnColor);
+    final minus = _button(Icons.remove, disableMinus || disabled, -1, btnColor);
+    final plus = _button(Icons.add, disablePlus || disabled, 1, btnColor);
 
     final field = SizedBox(
       width: widget.inputWidth,
       child: TextField(
         controller: _c,
-        enabled: !widget.disabled && !widget.readonly,
+        enabled: !locked,
         textAlign: TextAlign.center,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        style: TextStyle(fontSize: 14, color: scheme.textMain),
+        style: TextStyle(fontSize: 14, color: style.text),
         onSubmitted: _parseAndEmit,
         onChanged: (s) => setState(() {}),
         decoration: InputDecoration(
           isDense: true,
           contentPadding: const EdgeInsets.symmetric(vertical: 6),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: scheme.borderLight)),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: scheme.primaryOf(6))),
-          disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: scheme.borderLight)),
+          filled: disabled,
+          fillColor: style.background,
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: style.border)),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: hasError ? scheme.dangerMain : scheme.primaryOf(6))),
+          disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(6), borderSide: BorderSide(color: style.border)),
         ),
       ),
     );
@@ -179,12 +232,17 @@ class _WotInputNumberState extends State<WotInputNumber> {
     );
   }
 
-  Widget _button(IconData icon, bool disabled, VoidCallback onTap, Color color) {
+  Widget _button(IconData icon, bool disabled, num delta, Color color) {
     final scheme = context.wotScheme;
     final border = disabled ? scheme.borderLight : scheme.borderMain;
-    return GestureDetector(
+    final canLongPress = !disabled && widget.longPress;
+    // 无障碍：加减是圆形图标按钮，读屏需读出「增加 / 减少」与可用性。
+    final btn = GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: disabled ? null : onTap,
+      onTap: disabled ? null : () => _step(delta),
+      onLongPressStart: canLongPress ? (_) => _startRepeat(delta) : null,
+      onLongPressEnd: canLongPress ? (_) => _stopRepeat() : null,
+      onLongPressCancel: canLongPress ? _stopRepeat : null,
       child: Container(
         width: widget.buttonSize,
         height: widget.buttonSize,
@@ -195,6 +253,14 @@ class _WotInputNumberState extends State<WotInputNumber> {
         alignment: Alignment.center,
         child: Icon(icon, size: 16, color: disabled ? border : color),
       ),
+    );
+
+    return Semantics(
+      button: true,
+      enabled: !disabled,
+      label: delta > 0 ? '增加' : '减少',
+      onTap: disabled ? null : () => _step(delta),
+      child: btn,
     );
   }
 }

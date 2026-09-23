@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../../theme/wot_scheme.dart';
 import '../../theme/wot_theme.dart';
 
+/// 触发方式（T3.3 枚举化，tooltip / popover 共用，对齐 wot `trigger`）。
+/// `manual` 为纯受控模式（仅由 show/visible 控制显隐）。
+enum WotTriggerMode { click, hover, auto, longpress, manual }
+
 /// 气泡提示，对应 wot `wd-tooltip`。
 ///
 /// 点击/悬浮/长按锚点弹出带气泡文案。支持受控显隐（[show]/[visible]）与非受控。
@@ -19,7 +23,7 @@ class WotTooltip extends StatefulWidget {
     this.offset = Offset.zero,
     this.tooltipStyle,
     this.maxWidth = 200,
-    this.trigger = 'hover',
+    this.trigger = WotTriggerMode.hover,
     this.disabled = false,
     required this.child,
   });
@@ -55,7 +59,7 @@ class WotTooltip extends StatefulWidget {
   final double maxWidth;
 
   /// 触发方式：`hover`（悬浮）、`click`（点击）、`auto`（智能，桌面悬浮/移动点击）、`longpress`、`manual`。
-  final String trigger;
+  final WotTriggerMode trigger;
 
   /// 是否禁用，禁用后不会显示提示层。
   final bool disabled;
@@ -82,7 +86,8 @@ class _WotTooltipState extends State<WotTooltip> {
 
   bool get _hasVisible => widget.visible ?? widget.show;
 
-  bool get _handleVisible => _hasVisible || (widget.trigger != 'manual' && _show);
+  bool get _handleVisible =>
+      _hasVisible || (widget.trigger != WotTriggerMode.manual && _show);
 
   void _ensureOverlay() {
     if (_entry != null) return;
@@ -120,15 +125,23 @@ class _WotTooltipState extends State<WotTooltip> {
     super.didUpdateWidget(old);
     // 受控 external 变化（show/visible）与内部状态同步到 Overlay。
     if (old.visible != widget.visible || old.show != widget.show) {
-      if (_handleVisible) {
-        _ensureOverlay();
-        if (!_show) setState(() => _show = true);
-        widget.onShow?.call();
-      } else if (_entry != null) {
-        _removeOverlay();
-        if (_show) setState(() => _show = false);
-        widget.onHide?.call();
-      }
+      final opening = _handleVisible;
+      if (!opening && _entry == null) return;
+      // didUpdateWidget 处于 build 阶段：OverlayEntry 的 insert/remove 会让 Overlay
+      // 这个祖先节点 markNeedsBuild，onShow/onHide 里调用方也可能 setState，
+      // 两者都会撞上「setState() called during build」，故整体延后一帧。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        if (opening) {
+          _ensureOverlay();
+          if (!_show) setState(() => _show = true);
+          widget.onShow?.call();
+        } else if (_entry != null) {
+          _removeOverlay();
+          if (_show) setState(() => _show = false);
+          widget.onHide?.call();
+        }
+      });
     }
   }
 
@@ -140,20 +153,27 @@ class _WotTooltipState extends State<WotTooltip> {
 
   @override
   Widget build(BuildContext context) {
-    final isHover = widget.trigger == 'hover';
-    final isAuto = widget.trigger == 'auto';
-    final isLongPress = widget.trigger == 'longpress';
-    final isClick = widget.trigger == 'click';
+    final isHover = widget.trigger == WotTriggerMode.hover;
+    final isAuto = widget.trigger == WotTriggerMode.auto;
+    final isLongPress = widget.trigger == WotTriggerMode.longpress;
+    final isClick = widget.trigger == WotTriggerMode.click;
 
     final anchor = MouseRegion(
       onEnter: isHover || isAuto ? (_) => _open() : null,
       onExit: isHover || isAuto ? (_) => _close() : null,
-      child: GestureDetector(
-        key: _key,
-        behavior: HitTestBehavior.opaque,
+      // 无障碍：点击 / 长按触发补 button 角色 + 对应动作（hover 模式不宣称按钮）；
+      // 关闭用遮罩不进语义树（惯例豁免）。
+      child: Semantics(
+        button: isClick || isLongPress,
         onTap: isClick ? () => _toggle() : null,
         onLongPress: isLongPress ? () => _open() : null,
-        child: widget.child,
+        child: GestureDetector(
+          key: _key,
+          behavior: HitTestBehavior.opaque,
+          onTap: isClick ? () => _toggle() : null,
+          onLongPress: isLongPress ? () => _open() : null,
+          child: widget.child,
+        ),
       ),
     );
 
@@ -182,7 +202,7 @@ class _WotTooltipState extends State<WotTooltip> {
     return Stack(
       children: [
         // 点击其它区域关闭（非 hover/manual 触发时）。
-        if (widget.trigger == 'click' || widget.trigger == 'auto')
+        if (widget.trigger == WotTriggerMode.click || widget.trigger == WotTriggerMode.auto)
           Positioned.fill(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,

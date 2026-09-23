@@ -90,8 +90,27 @@ class WotSwipeAction extends StatefulWidget {
 class _WotSwipeActionState extends State<WotSwipeAction> {
   double _open = 0; // 0 关闭，1 展开。
 
+  @override
+  void initState() {
+    super.initState();
+    _open = widget.show ? 1.0 : 0.0;
+  }
+
+  @override
+  void didUpdateWidget(WotSwipeAction oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 受控：外部改 show 时同步展开态，且不回调 onChange，避免与父级形成回环。
+    if (oldWidget.show != widget.show) {
+      _open = widget.show ? 1.0 : 0.0;
+    }
+  }
+
+  /// 由用户手势驱动的展开/收起，会回调 [WotSwipeAction.onChange]。
   void _set(double v) {
-    setState(() => _open = v.clamp(0.0, 1.0));
+    final next = v.clamp(0.0, 1.0);
+    if (next == _open) return;
+    setState(() => _open = next);
+    widget.onChange?.call(next >= 0.5);
   }
 
   /// 实际参与展示的操作（过滤掉 shouldShow=false）。
@@ -177,8 +196,7 @@ class _WotSwipeActionState extends State<WotSwipeAction> {
           ? null
           : () {
               a.onClick?.call();
-              _set(0);
-              widget.onChange?.call(false);
+              _set(0); // 内部会回调 onChange(false)
             },
       child: Opacity(
         opacity: a.disabled ? 0.5 : 1,

@@ -149,6 +149,12 @@ class WotCard extends StatelessWidget {
     );
 
     if (onClick == null) return card;
-    return GestureDetector(behavior: HitTestBehavior.opaque, onTap: onClick, child: card);
+    // 无障碍：整卡可点，补 button 角色 + 点按动作（卡内文本读屏已可读）。
+    return Semantics(
+      button: true,
+      onTap: onClick,
+      child: GestureDetector(
+          behavior: HitTestBehavior.opaque, onTap: onClick, child: card),
+    );
   }
 }

@@ -16,12 +16,12 @@ class WotTooltipPage extends StatelessWidget {
         demoBlock('hover 悬停触发',
             WotTooltip(content: '悬停出现的提示', child: WotButton(text: '悬停我', size: WotButtonSize.small))),
         demoBlock('click 点击触发',
-            WotTooltip(content: '点击出现的提示', trigger: 'click', child: WotButton(text: '点击我', size: WotButtonSize.small))),
+            WotTooltip(content: '点击出现的提示', trigger: WotTriggerMode.click, child: WotButton(text: '点击我', size: WotButtonSize.small))),
         demoSection('位置（placement）'),
         demoBlock('placement: top',
-            WotTooltip(content: '顶部提示', placement: WotTooltipPlacement.top, trigger: 'click', child: WotButton(text: '顶部', size: WotButtonSize.small))),
+            WotTooltip(content: '顶部提示', placement: WotTooltipPlacement.top, trigger: WotTriggerMode.click, child: WotButton(text: '顶部', size: WotButtonSize.small))),
         demoBlock('placement: bottom',
-            WotTooltip(content: '底部提示', placement: WotTooltipPlacement.bottom, trigger: 'click', child: WotButton(text: '底部', size: WotButtonSize.small))),
+            WotTooltip(content: '底部提示', placement: WotTooltipPlacement.bottom, trigger: WotTriggerMode.click, child: WotButton(text: '底部', size: WotButtonSize.small))),
       ],
     );
   }

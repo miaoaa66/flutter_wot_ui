@@ -22,6 +22,9 @@ void main() {
     await tester.pumpWidget(wrap(const WotIndexPage(
       dark: false,
       onToggleDark: _noop,
+      // index_page 新增语言切换演示（i18n 三件套），测试同步传入。
+      locale: 'zh_CN',
+      onToggleLocale: _noop,
     )));
     expect(find.text('Wot UI Flutter'), findsOneWidget);
     expect(find.text('Button'), findsOneWidget);

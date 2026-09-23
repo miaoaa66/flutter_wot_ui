@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 
 /// 纠错级别，对齐 wot `errorLevel`。
 enum WotQrCodeErrorLevel { l, m, q, h }
+
+/// 数据点形状（D 类 P1），映射到 qr_flutter 的 dataModuleShape。
+enum WotQrCodeDotType { square, circle }
 
 /// 二维码，对应 wot `wd-qr-code`。
 ///
@@ -15,13 +19,38 @@ class WotQrCode extends StatelessWidget {
   const WotQrCode({
     super.key,
     required this.value,
-    this.size = 160,
-    this.errorLevel = WotQrCodeErrorLevel.m,
+    this.size = 200,
+    this.errorLevel = WotQrCodeErrorLevel.h,
     this.color,
     this.backgroundColor,
     this.border = 0,
     this.borderColor,
+    this.dotType = WotQrCodeDotType.square,
+    this.gapless = true,
+    this.margin,
+    this.logo,
+    this.logoSize,
+    this.onError,
   });
+
+  /// 数据点形状（D 类 P1）：square（默认）/ circle，映射到 qr_flutter 的
+  /// dataModuleShape；定位眼恒为 square。
+  final WotQrCodeDotType dotType;
+
+  /// 点阵之间是否无缝，默认 true（qr_flutter 原生参数透传）。
+  final bool gapless;
+
+  /// 二维码内边距（qr_flutter 原生参数透传），默认零边距。
+  final EdgeInsets? margin;
+
+  /// 中心 logo 图片（D 类 P1），传入后嵌在二维码中央（建议配合较高纠错级别）。
+  final ImageProvider? logo;
+
+  /// 中心 logo 尺寸，缺省为边长的 22%。
+  final double? logoSize;
+
+  /// 生成失败回调（D 类 P1）；失败时组件渲染内置错误占位。
+  final ValueChanged<Object?>? onError;
 
   /// 二维码内容（文本/链接等）。
   final String value;
@@ -50,6 +79,12 @@ class WotQrCode extends StatelessWidget {
 
     final fg = color ?? scheme.primaryOf(6);
     final bg = backgroundColor ?? scheme.filledOppo;
+    final moduleShape = dotType == WotQrCodeDotType.circle
+        ? QrDataModuleShape.circle
+        : QrDataModuleShape.square;
+    final embeddedStyle = logo == null
+        ? null
+        : QrEmbeddedImageStyle(size: Size.square(logoSize ?? size * 0.22));
 
     final qr = QrImageView(
       data: value,
@@ -61,10 +96,25 @@ class WotQrCode extends StatelessWidget {
         color: fg,
       ),
       dataModuleStyle: QrDataModuleStyle(
-        dataModuleShape: QrDataModuleShape.square,
+        dataModuleShape: moduleShape,
         color: fg,
       ),
-      gapless: true,
+      gapless: gapless,
+      padding: margin ?? EdgeInsets.zero,
+      embeddedImage: logo,
+      embeddedImageStyle: embeddedStyle,
+      errorStateBuilder: (ctx, err) {
+        onError?.call(err);
+        return Container(
+          width: size,
+          height: size,
+          alignment: Alignment.center,
+          child: Text(
+            tr(context, 'wot.qrCode.loadFailed'),
+            style: TextStyle(fontSize: 12, color: scheme.textAuxiliary),
+          ),
+        );
+      },
     );
 
     if (border <= 0) return qr;
@@ -82,7 +132,23 @@ class WotQrCode extends StatelessWidget {
         errorCorrectionLevel: _toQrLevel(errorLevel),
         backgroundColor: bg,
         eyeStyle: QrEyeStyle(eyeShape: QrEyeShape.square, color: fg),
-        dataModuleStyle: QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: fg),
+        dataModuleStyle: QrDataModuleStyle(dataModuleShape: moduleShape, color: fg),
+        gapless: gapless,
+        padding: margin ?? EdgeInsets.zero,
+        embeddedImage: logo,
+        embeddedImageStyle: embeddedStyle,
+        errorStateBuilder: (ctx, err) {
+          onError?.call(err);
+          return Container(
+            width: size - border * 2,
+            height: size - border * 2,
+            alignment: Alignment.center,
+            child: Text(
+              tr(context, 'wot.qrCode.loadFailed'),
+              style: TextStyle(fontSize: 12, color: scheme.textAuxiliary),
+            ),
+          );
+        },
       ),
     );
   }

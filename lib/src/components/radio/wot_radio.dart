@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
+import '../checkbox/wot_checkbox.dart';
+import '../form/wot_form.dart';
 
 /// 单选选项数据，对齐 wot `WotRadioOption`。
 class WotRadioOption {
@@ -30,7 +33,9 @@ class _WotRadioScope extends InheritedWidget {
   final _RadioGroupData? control;
 
   static _RadioGroupData? of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<_WotRadioScope>()?.control;
+    return context
+        .dependOnInheritedWidgetOfExactType<_WotRadioScope>()
+        ?.control;
   }
 
   @override
@@ -38,11 +43,16 @@ class _WotRadioScope extends InheritedWidget {
 }
 
 class _RadioGroupData {
-  const _RadioGroupData({this.value, this.onChange, this.groupDisabled = false, this.shape});
+  const _RadioGroupData({
+    this.value,
+    this.onChange,
+    this.groupDisabled = false,
+    this.shape,
+  });
   final Object? value;
   final ValueChanged<Object?>? onChange;
   final bool groupDisabled;
-  final String? shape;
+  final WotCheckShape? shape;
 }
 
 /// 单选组，对应 wot `wd-radio-group`。受控（v-model:value）。
@@ -51,7 +61,7 @@ class WotRadioGroup extends StatelessWidget {
     super.key,
     this.modelValue,
     this.onChange,
-    this.shape = 'circle',
+    this.shape = WotCheckShape.circle,
     this.disabled = false,
     this.name,
     this.children,
@@ -66,7 +76,7 @@ class WotRadioGroup extends StatelessWidget {
 
   /// 单选框形状：`circle`（圆形）或 `square`（方形），默认 `circle`，
   /// 仅对 [options] 自动生成的选项生效。
-  final String shape;
+  final WotCheckShape shape;
 
   /// 是否禁用整组单选框，默认 false。
   final bool disabled;
@@ -85,12 +95,19 @@ class WotRadioGroup extends StatelessWidget {
     return _WotRadioScope(
       control: _RadioGroupData(
         value: modelValue,
-        onChange: onChange,
+        onChange: (v) {
+          // 按组 name 把选中值登记到表单（原先漏登记，name 是死参数）。
+          wotFormPushValue(context, name, v);
+          onChange?.call(v);
+        },
         groupDisabled: disabled,
         shape: shape,
       ),
       child: options.isEmpty
-          ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: children ?? [])
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: children ?? [],
+            )
           : Wrap(
               spacing: 10,
               runSpacing: 10,
@@ -118,8 +135,10 @@ class WotRadio extends StatefulWidget {
     this.label,
     this.value,
     this.disabled = false,
+    this.readonly = false,
     this.color,
-    this.shape = 'circle',
+    this.shape = WotCheckShape.circle,
+    this.error = false,
     this.name,
   });
 
@@ -135,15 +154,21 @@ class WotRadio extends StatefulWidget {
   /// 选项值，用于组模式（[WotRadioGroup]）下的选中匹配。
   final Object? value;
 
-  /// 是否禁用，默认 false。
+  /// 是否禁用，默认 false。禁用时选中 / 未选中均灰化且不可交互。
   final bool disabled;
+
+  /// 是否只读：不可切换，但保持正常配色（内容有效可读），默认 false。
+  final bool readonly;
 
   /// 选中时的主题色，默认使用主题主色。
   final Color? color;
 
   /// 单选框形状：`circle`（圆形）或 `square`（方形），默认 `circle`；
   /// 作为 [WotRadioGroup] 成员时默认取组配置。
-  final String shape;
+  final WotCheckShape shape;
+
+  /// 是否处于校验失败态（error 态）。未显式传入时取父级 [WotFieldScope] 下发的值。
+  final bool error;
 
   /// 表单字段名（用于原生表单提交示例）。
   final String? name;
@@ -168,15 +193,18 @@ class _WotRadioState extends State<WotRadio> {
   }
 
   void _toggle() {
-    if (widget.disabled) return;
+    if (widget.disabled || widget.readonly) return;
     final group = _WotRadioScope.of(context);
     if (group != null) {
       if (group.groupDisabled) return;
+      // 组模式：由 [WotRadioGroup] 负责登记选中值（组名）。
       group.onChange?.call(widget.value);
       return;
     }
     if (_selected) return;
     setState(() => _selected = true);
+    // 独立模式：按自身 name 登记到表单（原先漏登记，name 是死参数）。
+    wotFormPushValue(context, widget.name, true);
     widget.onChange?.call(true);
   }
 
@@ -185,25 +213,43 @@ class _WotRadioState extends State<WotRadio> {
     final scheme = context.wotScheme;
     final group = _WotRadioScope.of(context);
     final selected = group != null ? group.value == widget.value : _selected;
-    final color = widget.color ?? scheme.primaryOf(6);
-    final shape = group?.shape ?? widget.shape;
-    final disabled = widget.disabled || (group?.groupDisabled ?? false);
+  final shape = group?.shape ?? widget.shape;
+    // 三态：显式 disabled / 组合禁用优先，其次取父级 WotFieldScope 下发。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled =
+        widget.disabled ||
+        (group?.groupDisabled ?? false) ||
+        (fieldScope?.state == WotFieldState.disabled);
+    final hasError = widget.error || (fieldScope?.error ?? false);
+    final style = wotFieldStyle(
+      scheme,
+      disabled ? WotFieldState.disabled : WotFieldState.editable,
+      error: hasError,
+      baseBorder: scheme.borderStrong,
+    );
+    // 选中色：禁用转灰；其余用自定义色 / 主色（错误只体现在未选中描边与标签）。
+    final color = disabled
+        ? scheme.filledExtraStrong
+        : (widget.color ?? scheme.primaryOf(6));
+
+    final semanticOnTap = disabled || widget.readonly ? null : _toggle;
 
     final icon = GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: disabled ? null : _toggle,
+      onTap: semanticOnTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: 18,
         height: 18,
         decoration: BoxDecoration(
-          shape: shape == 'circle' ? BoxShape.circle : BoxShape.rectangle,
-          borderRadius: shape == 'circle' ? null : BorderRadius.circular(3),
+          shape: shape == WotCheckShape.circle
+              ? BoxShape.circle
+              : BoxShape.rectangle,
+          borderRadius: shape == WotCheckShape.circle
+              ? null
+              : BorderRadius.circular(3),
           color: Colors.transparent,
-          border: Border.all(
-            color: selected ? color : (disabled ? scheme.textDisabled : scheme.borderStrong),
-            width: 1,
-          ),
+          border: Border.all(color: selected ? color : style.border, width: 1),
         ),
         child: selected
             ? Center(
@@ -212,8 +258,12 @@ class _WotRadioState extends State<WotRadio> {
                   height: 8,
                   decoration: BoxDecoration(
                     color: color,
-                    shape: shape == 'circle' ? BoxShape.circle : BoxShape.rectangle,
-                    borderRadius: shape == 'circle' ? null : BorderRadius.circular(2),
+                    shape: shape == WotCheckShape.circle
+                        ? BoxShape.circle
+                        : BoxShape.rectangle,
+                    borderRadius: shape == WotCheckShape.circle
+                        ? null
+                        : BorderRadius.circular(2),
                   ),
                 ),
               )
@@ -221,24 +271,36 @@ class _WotRadioState extends State<WotRadio> {
       ),
     );
 
-    if (widget.label == null) return icon;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: disabled ? null : _toggle,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          icon,
-          const SizedBox(width: 6),
-          Text(
-            widget.label!,
-            style: TextStyle(
-              fontSize: 14,
-              color: widget.disabled ? scheme.textDisabled : scheme.textMain,
+    Widget result;
+    if (widget.label == null) {
+      result = icon;
+    } else {
+      result = GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: semanticOnTap,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            icon,
+            const SizedBox(width: 6),
+            Text(
+              widget.label!,
+              style: TextStyle(fontSize: 14, color: style.label),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      );
+    }
+
+    // 无障碍：裸 GestureDetector 不产生语义节点，屏幕阅读器读不出「已选中 / 未选中」。
+    // 组内时声明互斥组，读屏可感知「这些选项同一时间只能选一个」。
+    return Semantics(
+      checked: selected,
+      inMutuallyExclusiveGroup: group != null,
+      enabled: !disabled,
+      onTap: semanticOnTap,
+      label: widget.label,
+      child: result,
     );
   }
 }

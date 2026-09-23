@@ -4,10 +4,72 @@ import '../../theme/wot_theme.dart';
 
 /// 选择器单列选项。
 class WotColumnOption {
-  const WotColumnOption({required this.text, this.value, this.disabled = false});
+  const WotColumnOption({
+    required this.text,
+    this.value,
+    this.disabled = false,
+    this.children = const [],
+  });
+
   final String text;
   final Object? value;
   final bool disabled;
+
+  /// 子级选项（级联场景）；非级联时为空。
+  final List<WotColumnOption> children;
+
+  /// 从任意 Map 建立选项，键名由 [valueKey] / [labelKey] / [childrenKey] 指定。
+  factory WotColumnOption.fromMap(
+    Map<dynamic, dynamic> map, {
+    String valueKey = 'value',
+    String labelKey = 'text',
+    String childrenKey = 'children',
+  }) {
+    final rawChildren = map[childrenKey];
+    return WotColumnOption(
+      text: map[labelKey]?.toString() ?? '',
+      value: map[valueKey],
+      children: WotPickerViewOptions.listFrom(
+        rawChildren,
+        valueKey: valueKey,
+        labelKey: labelKey,
+        childrenKey: childrenKey,
+      ),
+    );
+  }
+}
+
+/// 由原始 Map 数据构建选择器列（支持自定义键名与任意层级嵌套）。
+class WotPickerViewOptions {
+  const WotPickerViewOptions._();
+
+  /// 把 [data] 转成 [WotColumnOption] 列表；[data] 元素可以是 Map 或 [WotColumnOption]。
+  ///
+  /// 键名可用 [valueKey] / [labelKey] / [childrenKey] 覆盖，用于对接
+  /// `{id, name, subList}` 这类非默认结构的后端数据。
+  static List<WotColumnOption> listFrom(
+    Object? data, {
+    String valueKey = 'value',
+    String labelKey = 'text',
+    String childrenKey = 'children',
+  }) {
+    if (data == null) return const [];
+    if (data is! Iterable) return const [];
+    final out = <WotColumnOption>[];
+    for (final e in data) {
+      if (e is WotColumnOption) {
+        out.add(e);
+      } else if (e is Map) {
+        out.add(WotColumnOption.fromMap(
+          e,
+          valueKey: valueKey,
+          labelKey: labelKey,
+          childrenKey: childrenKey,
+        ));
+      }
+    }
+    return out;
+  }
 }
 
 /// 单列滚轮（自绘，不引三方），作为 picker/picker-view/cascader/datetime 的公共底座。
@@ -17,17 +79,27 @@ class WotPickerColumn extends StatefulWidget {
     required this.options,
     required this.selectedIndex,
     this.onChange,
-    this.height = 200,
+    this.optionBuilder,
+    double? height,
     this.itemExtent = 40,
+    this.visibleItemCount = 5,
     this.color,
     this.disabled = false,
-  });
+  }) : height = height ?? itemExtent * visibleItemCount;
 
   final List<WotColumnOption> options;
   final int selectedIndex;
   final ValueChanged<int>? onChange;
+
+  /// 选项自定义渲染插槽（T3.5 builder 插槽）：非空时优先于默认文本渲染。
+  /// 入参为选项数据与选中态；选中药丸背景、放大与透明度仍由组件统一处理。
+  final Widget? Function(BuildContext context, WotColumnOption option, bool selected)?
+      optionBuilder;
   final double height;
   final double itemExtent;
+
+  /// 可见行数；未显式传 [height] 时以 `itemExtent * visibleItemCount` 推断高度。
+  final int visibleItemCount;
   final Color? color;
   final bool disabled;
 
@@ -39,6 +111,9 @@ class _WotPickerColumnState extends State<WotPickerColumn> {
   late FixedExtentScrollController _controller;
   int _current = 0;
 
+  /// 拖动起点索引，用于推算松手时的滚动方向（正向 +1 / 反向 -1）。
+  int _dragStartIndex = 0;
+
   /// 是否处于程序化同步中（初始化初值 / didUpdateWidget 跳转）。此时滚轮触发的
   /// `onSelectedItemChanged` 仅更新样式、不向父级汇报，避免在 build 阶段 setState。
   bool _syncing = true;
@@ -46,7 +121,8 @@ class _WotPickerColumnState extends State<WotPickerColumn> {
   @override
   void initState() {
     super.initState();
-    _current = widget.selectedIndex;
+    _current = widget.selectedIndex.clamp(0, widget.options.length - 1);
+    _dragStartIndex = _current;
     _controller = FixedExtentScrollController(initialItem: _current);
     // 初值对应的首次布局回调在 build 阶段触发，延后到帧末再解除抑制。
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -84,51 +160,86 @@ class _WotPickerColumnState extends State<WotPickerColumn> {
       height: widget.height,
       child: Stack(
         children: [
-          ListWheelScrollView(
-            controller: _controller,
-            itemExtent: widget.itemExtent,
-            physics: widget.disabled
-                ? const NeverScrollableScrollPhysics()
-                : const FixedExtentScrollPhysics(),
-            onSelectedItemChanged: (i) {
-              setState(() => _current = i);
-              // 程序化同步时不上报，避免父级在 build 阶段 setState。
-              if (!_syncing) widget.onChange?.call(i);
+          NotificationListener<ScrollNotification>(
+            onNotification: (n) {
+              if (n is ScrollStartNotification) {
+                // 记录拖动起点，供松手时判断滚动方向。
+                _dragStartIndex = _controller.selectedItem;
+              } else if (n is ScrollEndNotification) {
+                // 松手后若停在禁用项，沿滚动方向吸附到最近的可用项
+                // （wot `disabled` 语义：禁止选中禁用项，但允许滚过它）。
+                final settled = _controller.selectedItem;
+                if (!_enabledAt(settled)) {
+                  final dir = settled > _dragStartIndex
+                      ? 1
+                      : (settled < _dragStartIndex ? -1 : 1);
+                  final target = _nearestEnabledFrom(settled, dir);
+                  if (target != settled && _controller.hasClients) {
+                    _controller.animateToItem(
+                      target,
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOut,
+                    );
+                  }
+                }
+              }
+              return false;
             },
+            child: ListWheelScrollView(
+              controller: _controller,
+              itemExtent: widget.itemExtent,
+              physics: widget.disabled
+                  ? const NeverScrollableScrollPhysics()
+                  : const FixedExtentScrollPhysics(),
+              onSelectedItemChanged: (i) {
+                // 拖动过程中可能短暂停在禁用项，仅更新显示、不在此时吸附；
+                // 真正的吸附交给 ScrollEndNotification，从而保证能「滚过」
+                // 禁用项到达下一个启用项（而非被拉回上一个启用项）。
+                setState(() => _current = i);
+                // 程序化同步或落在禁用项时不上报，避免父级在 build 阶段 setState
+                // 以及把禁用值回传。
+                if (!_syncing && _enabledAt(i)) widget.onChange?.call(i);
+              },
             useMagnifier: true,
             magnification: 1.1,
             overAndUnderCenterOpacity: 0.4,
             children: [
-              for (final o in widget.options)
+              for (var i = 0; i < widget.options.length; i++)
                 Center(
                   child: Container(
                     height: widget.itemExtent,
                     alignment: Alignment.center,
                     padding: const EdgeInsets.symmetric(horizontal: 4),
-                    decoration: iIsSelected(widget.options.indexOf(o))
+                    decoration: iIsSelected(i)
                         ? BoxDecoration(
                             // 选中项药丸背景与文字同框，保证高亮与文字天然对齐。
                             color: highlight.withValues(alpha: 0.14),
                             borderRadius: BorderRadius.circular(8),
                           )
                         : null,
-                    child: Text(
-                      o.text,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: iIsSelected(widget.options.indexOf(o))
-                            ? FontWeight.w600
-                            : FontWeight.w400,
-                        color: iIsSelected(widget.options.indexOf(o))
-                            ? highlight
-                            : scheme.textAuxiliary,
-                      ),
-                    ),
+                    child: widget.optionBuilder != null
+                        ? widget.optionBuilder!(
+                            context, widget.options[i], iIsSelected(i))
+                        : Text(
+                            widget.options[i].text,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: iIsSelected(i)
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: widget.options[i].disabled
+                                  ? scheme.textDisabled
+                                  : (iIsSelected(i)
+                                      ? highlight
+                                      : scheme.textAuxiliary),
+                            ),
+                          ),
                   ),
                 ),
             ],
+          ),
           ),
         ],
       ),
@@ -136,6 +247,26 @@ class _WotPickerColumnState extends State<WotPickerColumn> {
   }
 
   bool iIsSelected(int i) => i == _current || i == widget.selectedIndex;
+
+  bool _enabledAt(int i) =>
+      i >= 0 && i < widget.options.length && !widget.options[i].disabled;
+
+  /// 从 [from] 出发，沿滚动方向 [dir]（+1 正向 / -1 反向）优先寻找最近的未禁用项；
+  /// 该方向无可用项时再搜索反方向；整列都禁用时返回 [from]。
+  int _nearestEnabledFrom(int from, int dir) {
+    if (_enabledAt(from)) return from;
+    final n = widget.options.length;
+    for (var d = 1; d < n; d++) {
+      if (dir >= 0) {
+        if (_enabledAt(from + d)) return from + d;
+        if (_enabledAt(from - d)) return from - d;
+      } else {
+        if (_enabledAt(from - d)) return from - d;
+        if (_enabledAt(from + d)) return from + d;
+      }
+    }
+    return from;
+  }
 }
 
 /// 单列滚轮便捷封装（隐藏内部索引状态，直接回调选中项 value）。
@@ -145,17 +276,28 @@ class WotPickerViewColumn extends StatelessWidget {
     required this.options,
     required this.value,
     required this.onChange,
+    this.optionBuilder,
     this.color,
-    this.height = 200,
+    double? height,
+    this.itemExtent = 40,
+    this.visibleItemCount = 5,
     this.disabled = false,
     this.loading = false,
-  });
+  }) : height = height ?? itemExtent * visibleItemCount;
 
   final List<WotColumnOption> options;
   final Object? value;
   final ValueChanged<Object?> onChange;
+
+  /// 选项自定义渲染插槽（T3.5），透传给底层 [WotPickerColumn]。
+  final Widget? Function(BuildContext context, WotColumnOption option, bool selected)?
+      optionBuilder;
   final Color? color;
   final double height;
+  final double itemExtent;
+
+  /// 可见行数；未显式传 [height] 时以 `itemExtent * visibleItemCount` 推断高度。
+  final int visibleItemCount;
   final bool disabled;
 
   /// 是否显示加载中状态（禁用交互并覆盖加载动画）。
@@ -176,7 +318,10 @@ class WotPickerViewColumn extends StatelessWidget {
               options: options,
               selectedIndex: start,
               height: height,
+              itemExtent: itemExtent,
+              visibleItemCount: visibleItemCount,
               color: color,
+              optionBuilder: optionBuilder,
               disabled: disabled || loading,
               onChange: (i) {
                 if (i >= 0 && i < options.length) onChange(options[i].value!);
@@ -209,10 +354,13 @@ class WotPickerView extends StatelessWidget {
     required this.values,
     required this.onChange,
     this.color,
-    this.height = 200,
+    this.optionBuilder,
+    double? height,
+    this.itemExtent = 40,
+    this.visibleItemCount = 5,
     this.disabled = false,
     this.loading = false,
-  });
+  }) : height = height ?? itemExtent * visibleItemCount;
 
   /// 每列的选项列表（二维数组，按列顺序展示各列滚轮）。
   final List<List<WotColumnOption>> columns;
@@ -226,14 +374,26 @@ class WotPickerView extends StatelessWidget {
   /// 选中高亮/箭头主题色；不传时用主题主色。
   final Color? color;
 
-  /// 滚轮可视高度。
+  /// 滚轮可视高度；未显式传入时按「itemExtent × visibleItemCount」推断。
+  ///
+  /// 默认值与原先硬编码的 200 一致（40 × 5），因此不改变既有调用的效果。
   final double height;
+
+  /// 单行高度；会透传给 [WotPickerViewColumn]。
+  final double itemExtent;
+
+  /// 可见行数；会透传给 [WotPickerViewColumn]。
+  final int visibleItemCount;
 
   /// 是否禁用全部滚轮交互。
   final bool disabled;
 
   /// 是否显示加载中状态（覆盖加载动画并禁用交互）。
   final bool loading;
+
+  /// 选项自定义渲染插槽（T3.5），透传给每列的 [WotPickerColumn]。
+  final Widget? Function(BuildContext context, WotColumnOption option, bool selected)?
+      optionBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -246,8 +406,11 @@ class WotPickerView extends StatelessWidget {
               value: c < values.length ? values[c] : null,
               color: color,
               height: height,
+              itemExtent: itemExtent,
+              visibleItemCount: visibleItemCount,
               disabled: disabled,
               loading: loading,
+              optionBuilder: optionBuilder,
               onChange: (v) {
                 final next = [...values];
                 while (next.length <= c) {

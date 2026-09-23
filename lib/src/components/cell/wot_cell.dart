@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
+import '../cell_group/wot_cell_group.dart';
 import '../icon/wot_icon.dart';
+
+/// 单元格布局方向，对应 wot `layout`。
+enum WotCellLayout { horizontal, vertical }
+
+/// 单元格右侧箭头方向，对应 wot `arrow-direction`。
+enum WotArrowDirection { right, up, down, left }
 
 /// 单元格，对应 wot `wd-cell`。
 class WotCell extends StatelessWidget {
@@ -24,6 +32,18 @@ class WotCell extends StatelessWidget {
     this.descAlign = CrossAxisAlignment.end,
     this.onTap,
     this.trailing,
+    this.disabled = false,
+    this.error = false,
+    this.placeholder,
+    this.layout = WotCellLayout.horizontal,
+    this.padding,
+    this.arrowDirection = WotArrowDirection.right,
+    this.titleStyle,
+    this.labelStyle,
+    this.valueStyle,
+    this.descStyle,
+    this.titleBuilder,
+    this.valueBuilder,
   });
 
   /// 左侧标题文案。
@@ -77,73 +97,186 @@ class WotCell extends StatelessWidget {
   /// 右侧自定义尾部内容。
   final Widget? trailing;
 
+  /// 是否禁用。禁用时整体灰化（标题 / 值 / 说明 / 图标 / 箭头）且不响应点击。
+  final bool disabled;
+
+  /// 是否处于校验失败态。命中时标题与值转为危险色。
+  final bool error;
+
+  /// 值为空时显示的占位文案（D 类 P1），以辅助色渲染。
+  final String? placeholder;
+
+  /// 布局方向（D 类 P1）：horizontal 标题左值右（默认），
+  /// vertical 标题在上、值与描述在下（对应 wot `layout: vertical`）。
+  final WotCellLayout layout;
+
+  /// 自定义内边距，缺省为水平 10、垂直 10。
+  final EdgeInsetsGeometry? padding;
+
+  /// 右侧箭头方向（D 类 P1），默认朝右。
+  final WotArrowDirection arrowDirection;
+
+  /// 标题文本样式（D 类 P1），与三态默认样式按字段合并（传入字段优先）。
+  final TextStyle? titleStyle;
+
+  /// 辅助说明文本样式，合并规则同 [titleStyle]。
+  final TextStyle? labelStyle;
+
+  /// 值文本样式，合并规则同 [titleStyle]。
+  final TextStyle? valueStyle;
+
+  /// 描述文本样式，合并规则同 [titleStyle]。
+  final TextStyle? descStyle;
+
+  /// 标题自定义渲染插槽（T3.5 builder 插槽）：非空时优先于 [title] 文案，
+  /// 用于富文本标题（图标 / 多行 / 高亮片段等）。
+  final Widget Function(BuildContext context)? titleBuilder;
+
+  /// 值自定义渲染插槽（T3.5 builder 插槽）：非空时优先于 [value] /
+  /// [placeholder] 文案。注意：builder 不参与省略号截断，超长请自行约束。
+  final Widget Function(BuildContext context)? valueBuilder;
+
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
-    final clickable = this.clickable ?? (onClick != null || isLink);
 
-    // 左侧「标题组」：title（上）+ label（下），纵向、左对齐，弹性占满剩余，
-    // 把右侧内容推到最右。
-    Widget left = const SizedBox.shrink();
-    if (title != null || label != null) {
-      left = Expanded(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (title != null)
-              titleWidth == null
-                  ? _text(
-                      title!,
-                      width: null,
-                      style: TextStyle(fontSize: 14, color: scheme.textMain),
-                    )
-                  : _text(
-                      title!,
-                      width: titleWidth,
-                      style: TextStyle(fontSize: 14, color: scheme.textMain),
-                    ),
-            if (label != null) ...[
-              const SizedBox(height: 4),
-              _text(
-                label!,
-                width: null,
-                style: TextStyle(fontSize: 12, color: scheme.textAuxiliary),
-              ),
-            ],
-          ],
-        ),
-      );
-    }
+    // 三态：cell 是展示类，三态映射为「正常 / 禁用（灰化）/ 校验失败（值转危险色）」。
+    // 显式 disabled 优先，其次取父级 WotFieldScope 下发（如 WotFormItem(disabled: true)）。
+    final scope = WotFieldScope.of(context);
+    final disabled = this.disabled || (scope?.state == WotFieldState.disabled);
+    final error = this.error || (scope?.error ?? false);
+    final style = wotFieldStyle(
+      scheme,
+      disabled ? WotFieldState.disabled : WotFieldState.editable,
+      error: error,
+    );
+    // 标题走三态标签色；值与说明沿用较浅的辅助色——禁用灰化、失败仅值转危险色。
+    final valueColor = disabled
+        ? scheme.textDisabled
+        : error
+            ? scheme.dangerMain
+            : scheme.textAuxiliary;
+    final subColor = disabled ? scheme.textDisabled : scheme.textAuxiliary;
 
-    // 右侧「值组」：value（上，对齐 title）+ desc（下，对齐 label），纵向、左对齐。
-    Widget right = const SizedBox.shrink();
-    if (desc != null || value != null) {
-      right = Column(
+    // 分割线（D 类 P1 分组属性继承）：显式 border 参数 > 分组下发 >
+    // 默认 true。处于 WotCellGroup 内且组 bordered=false 时跟随组隐藏分割线。
+    final groupScope = WotCellGroupScope.of(context);
+    final border =
+        this.border && (groupScope?.bordered ?? true);
+
+    // 禁用态不可点击。
+    final clickable =
+        !disabled && (this.clickable ?? (onClick != null || isLink));
+
+    // 左侧「标题组」内容：title（上）+ label（下）。横向布局包 Expanded，
+    // 纵向布局由标题行包裹。文本样式与三态默认色按字段合并（传入字段优先）。
+    final leftContent = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (titleBuilder != null)
+          titleBuilder!(context)
+        else if (title != null)
+          _text(
+            title!,
+            width: titleWidth,
+            style: TextStyle(fontSize: 14, color: style.label).merge(titleStyle),
+          ),
+        if (label != null) ...[
+          const SizedBox(height: 4),
+          _text(
+            label!,
+            style: TextStyle(fontSize: 12, color: subColor).merge(labelStyle),
+          ),
+        ],
+      ],
+    );
+
+    // 值为空时回落到占位文案（D 类 P1），占位恒用辅助色（不随 error 变危险色）。
+    final hasValue = value != null && value!.isNotEmpty;
+    final shownValue = hasValue ? value! : placeholder;
+
+    // 右侧「值组」内容：value（上，对齐 title）+ desc（下，对齐 label）。
+    final rightContent = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (valueBuilder != null)
+          valueBuilder!(context)
+        else if (shownValue != null)
+          _text(
+            shownValue,
+            style: TextStyle(fontSize: 13, color: hasValue ? valueColor : subColor)
+                .merge(valueStyle),
+          ),
+        if (desc != null) ...[
+          const SizedBox(height: 4),
+          _text(
+            desc!,
+            style: TextStyle(fontSize: 13, color: subColor).merge(descStyle),
+          ),
+        ],
+      ],
+    );
+
+    final arrowIcon = switch (arrowDirection) {
+      WotArrowDirection.right => 'arrow-right',
+      WotArrowDirection.up => 'arrow-up',
+      WotArrowDirection.down => 'arrow-down',
+      WotArrowDirection.left => 'arrow-left',
+    };
+
+    final Widget body;
+    if (layout == WotCellLayout.vertical) {
+      // 纵向布局（D 类 P1）：标题行（必填 / 图标 / 标题 + 箭头）在上，
+      // 值与描述在下，尾部内容跟随其后。
+      body = Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (value != null)
-            _text(
-              value!,
-              width: null,
-              style: TextStyle(fontSize: 13, color: scheme.textAuxiliary),
-            ),
-          if (desc != null) ...[
-            const SizedBox(height: 4),
-            _text(
-              desc!,
-              width: null,
-              style: TextStyle(fontSize: 13, color: scheme.textAuxiliary),
-            ),
+          Row(
+            children: [
+              if (required) ...[
+                Padding(
+                  padding: const EdgeInsets.only(right: 4),
+                  child: Text(
+                    '*',
+                    style: TextStyle(
+                      color: disabled ? scheme.textDisabled : scheme.dangerMain,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+              if (icon != null) ...[
+                Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: WotIcon(name: icon, size: 16, color: style.icon),
+                ),
+              ],
+              Expanded(child: leftContent),
+              if (isLink) ...[
+                const SizedBox(width: 6),
+                WotIcon(
+                  name: arrowIcon,
+                  size: 14,
+                  color: disabled ? scheme.iconDisabled : scheme.iconAuxiliary,
+                ),
+              ],
+            ],
+          ),
+          if (shownValue != null || desc != null) ...[
+            const SizedBox(height: 6),
+            rightContent,
+          ],
+          if (trailing != null) ...[
+            const SizedBox(height: 8),
+            trailing!,
           ],
         ],
       );
-    }
-
-    final cell = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      child: Row(
+    } else {
+      body = Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           if (required) ...[
@@ -151,28 +284,40 @@ class WotCell extends StatelessWidget {
               padding: const EdgeInsets.only(right: 4),
               child: Text(
                 '*',
-                style: TextStyle(color: scheme.dangerMain, fontSize: 14),
+                style: TextStyle(
+                  color: disabled ? scheme.textDisabled : scheme.dangerMain,
+                  fontSize: 14,
+                ),
               ),
             ),
           ],
           if (icon != null) ...[
             Padding(
               padding: const EdgeInsets.only(right: 10),
-              child: WotIcon(name: icon, size: 16, color: scheme.iconMain),
+              child: WotIcon(name: icon, size: 16, color: style.icon),
             ),
           ],
-          left,
-          right,
+          Expanded(child: leftContent),
+          rightContent,
           if (isLink) ...[
             const SizedBox(width: 6),
-            WotIcon(name: 'arrow-right', size: 14, color: scheme.iconAuxiliary),
+            WotIcon(
+              name: arrowIcon,
+              size: 14,
+              color: disabled ? scheme.iconDisabled : scheme.iconAuxiliary,
+            ),
           ],
           if (trailing != null) ...[
             const SizedBox(width: 8),
             trailing!,
           ],
         ],
-      ),
+      );
+    }
+
+    final cell = Container(
+      padding: padding ?? const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      child: body,
     );
 
     Widget result = cell;

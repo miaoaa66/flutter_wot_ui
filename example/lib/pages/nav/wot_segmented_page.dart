@@ -37,8 +37,8 @@ class _WotSegmentedPageState extends State<WotSegmentedPage> {
         demoBlock('shape=pill + size=small',
             WotSegmented(
               modelValue: _v2,
-              shape: 'pill',
-              size: 'small',
+              shape: WotSegmentedShape.pill,
+              size: WotSegmentedSize.small,
               onChange: (v) => setState(() => _v2 = v),
               options: const [
                 WotSegmentedOption(label: '小号', value: 'a'),

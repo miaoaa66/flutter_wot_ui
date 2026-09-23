@@ -46,6 +46,11 @@ class WotImg extends StatelessWidget {
     this.onLoad,
     this.onError,
     this.onClick,
+    this.imageProvider,
+    this.cacheWidth,
+    this.cacheHeight,
+    this.showLoading = true,
+    this.showError = true,
   });
 
   /// 图片链接。
@@ -96,6 +101,24 @@ class WotImg extends StatelessWidget {
   /// 点击图片时回调；同时会触发预览（若 [preview] 为 true）。
   final VoidCallback? onClick;
 
+  /// 自定义图片源（D 类 P1）：支持 asset / 文件 / 内存图等任意 ImageProvider，
+  /// 传入时优先于 [src]（不走网络加载与懒加载逻辑）。
+  final ImageProvider? imageProvider;
+
+  /// 解码缓存宽度（D 类 P1）：大图降采样省内存；仅与网络图 / imageProvider 同时生效。
+  final int? cacheWidth;
+
+  /// 解码缓存高度，规则同 [cacheWidth]。
+  final int? cacheHeight;
+
+  /// 是否显示默认「加载中」占位（D 类 P1），默认 true；[loading]/[placeholder]
+  /// 显式传入时始终显示。
+  final bool showLoading;
+
+  /// 是否显示默认「加载失败」占位（D 类 P1），默认 true；[error]
+  /// 显式传入时始终显示。
+  final bool showError;
+
   BoxFit get _fit => fit ?? switch (mode) {
         WotImgMode.scaleToFill => BoxFit.fill,
         WotImgMode.aspectFit => BoxFit.contain,
@@ -130,34 +153,66 @@ class WotImg extends StatelessWidget {
         borderRadius: BorderRadius.circular(round ? (width ?? height ?? 16) / 2 : radius),
       ),
       alignment: _align,
-      child: src == null || src!.isEmpty
-          ? (error ?? _errorSlot(scheme))
-          : _networkImage(scheme),
+      child: imageProvider != null
+          ? _providerImage(scheme)
+          : (src == null || src!.isEmpty
+              ? (error ?? _errorSlot(scheme))
+              : _networkImage(scheme)),
     );
 
     Widget result = box;
     if (preview || onClick != null) {
-      result = GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          onClick?.call();
-          if (preview) {
-            final urls = previewList ?? [if (src != null && src!.isNotEmpty) src!];
-            if (urls.isNotEmpty) WotImagePreview.show(urls, context: context);
-          }
-        },
-        child: box,
+      void handleTap() {
+        onClick?.call();
+        if (preview) {
+          final urls = previewList ?? [if (src != null && src!.isNotEmpty) src!];
+          if (urls.isNotEmpty) WotImagePreview.show(urls, context: context);
+        }
+      }
+
+      // 无障碍：可预览/可点击的图片补 button 角色 + 点按动作。
+      result = Semantics(
+        button: true,
+        onTap: handleTap,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: handleTap,
+          child: box,
+        ),
       );
     }
     return result;
+  }
+
+  /// 自定义图片源渲染（D 类 P1）：imageProvider 直用；
+  /// 配置 cacheWidth/cacheHeight 时包 ResizeImage 做解码降采样。
+  Widget _providerImage(WotScheme scheme) {
+    ImageProvider provider = imageProvider!;
+    if (cacheWidth != null || cacheHeight != null) {
+      provider = ResizeImage(
+        provider,
+        width: cacheWidth,
+        height: cacheHeight,
+      );
+    }
+    return Image(
+      image: provider,
+      width: width,
+      height: height,
+      fit: _fit,
+      alignment: _align,
+      errorBuilder: (_, _, _) => error ?? _errorSlot(scheme),
+    );
   }
 
   Widget _networkImage(WotScheme scheme) {
     final Widget? loadSlot;
     if (loading != null || placeholder != null) {
       loadSlot = loading ?? placeholder;
-    } else {
+    } else if (showLoading) {
       loadSlot = _loadingSlot(scheme);
+    } else {
+      loadSlot = null;
     }
     return _WotNetworkImage(
       src: src!,
@@ -166,8 +221,12 @@ class WotImg extends StatelessWidget {
       fit: _fit,
       alignment: _align,
       lazyLoad: lazyLoad,
+      cacheWidth: cacheWidth,
+      cacheHeight: cacheHeight,
       loadPlaceholder: loadSlot,
-      errorPlaceholder: error ?? _errorSlot(scheme),
+      // showError=false 时失败渲染空白（显式 error slot 始终显示）。
+      errorPlaceholder:
+          error ?? (showError ? _errorSlot(scheme) : const SizedBox.shrink()),
       onLoad: onLoad,
       onError: onError,
     );
@@ -201,6 +260,8 @@ class _WotNetworkImage extends StatefulWidget {
     required this.fit,
     required this.alignment,
     this.lazyLoad = false,
+    this.cacheWidth,
+    this.cacheHeight,
     this.loadPlaceholder,
     this.errorPlaceholder,
     this.onLoad,
@@ -213,6 +274,8 @@ class _WotNetworkImage extends StatefulWidget {
   final BoxFit fit;
   final Alignment alignment;
   final bool lazyLoad;
+  final int? cacheWidth;
+  final int? cacheHeight;
   final Widget? loadPlaceholder;
   final Widget? errorPlaceholder;
   final VoidCallback? onLoad;
@@ -248,6 +311,18 @@ class _WotNetworkImageState extends State<_WotNetworkImage> {
     }
   }
 
+  /// 回调一律延后到本帧构建结束后再发出。
+  ///
+  /// [onLoad] / [onError] 由 `loadingBuilder` / `errorBuilder` 触发，二者都在 build 阶段同步执行；
+  /// 若直接回调，调用方在回调里 `setState` 就会抛「setState() or markNeedsBuild() called during build」。
+  void _notify(VoidCallback? cb) {
+    if (cb == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      cb();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!_visible) return widget.loadPlaceholder ?? const SizedBox.shrink();
@@ -257,11 +332,13 @@ class _WotNetworkImageState extends State<_WotNetworkImage> {
       height: widget.height,
       fit: widget.fit,
       alignment: widget.alignment,
+      cacheWidth: widget.cacheWidth,
+      cacheHeight: widget.cacheHeight,
       loadingBuilder: (context, child, progress) {
         if (progress == null) {
           if (!_loaded) {
             _loaded = true;
-            widget.onLoad?.call();
+            _notify(widget.onLoad);
           }
           return child;
         }
@@ -270,7 +347,7 @@ class _WotNetworkImageState extends State<_WotNetworkImage> {
       errorBuilder: (_, _, _) {
         if (!_failed) {
           _failed = true;
-          widget.onError?.call();
+          _notify(widget.onError);
         }
         return widget.errorPlaceholder ?? const SizedBox.shrink();
       },

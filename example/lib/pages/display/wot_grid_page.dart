@@ -3,43 +3,289 @@ import 'package:flutter_wot_ui/flutter_wot_ui.dart';
 
 import '../../common/demo_scaffold.dart';
 
+/// 演示用宫格数据（图标名, 文案）。
+const List<(String, String)> _items = [
+  ('home', '首页'),
+  ('category', '分类'),
+  ('cart', '购物车'),
+  ('user', '我的'),
+  ('star', '收藏'),
+  ('service', '客服'),
+];
+
 /// WotGrid 宫格示例页。
-class WotGridPage extends StatelessWidget {
+///
+/// 覆盖：columnNum / border / gap / square / 徽标（badge·dot·max）/
+/// 自定义颜色 / iconSize / 自绘图标 / 自定义内容 / 点击事件。
+class WotGridPage extends StatefulWidget {
   const WotGridPage({super.key});
 
   @override
+  State<WotGridPage> createState() => _WotGridPageState();
+}
+
+class _WotGridPageState extends State<WotGridPage> {
+  int _columnNum = 4;
+  bool _border = false;
+  bool _square = false;
+  double _gap = 0;
+  bool _reverse = false;
+
+  List<WotGridItem> _cells(BuildContext context) => [
+        for (final (name, label) in _items)
+          WotGridItem(
+            iconName: name,
+            text: label,
+            onClick: () => demoToast(context, '点击 $label'),
+          ),
+      ];
+
+  @override
   Widget build(BuildContext context) {
+    final scheme = context.wotScheme;
+
     return WotDemoScaffold(
       title: 'WotGrid 宫格',
       children: [
-        demoSection('基础（columnNum / WotGridItem / onClick）'),
-        demoBlock('3 列宫格',
+        demoSection('列数（columnNum）'),
+        demoBlock('columnNum: 3', WotGrid(columnNum: 3, children: _cells(context))),
+        demoBlock('columnNum: 4（默认）', WotGrid(columnNum: 4, children: _cells(context))),
+        demoBlock('columnNum: 5', WotGrid(columnNum: 5, children: _cells(context))),
+
+        demoSection('可切换属性（现场切换验证受控响应）'),
+        demoBlock(
+          'columnNum / border / square / gap 实时调整',
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Text('列数 '),
+                  Expanded(
+                    child: Slider(
+                      value: _columnNum.toDouble(),
+                      min: 2,
+                      max: 6,
+                      divisions: 4,
+                      label: '$_columnNum',
+                      onChanged: (v) => setState(() => _columnNum = v.round()),
+                    ),
+                  ),
+                  Text('$_columnNum'),
+                ],
+              ),
+              Row(
+                children: [
+                  const Text('间距 '),
+                  Expanded(
+                    child: Slider(
+                      value: _gap,
+                      min: 0,
+                      max: 16,
+                      divisions: 8,
+                      label: _gap.toStringAsFixed(0),
+                      onChanged: (v) => setState(() => _gap = v),
+                    ),
+                  ),
+                  Text(_gap.toStringAsFixed(0)),
+                ],
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('border（边框）'),
+                value: _border,
+                onChanged: (v) => setState(() => _border = v),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('square（正方形格子）'),
+                value: _square,
+                onChanged: (v) => setState(() => _square = v),
+              ),
+              WotGrid(
+                columnNum: _columnNum,
+                border: _border,
+                gap: _gap,
+                square: _square,
+                children: _cells(context),
+              ),
+            ],
+          ),
+        ),
+
+        demoSection('边框（border）'),
+        demoBlock('border: true 全量边框', WotGrid(columnNum: 3, border: true, children: _cells(context))),
+        demoBlock('子项单独覆盖 border（GridItem.border 优先于 Grid.border）',
+            WotGrid(
+              columnNum: 3,
+              border: false,
+              children: [
+                WotGridItem(iconName: 'home', text: '有边框', border: true, onClick: () {}),
+                WotGridItem(iconName: 'star', text: '无边框', border: false, onClick: () {}),
+                WotGridItem(iconName: 'user', text: '继承', onClick: () {}),
+              ],
+            )),
+
+        demoSection('徽标（badge / dot / max）'),
+        demoBlock('badge 数字、dot 红点、超 max 显示 99+',
             WotGrid(
               columnNum: 3,
               children: [
-                for (final (name, label) in [
-                  ('home', '首页'),
-                  ('category', '分类'),
-                  ('user', '我的'),
-                  ('cart', '购物车'),
-                  ('star', '收藏'),
-                  ('service', '客服'),
-                ])
-                  WotGridItem(iconName: name, text: label, onClick: () => demoToast(context, '点击 $label')),
+                WotGridItem(iconName: 'cart', text: '购物车', badge: 5, onClick: () {}),
+                WotGridItem(iconName: 'service', text: '客服', dot: true, onClick: () {}),
+                WotGridItem(iconName: 'star', text: '收藏', badge: 120, max: 99, onClick: () {}),
               ],
             )),
-        demoSection('样式（border / square / gap / badge）'),
-        demoBlock('4 列 + 边框',
+
+        demoSection('颜色与图标尺寸（color / iconColor / iconSize）'),
+        demoBlock('自定义文字色与图标色',
             WotGrid(
-              columnNum: 4,
-              border: true,
+              columnNum: 3,
               children: [
-                WotGridItem(iconName: 'star', text: '收藏', onClick: () {}),
-                WotGridItem(iconName: 'user', text: '我的', badge: 99, onClick: () {}),
-                WotGridItem(iconName: 'cart', text: '购物车', dot: true, onClick: () {}),
-                WotGridItem(iconName: 'home', text: '首页', onClick: () {}),
+                WotGridItem(
+                  iconName: 'home',
+                  text: '主色',
+                  color: scheme.primaryOf(6),
+                  iconColor: scheme.primaryOf(6),
+                  onClick: () {},
+                ),
+                WotGridItem(
+                  iconName: 'category',
+                  text: '危险色',
+                  color: scheme.dangerMain,
+                  iconColor: scheme.dangerMain,
+                  onClick: () {},
+                ),
+                WotGridItem(
+                  iconName: 'star',
+                  text: '成功色',
+                  color: scheme.successMain,
+                  iconColor: scheme.successMain,
+                  onClick: () {},
+                ),
               ],
             )),
+        demoBlock('iconSize: 16 / 26（默认）/ 36',
+            WotGrid(
+              columnNum: 3,
+              children: [
+                WotGridItem(iconName: 'star', text: '16', iconSize: 16, onClick: () {}),
+                WotGridItem(iconName: 'star', text: '26', iconSize: 26, onClick: () {}),
+                WotGridItem(iconName: 'star', text: '36', iconSize: 36, onClick: () {}),
+              ],
+            )),
+
+        demoSection('自绘图标（icon）与自定义内容（children）'),
+        demoBlock('icon 传入任意 Widget（优先级高于 iconName）',
+            WotGrid(
+              columnNum: 3,
+              children: [
+                WotGridItem(
+                  icon: const Icon(Icons.flight, size: 26),
+                  text: '飞机',
+                  onClick: () {},
+                ),
+                WotGridItem(
+                  icon: const CircleAvatar(radius: 13, child: Icon(Icons.person, size: 16)),
+                  text: '头像',
+                  onClick: () {},
+                ),
+                WotGridItem(
+                  icon: const Icon(Icons.favorite, size: 26, color: Colors.pink),
+                  text: '喜欢',
+                  onClick: () {},
+                ),
+              ],
+            )),
+        demoBlock('children 完全自定义内容（覆盖默认图标+文字布局）',
+            WotGrid(
+              columnNum: 2,
+              square: false,
+              children: [
+                WotGridItem(
+                  children: Container(
+                    padding: const EdgeInsets.all(16),
+                    alignment: Alignment.center,
+                    child: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('自定义卡片', style: TextStyle(fontWeight: FontWeight.w500)),
+                        SizedBox(height: 4),
+                        Text('可放任意 Widget', style: TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  onClick: () => demoToast(context, '自定义内容 1'),
+                ),
+                WotGridItem(
+                  children: Container(
+                    padding: const EdgeInsets.all(16),
+                    alignment: Alignment.center,
+                    child: const Text('第二个'),
+                  ),
+                  onClick: () => demoToast(context, '自定义内容 2'),
+                ),
+              ],
+            )),
+
+        demoSection('点击事件（onClick）'),
+        demoBlock('点击任意格子弹 toast', WotGrid(columnNum: 3, children: _cells(context))),
+
+        demoSection('反向排列（reverse，A 类死参数 #18）'),
+        demoBlock(
+          'reverse: true 时先整体倒序、再按 columnNum 切行——'
+          '所以第一行会变成原来的最后几个。'
+          '修复前该参数只声明不消费，切换无任何变化。',
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              WotButton(
+                text: 'reverse: $_reverse',
+                size: WotButtonSize.small,
+                onClick: () => setState(() => _reverse = !_reverse),
+              ),
+              const SizedBox(height: 8),
+              WotGrid(
+                columnNum: 3,
+                reverse: _reverse,
+                children: _cells(context),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '原始顺序：${_items.map((e) => e.$2).join(' -> ')}',
+                style: const TextStyle(fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        demoBlock(
+          'reverse 与「外部手动 .reversed.toList()」的区别：'
+          'reverse 由 WotGrid 内部处理，children 动态变化时不会与外部受控状态打架。',
+              WotGrid(
+                columnNum: 3,
+                reverse: true,
+                children: [
+                  for (var i = 1; i <= 6; i++)
+                    WotGridItem(text: '第 $i 项', onClick: () {}),
+                ],
+              ),
+        ),
+
+        demoSection('数据驱动（itemCount + itemBuilder）'),
+        demoBlock(
+          'itemBuilder(context, index) 从数据批量生成宫格项，'
+          '提供后忽略 children；适合列表长度由接口数据决定的场景。',
+          WotGrid(
+            columnNum: 4,
+            itemCount: 8,
+            itemBuilder: (context, index) => WotGridItem(
+              iconName: 'star',
+              text: '数据 $index',
+              badge: index == 0 ? 6 : null,
+              onClick: () {},
+            ),
+          ),
+        ),
       ],
     );
   }

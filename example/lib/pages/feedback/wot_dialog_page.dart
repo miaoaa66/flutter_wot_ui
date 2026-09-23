@@ -61,6 +61,76 @@ class WotDialogPage extends StatelessWidget {
                 demoToast(context, '结果：$ok');
               },
             )),
+        demoSection('类型 type（A 类死参数 #7 已实现：左侧 4px 辅助色条）'),
+        demoBlock('success 绿 / warning 黄 / error 红 / info 主色——色条贴在弹窗左边缘，'
+            '加了 clipBehavior 所以不会顶出圆角',
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final e in <(WotDialogType, String, WotButtonType)>[
+                  (WotDialogType.success, 'success', WotButtonType.success),
+                  (WotDialogType.warning, 'warning', WotButtonType.warning),
+                  (WotDialogType.error, 'error', WotButtonType.danger),
+                  (WotDialogType.info, 'info', WotButtonType.primary),
+                ])
+                  WotButton(
+                    text: e.$2,
+                    size: WotButtonSize.small,
+                    type: e.$3,
+                    onClick: () => WotDialog.alert(
+                      context,
+                      title: '提示',
+                      message: 'type: ${e.$2}，左侧色条应为对应语义色',
+                      type: e.$1,
+                    ),
+                  ),
+              ],
+            )),
+        demoBlock('confirm 同样支持 type（showCancelButton=false 时更易看清色条）',
+            WotButton(
+                text: 'confirm + error',
+                size: WotButtonSize.small,
+                type: WotButtonType.danger,
+                onClick: () => WotDialog.confirm(
+                      context,
+                      title: '危险操作',
+                      message: '此操作不可撤销',
+                      type: WotDialogType.error,
+                      confirmButtonText: '仍要删除',
+                    ))),
+        demoSection('新增（D 类 P1）：beforeConfirm / actionLayout / actions'),
+        demoBlock(
+            'beforeConfirm 确认拦截（返回 false 取消弹窗）',
+            FilledButton(
+                onPressed: () async {
+                  final ok = await WotDialog.confirm(context,
+                      title: '删除确认',
+                      message: '确定删除该项吗？',
+                      beforeConfirm: () async {
+                        // 这里可弹二次确认或做前置校验。
+                        return true;
+                      });
+                  if (!ok || !context.mounted) return;
+                  WotDialog.alert(context, message: '已删除');
+                },
+                child: const Text('beforeConfirm 拦截'))),
+        demoBlock(
+            'actions 自定义按钮组 + vertical 纵排',
+            FilledButton.tonal(
+                onPressed: () => WotDialog.show(
+                    context,
+                    WotDialogView(
+                      title: '选择操作',
+                      message: '自定义按钮组示例',
+                      actions: [
+                        WotDialogAction(text: '收藏', onClick: () {}),
+                        WotDialogAction(text: '分享', onClick: () {}),
+                        WotDialogAction(text: '取消', onClick: () {}),
+                      ],
+                      actionLayout: WotDialogActionLayout.vertical,
+                    )),
+                child: const Text('actions + vertical'))),
       ],
     );
   }

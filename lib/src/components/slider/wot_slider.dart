@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
+import '../form/wot_form.dart';
 
 /// 滑块，对应 wot `wd-slider`。受控（v-model:value）。
 class WotSlider extends StatefulWidget {
@@ -16,6 +18,8 @@ class WotSlider extends StatefulWidget {
     this.valueStart,
     this.onChangeRange,
     this.disabled = false,
+    this.readonly = false,
+    this.error = false,
     this.activeColor,
     this.inactiveColor,
     this.showTip = false,
@@ -52,8 +56,14 @@ class WotSlider extends StatefulWidget {
   /// 双向滑块模式下区间变化回调，参数为 `[低值, 高值]`。
   final ValueChanged<List<num>>? onChangeRange;
 
-  /// 是否禁用，默认 false。
+  /// 是否禁用，默认 false。禁用时轨道灰化且不可拖动。
   final bool disabled;
+
+  /// 是否只读：不可拖动，但保持正常配色（内容有效可读），默认 false。
+  final bool readonly;
+
+  /// 是否处于校验失败态（error 态）。命中时激活段转危险色。
+  final bool error;
 
   /// 已激活段颜色，默认使用主题主色。
   final Color? activeColor;
@@ -124,6 +134,7 @@ class _WotSliderState extends State<WotSlider> {
     final v = _fracToValue(fraction);
     if (v == _value) return;
     setState(() => _value = v);
+    wotFormPushValue(context, widget.name, v);
     widget.onChange?.call(v);
   }
 
@@ -164,14 +175,21 @@ class _WotSliderState extends State<WotSlider> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
-    final active = widget.activeColor ?? scheme.primaryOf(6);
+    // 三态：显式 disabled 优先，其次取父级 WotFieldScope 下发；
+    // readonly 仅锁交互、保持正常配色（区别于 disabled 的灰化）。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = widget.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final hasError = widget.error || (fieldScope?.error ?? false);
+    final locked = disabled || widget.readonly;
+    final active = disabled
+        ? scheme.filledExtraStrong
+        : (hasError ? scheme.dangerMain : (widget.activeColor ?? scheme.primaryOf(6)));
     final inactive = widget.inactiveColor ?? scheme.borderLight;
-    final disabled = widget.disabled;
     final lowFrac = widget.range ? _fraction(_low) : 0.0;
     // 区间模式渲染高值圆点要用 _high（区间逻辑只更新 _high）；单滑块才用 _value。
     final highFrac = _fraction(widget.range ? _high : _value);
 
-    return LayoutBuilder(
+    final sliderView = LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
 
@@ -231,7 +249,7 @@ class _WotSliderState extends State<WotSlider> {
 
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTapDown: disabled
+          onTapDown: locked
               ? null
               : (d) {
                   final f = d.localPosition.dx / width;
@@ -240,7 +258,7 @@ class _WotSliderState extends State<WotSlider> {
                   _dragMove(f);
                   _dragEnd();
                 },
-          onHorizontalDragStart: disabled
+          onHorizontalDragStart: locked
               ? null
               : (d) {
                   final f = d.localPosition.dx / width;
@@ -248,9 +266,9 @@ class _WotSliderState extends State<WotSlider> {
                   setState(() => _dragging = true);
                   _dragMove(f);
                 },
-          onHorizontalDragUpdate: disabled ? null : (d) => _dragMove(d.localPosition.dx / width),
-          onHorizontalDragEnd: disabled ? null : (_) => _dragEnd(),
-          onHorizontalDragCancel: disabled ? null : _dragEnd,
+          onHorizontalDragUpdate: locked ? null : (d) => _dragMove(d.localPosition.dx / width),
+          onHorizontalDragEnd: locked ? null : (_) => _dragEnd(),
+          onHorizontalDragCancel: locked ? null : _dragEnd,
           child: SizedBox(
             height: 56,
             width: double.infinity,
@@ -316,6 +334,34 @@ class _WotSliderState extends State<WotSlider> {
           ),
         );
       },
+    );
+
+    // 无障碍：裸 GestureDetector 不产生语义节点，屏幕阅读器读不出当前值 / 可增减。
+    // 增减复用内部拖动路径（_dragMove + _dragEnd），与手动拖动一样走对齐吸附和 onChange。
+    void semanticStep(int dir) {
+      final cur = widget.range ? _high : _value;
+      num next = cur + dir * widget.step;
+      final steps = ((next - widget.min) / widget.step).round();
+      next = widget.min + steps * widget.step;
+      if (next < widget.min) next = widget.min;
+      if (next > widget.max) next = widget.max;
+      _dragMove(((next - widget.min) / _range).toDouble());
+      _dragEnd();
+    }
+
+    final cur = widget.range ? _high : _value;
+    return Semantics(
+      slider: true,
+      value: widget.range ? '${_label(_low)} - ${_label(_high)}' : _label(cur),
+      increasedValue: widget.range ? null : _label(cur + widget.step),
+      decreasedValue: widget.range ? null : _label(cur - widget.step),
+      // 区间模式不提供单步增减动作（双端调节语义不同）——
+      // 且框架断言要求「有 increase 动作的节点，value / increasedValue 必须成对」，
+      // 区间模式下 increasedValue 为空、value 非空，必须把动作一并去掉。
+      onIncrease: (locked || widget.range) ? null : () => semanticStep(1),
+      onDecrease: (locked || widget.range) ? null : () => semanticStep(-1),
+      enabled: !locked,
+      child: sliderView,
     );
   }
 

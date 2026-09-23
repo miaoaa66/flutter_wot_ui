@@ -112,14 +112,19 @@ class WotIconResolver {
   /// 将 wot 名称解析为 [IconData]。
   static IconData resolve(String? name) {
     if (name == null || name.isEmpty) return fallback;
-    final normalized = name.replaceAll('-', '-').toLowerCase();
-    return _map[normalized] ?? _map[name] ?? fallback;
+    // 归一化分隔符：下划线与空格都按中划线处理，再转小写。
+    final normalized = normalizeName(name);
+    return _map[normalized] ?? _map[name.trim()] ?? fallback;
   }
+
+  /// 名称归一化：去首尾空格，`_` / 空格 → `-`，并转小写。
+  static String normalizeName(String name) =>
+      name.trim().replaceAll('_', '-').replaceAll(' ', '-').toLowerCase();
 }
 
 /// 图标组件，对应 wot `wd-icon`。
 ///
-/// 参数对齐 wot：`name`（图标名）、`size`、`color`、`classPrefix`（兼容保留）。
+/// 参数对齐 wot：`name`（图标名）、`size`、`color`。
 /// 通过 [WotIconResolver] 渲染（Material 兜底）；如需 wot 官方字形，
 /// 请自行注册 `iconfont.ttf` 并用 [WotIconFont.codePointOf] 构造 [IconData]。
 class WotIcon extends StatelessWidget {
@@ -128,7 +133,6 @@ class WotIcon extends StatelessWidget {
     this.name,
     this.size,
     this.color,
-    this.classPrefix = 'wot-icon',
     this.onClick,
   });
 
@@ -140,9 +144,6 @@ class WotIcon extends StatelessWidget {
 
   /// 图标颜色；为空时取语义图标主色。
   final Color? color;
-
-  /// 兼容 wot 参数保留（class 前缀），本项目不启用。
-  final String classPrefix;
 
   /// 点击回调。
   final VoidCallback? onClick;
@@ -156,10 +157,16 @@ class WotIcon extends StatelessWidget {
       color: color ?? scheme.iconMain,
     );
     if (onClick == null) return icon;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
+    // 无障碍：可点图标补 button 角色 + 图标名（装饰性图标不进语义树，无噪声）。
+    return Semantics(
+      button: true,
+      label: name,
       onTap: onClick,
-      child: icon,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onClick,
+        child: icon,
+      ),
     );
   }
 }

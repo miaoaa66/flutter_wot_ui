@@ -1,6 +1,8 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../theme/wot_state.dart';
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 
 /// 密码输入框，对应 wot `wd-password-input`。
@@ -18,6 +20,7 @@ class WotPasswordInput extends StatefulWidget {
     this.focusColor,
     this.disabled = false,
     this.readonly = false,
+    this.error = false,
     this.gutter = 8,
     this.obscure = true,
     this.maskable,
@@ -51,6 +54,9 @@ class WotPasswordInput extends StatefulWidget {
   /// 是否只读（不可聚焦输入）。
   final bool readonly;
 
+  /// 是否处于校验失败态（error 态）。命中时格子边框转危险色。
+  final bool error;
+
   /// 格子之间的间距（逻辑像素）；默认 8。
   final double gutter;
 
@@ -70,7 +76,11 @@ class WotPasswordInput extends StatefulWidget {
 class _WotPasswordInputState extends State<WotPasswordInput> {
   late final FocusNode _focus;
   late final TextEditingController _controller;
+  final GlobalKey<EditableTextState> _fieldKey = GlobalKey<EditableTextState>();
   String _value = '';
+
+  /// 上一帧键盘可见高度，用于探测「键盘被系统收起」。
+  double _lastViewInsets = 0;
 
   /// 内部 / 受控聚焦态。
   bool get _isFocused => widget.focused ?? _focus.hasFocus;
@@ -81,6 +91,23 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
     _value = widget.modelValue;
     _focus = FocusNode()..addListener(_onFocusChange);
     _controller = TextEditingController(text: widget.modelValue);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final insets = MediaQuery.of(context).viewInsets.bottom;
+    final wasVisible = _lastViewInsets > 0;
+    final visible = insets > 0;
+    _lastViewInsets = insets;
+    // 系统返回/手势收起键盘不会释放 FocusNode（hasFocus 仍为 true），
+    // 聚焦样式会残留、且后续 requestFocus 成为 no-op 导致键盘唤不起。
+    // 故键盘从可见转隐藏且仍持焦点时主动失焦，复位样式并让下次点击可重新唤起。
+    if (wasVisible && !visible && _focus.hasFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _focus.hasFocus) _focus.unfocus();
+      });
+    }
   }
 
   @override
@@ -123,7 +150,25 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
 
   void _tap() {
     if (widget.disabled || widget.readonly) return;
-    _focus.requestFocus();
+    if (_focus.hasFocus) {
+      final keyboardVisible = MediaQuery.of(context).viewInsets.bottom > 0;
+      if (keyboardVisible) {
+        // 键盘在、点击已聚焦的格子：保持现状（对齐真实 TextField 行为）。
+        return;
+      }
+      // 焦点残留而键盘已收起（didChangeDependencies 的 viewInsets 检测可能因
+      // 设备差异/时序漏触发）：先释放焦点复位聚焦样式，下一帧重新取焦点并
+      // 强制重连输入连接唤起键盘——保证「再点一次」必然能恢复输入。
+      _focus.unfocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_focus.hasFocus) {
+          _focus.requestFocus();
+          _fieldKey.currentState?.requestKeyboard();
+        }
+      });
+    } else {
+      _focus.requestFocus();
+    }
   }
 
   void _onChanged(String text) {
@@ -142,12 +187,25 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
   @override
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
-    final focus = _isFocused;
+
+    // 三态：显式传参 > WotFieldScope 下发 > 默认。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = widget.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final readonly = widget.readonly || (fieldScope?.state == WotFieldState.readonly);
+    final hasError = widget.error || (fieldScope?.error ?? false);
+    final style = wotFieldStyle(
+      scheme,
+      disabled ? WotFieldState.disabled : WotFieldState.editable,
+      error: hasError,
+      baseBorder: scheme.borderStrong,
+    );
+    // 锁定时不再显示聚焦光标态。
+    final focus = _isFocused && !disabled && !readonly;
     final mask = widget.maskable ?? widget.obscure;
 
-    return GestureDetector(
+    final field = GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: _tap,
+      onTap: (disabled || readonly) ? null : _tap,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -161,10 +219,11 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
                 width: 1,
                 height: 1,
                 child: TextField(
+                  key: _fieldKey,
                   controller: _controller,
                   focusNode: _focus,
                   keyboardType: TextInputType.number,
-                  enabled: !widget.disabled && !widget.readonly,
+                  enabled: !disabled && !readonly,
                   maxLength: widget.maxLength,
                   onChanged: _onChanged,
                   inputFormatters: [
@@ -188,10 +247,11 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
               height: 48,
               alignment: Alignment.center,
               decoration: BoxDecoration(
+                color: disabled ? style.background : null,
                 border: Border.all(
                   color: (focus && i == _value.length)
                       ? (widget.focusColor ?? scheme.primaryOf(6))
-                      : scheme.borderStrong,
+                      : style.border,
                 ),
                 borderRadius: BorderRadius.circular(6),
               ),
@@ -201,27 +261,34 @@ class _WotPasswordInputState extends State<WotPasswordInput> {
                           width: 10,
                           height: 10,
                           decoration: BoxDecoration(
-                            color: scheme.textMain,
+                            color: style.text,
                             shape: BoxShape.circle,
                           ),
                         )
                       : Text(
                           _value[i],
-                          style: TextStyle(fontSize: 16, color: scheme.textMain),
+                          style: TextStyle(fontSize: 16, color: style.text),
                         ))
                   : Text(
                       i == _value.length && focus ? '|' : '',
                       style: TextStyle(
                         fontSize: 16,
-                        color: focus
-                            ? (widget.focusColor ?? scheme.primaryOf(6))
-                            : scheme.borderStrong,
+                        color: focus ? (widget.focusColor ?? scheme.primaryOf(6)) : style.border,
                       ),
                     ),
             ),
           ],
         ],
       ),
+    );
+
+    // 无障碍：可见格子是自绘的，隐藏 TextField 不产生可读语义；
+    // 读屏需要知道这是密码框、当前已输入几位（value 用纯数字避免语言问题）。
+    return Semantics(
+      label: tr(context, 'wot.passwordInput.field'),
+      value: '${_value.length} / ${widget.maxLength}',
+      onTap: (disabled || readonly) ? null : _tap,
+      child: field,
     );
   }
 }

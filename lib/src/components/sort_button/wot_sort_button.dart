@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 
 /// 排序方向。
@@ -19,6 +20,8 @@ class WotSortButton extends StatefulWidget {
     this.color,
     this.activeColor,
     this.disabled = false,
+    this.allowReset = false,
+    this.descFirst = false,
   });
 
   final WotSortDirection modelValue;
@@ -27,6 +30,13 @@ class WotSortButton extends StatefulWidget {
   final Color? color;
   final Color? activeColor;
   final bool disabled;
+
+  /// 点击降序后是否允许再次点击重置回未排序（D 类 P1），默认 false
+  /// （循环为 none → 升序 → 降序 → 升序…）。
+  final bool allowReset;
+
+  /// 首次点击是否先降序（D 类 P1），默认 false（先升序）。
+  final bool descFirst;
 
   @override
   State<WotSortButton> createState() => _WotSortButtonState();
@@ -49,10 +59,15 @@ class _WotSortButtonState extends State<WotSortButton> {
 
   void _tap() {
     if (widget.disabled) return;
+    final descFirst = widget.descFirst;
     final next = switch (_dir) {
-      WotSortDirection.none => WotSortDirection.ascending,
-      WotSortDirection.ascending => WotSortDirection.descending,
-      WotSortDirection.descending => WotSortDirection.none,
+      // 首次点击方向由 descFirst 决定（D 类 P1）。
+      WotSortDirection.none => descFirst ? WotSortDirection.descending : WotSortDirection.ascending,
+      WotSortDirection.ascending => descFirst && widget.allowReset
+          ? WotSortDirection.none
+          : WotSortDirection.descending,
+      WotSortDirection.descending =>
+        widget.allowReset ? WotSortDirection.none : WotSortDirection.ascending,
     };
     setState(() => _dir = next);
     widget.onChange?.call(next);
@@ -64,7 +79,14 @@ class _WotSortButtonState extends State<WotSortButton> {
     final active = _dir != WotSortDirection.none;
     final fg = active ? (widget.activeColor ?? scheme.primaryOf(6)) : (widget.color ?? scheme.textMain);
 
-    return GestureDetector(
+    // 无障碍：三角方向是自绘 CustomPaint，读屏读不出升/降序——用 value 报告排序状态。
+    final sortState = _dir == WotSortDirection.ascending
+        ? tr(context, 'wot.sort.ascending')
+        : _dir == WotSortDirection.descending
+            ? tr(context, 'wot.sort.descending')
+            : tr(context, 'wot.sort.unsorted');
+
+    final btn = GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: widget.disabled ? null : _tap,
       child: Row(
@@ -73,32 +95,75 @@ class _WotSortButtonState extends State<WotSortButton> {
           Text(widget.text,
               style: TextStyle(fontSize: 14, color: widget.disabled ? scheme.textDisabled : fg)),
           const SizedBox(width: 4),
-          // 上下箭头：用 Stack 紧凑叠放，避免固定高内 Column(flex) 溢出。
+          // 上下三角：自绘，尺寸/清晰度可控（Material 的 arrow_drop_* 自带大量留白且偏小）。
           SizedBox(
-            width: 10,
-            height: 14,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Align(
-                  alignment: Alignment.topCenter,
-                  child: Icon(Icons.arrow_drop_up,
-                      size: 12,
-                      color: _dir == WotSortDirection.ascending
-                          ? fg
-                          : (active ? fg.withValues(alpha: 0.4) : scheme.iconDisabled)),
-                ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Icon(Icons.arrow_drop_down,
-                      size: 12,
-                      color: _dir == WotSortDirection.descending ? fg : scheme.iconDisabled),
-                ),
-              ],
+            width: 12,
+            height: 15,
+            child: CustomPaint(
+              painter: _SortArrowsPainter(
+                ascendingActive: _dir == WotSortDirection.ascending,
+                descendingActive: _dir == WotSortDirection.descending,
+                activeColor: fg,
+                inactiveColor: scheme.iconAuxiliary,
+              ),
             ),
           ),
         ],
       ),
     );
+
+    return Semantics(
+      button: true,
+      enabled: !widget.disabled,
+      value: sortState,
+      onTap: widget.disabled ? null : _tap,
+      child: btn,
+    );
   }
+}
+
+/// 排序按钮的上下三角指示器（自绘，保证尺寸与清晰度）。
+class _SortArrowsPainter extends CustomPainter {
+  const _SortArrowsPainter({
+    required this.ascendingActive,
+    required this.descendingActive,
+    required this.activeColor,
+    required this.inactiveColor,
+  });
+
+  final bool ascendingActive;
+  final bool descendingActive;
+  final Color activeColor;
+  final Color inactiveColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final up = Paint()..color = ascendingActive ? activeColor : inactiveColor;
+    final down = Paint()..color = descendingActive ? activeColor : inactiveColor;
+
+    // 上三角：apex 在顶部中央，底边在下。
+    final upPath = Path()
+      ..moveTo(w / 2, 1)
+      ..lineTo(1, 8)
+      ..lineTo(w - 1, 8)
+      ..close();
+    // 下三角：apex 在底部中央，底边在上。
+    final downPath = Path()
+      ..moveTo(w / 2, size.height - 1)
+      ..lineTo(1, size.height - 8)
+      ..lineTo(w - 1, size.height - 8)
+      ..close();
+
+    canvas
+      ..drawPath(upPath, up)
+      ..drawPath(downPath, down);
+  }
+
+  @override
+  bool shouldRepaint(_SortArrowsPainter old) =>
+      old.ascendingActive != ascendingActive ||
+      old.descendingActive != descendingActive ||
+      old.activeColor != activeColor ||
+      old.inactiveColor != inactiveColor;
 }

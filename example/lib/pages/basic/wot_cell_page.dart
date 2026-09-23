@@ -31,6 +31,20 @@ class WotCellPage extends StatelessWidget {
               WotCell(title: '带箭头', isLink: true, onClick: () => demoToast(context, '点击了 Cell')),
               const WotCell(title: '必填项', value: '请输入', required: true),
             ])),
+        demoSection('三态（disabled / error）'),
+        demoBlock(
+            'disabled：整体灰化且不可点（标题 / 值 / 图标 / 箭头 / 必填星号一并灰化）',
+            const Column(children: [
+              WotCell(title: '禁用单元格', value: '不可用', icon: 'info', disabled: true),
+              WotCell(title: '禁用 + 箭头（不可点）', value: '值', isLink: true, disabled: true),
+              WotCell(title: '禁用 + 必填', value: '值', required: true, disabled: true),
+            ])),
+        demoBlock('error：标题与值转危险色',
+            const Column(children: [
+              WotCell(title: '校验失败', value: '格式不正确', error: true),
+              WotCell(title: 'error + 必填', value: '', required: true, error: true),
+            ])),
+        demoBlock('对照：正常态', const WotCell(title: '正常', value: '内容', icon: 'info')),
         demoSection('样式（center / border / titleWidth）'),
         demoBlock('垂直居中 center',
             const WotCell(title: '居中标题', value: '值', center: true, label: '多行 label 用来测居中')),
@@ -39,6 +53,47 @@ class WotCellPage extends StatelessWidget {
         demoBlock(
             '自定义尾部',
             WotCell(title: '自定义尾部', value: '只读', trailing: const WotTag(text: '只读', type: WotTagType.primary), border: false)),
+        demoSection('新增（D 类 P1）：placeholder / layout / 箭头方向 / 样式合并'),
+        WotCell(title: '占位符', placeholder: '暂无数据'),
+        WotCell(
+          title: '纵向布局',
+          value: '标题在上、值在下',
+          layout: WotCellLayout.vertical,
+          isLink: true,
+        ),
+        WotCell(
+          title: '箭头方向',
+          value: '向下',
+          isLink: true,
+          arrowDirection: WotArrowDirection.down,
+        ),
+        WotCell(
+          title: '自定义标题样式',
+          value: '仅覆盖字号，颜色保留三态默认',
+          titleStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          isLink: true,
+          arrowDirection: WotArrowDirection.up,
+        ),
+        demoSection('新增（T3.5）：builder 插槽'),
+        WotCell(
+          titleBuilder: (context) => const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.local_fire_department, size: 16, color: Color(0xFFFA5151)),
+              SizedBox(width: 4),
+              Text('热门内容'),
+            ],
+          ),
+          value: '标题插槽带图标',
+          isLink: true,
+        ),
+        WotCell(
+          title: '积分',
+          valueBuilder: (context) => const Text(
+            '1,024 分',
+            style: TextStyle(fontSize: 13, color: Color(0xFFFA9D3B), fontWeight: FontWeight.w600),
+          ),
+        ),
       ],
     );
   }

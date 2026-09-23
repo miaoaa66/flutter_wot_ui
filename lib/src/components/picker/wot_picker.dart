@@ -1,5 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 import '../picker_view/wot_picker_view.dart';
 
@@ -16,12 +18,14 @@ class WotPicker extends StatefulWidget {
     this.onCancel,
     this.onChange,
     this.title,
-    this.confirmText = '确定',
-    this.cancelText = '取消',
+    this.confirmText,
+    this.cancelText,
     this.color,
     this.disabled = false,
+    this.readonly = false,
     this.loading = false,
     this.showCancel = true,
+    this.optionBuilder,
   });
 
   /// 每列的选项列表（二维数组）。
@@ -43,22 +47,29 @@ class WotPicker extends StatefulWidget {
   final String? title;
 
   /// 右侧确认按钮文案；默认「确定」。
-  final String confirmText;
+  final String? confirmText;
 
   /// 左侧取消按钮文案；默认「取消」。
-  final String cancelText;
+  final String? cancelText;
 
   /// 选中高亮/确认按钮颜色；不传时用主题主色。
   final Color? color;
 
-  /// 是否禁用全部滚轮交互。
+  /// 是否禁用全部滚轮交互，并整体淡化。
   final bool disabled;
+
+  /// 是否只读：锁滚轮交互但保持正常配色（仅供查看当前值），默认 false。
+  final bool readonly;
 
   /// 是否显示加载中状态（覆盖选项区域并禁用交互）。
   final bool loading;
 
   /// 是否显示左侧取消按钮；默认 true。
   final bool showCancel;
+
+  /// 选项自定义渲染插槽（T3.5），透传给内部 [WotPickerView]。
+  final Widget? Function(BuildContext context, WotColumnOption option, bool selected)?
+      optionBuilder;
 
   /// 命令式弹出并返回选中值列表；取消返回 null。
   static Future<List<Object?>?> show(
@@ -69,6 +80,8 @@ class WotPicker extends StatefulWidget {
     Color? color,
     bool loading = false,
     bool showCancel = true,
+    bool disabled = false,
+    bool readonly = false,
     ValueChanged<List<Object?>>? onConfirm,
     VoidCallback? onCancel,
   }) {
@@ -83,6 +96,8 @@ class WotPicker extends StatefulWidget {
         color: color,
         loading: loading,
         showCancel: showCancel,
+        disabled: disabled,
+        readonly: readonly,
         onConfirm: onConfirm,
         onCancel: onCancel,
       ),
@@ -100,6 +115,26 @@ class _WotPickerState extends State<WotPicker> {
   void initState() {
     super.initState();
     _values = _clamp(widget.values, widget.columns);
+  }
+
+  @override
+  void didUpdateWidget(WotPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 外部改变 values / columns 后需重新钳制，否则受控失效。
+    // columns 是 List，未重写 ==，此处按引用比较即可。
+    if (!_sameValues(oldWidget.values, widget.values) ||
+        oldWidget.columns != widget.columns) {
+      _values = _clamp(widget.values, widget.columns);
+    }
+  }
+
+  static bool _sameValues(List<Object?> a, List<Object?> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 
   /// 保证每列值合法，非法时回退到列首项。
@@ -131,7 +166,13 @@ class _WotPickerState extends State<WotPicker> {
   Widget build(BuildContext context) {
     final scheme = context.wotScheme;
     final primary = widget.color ?? scheme.primaryOf(6);
-    return Column(
+    // 弹层形态三态：readonly 锁滚轮交互、配色不变；disabled 额外整体淡化。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = widget.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final readonly = widget.readonly || (fieldScope?.state == WotFieldState.readonly);
+    final locked = disabled || readonly;
+
+    final content = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
@@ -142,7 +183,7 @@ class _WotPickerState extends State<WotPicker> {
               if (widget.showCancel)
                 InkWell(
                   onTap: _cancel,
-                  child: Text(widget.cancelText,
+                  child: Text(widget.cancelText ?? tr(context, 'wot.common.cancel'),
                       style: TextStyle(fontSize: 14, color: scheme.textSecondary)),
                 ),
               Expanded(
@@ -155,7 +196,7 @@ class _WotPickerState extends State<WotPicker> {
               ),
               InkWell(
                 onTap: _confirm,
-                child: Text(widget.confirmText,
+                child: Text(widget.confirmText ?? tr(context, 'wot.common.confirm'),
                     style: TextStyle(fontSize: 14, color: primary, fontWeight: FontWeight.w600)),
               ),
             ],
@@ -167,14 +208,16 @@ class _WotPickerState extends State<WotPicker> {
             columns: widget.columns,
             values: _values,
             color: primary,
-            disabled: widget.disabled,
+            disabled: locked,
             loading: widget.loading,
             onChange: (v) => setState(() => _values = v),
+            optionBuilder: widget.optionBuilder,
           ),
         ),
         Container(height: MediaQuery.of(context).padding.bottom, color: scheme.filledContent),
       ],
     );
+    return disabled ? Opacity(opacity: 0.5, child: content) : content;
   }
 }
 

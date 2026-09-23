@@ -15,6 +15,8 @@ class _WotPasswordInputPageState extends State<WotPasswordInputPage> {
   String _p1 = '';
   String _p2 = '';
   bool _disabled = false;
+  bool _readonly = false;
+  bool _error = false;
 
   @override
   Widget build(BuildContext context) {
@@ -29,12 +31,19 @@ class _WotPasswordInputPageState extends State<WotPasswordInputPage> {
         demoSection('属性（focusColor / obscure / readonly / disabled）'),
         demoBlock('focusColor 聚焦色', WotPasswordInput(modelValue: _p1, focusColor: const Color(0xFF12B886), onChange: (v) => setState(() => _p1 = v))),
         demoBlock('obscure=false 明文点', WotPasswordInput(modelValue: _p2, obscure: false, onChange: (v) => setState(() => _p2 = v))),
-        demoSection('状态与事件'),
-        Row(children: [
-          Flexible(child: FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled'))),
+        demoSection('三态与事件（disabled / readonly / error）'),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled')),
+          FilledButton.tonal(onPressed: () => setState(() => _readonly = !_readonly), child: Text('readonly: $_readonly')),
+          FilledButton.tonal(onPressed: () => setState(() => _error = !_error), child: Text('error: $_error')),
         ]),
         const SizedBox(height: 8),
-        demoBlock('disabled 禁用', WotPasswordInput(modelValue: _p1, disabled: _disabled, onChange: (v) => setState(() => _p1 = v))),
+        demoBlock('disabled 禁用（浅灰底 + 灰点 / 字 + 边框灰）',
+            WotPasswordInput(modelValue: _p1, disabled: _disabled, onChange: (v) => setState(() => _p1 = v))),
+        demoBlock('readonly 只读（锁输入、保持正常配色 —— 区别于 disabled 的灰化）',
+            WotPasswordInput(modelValue: _p1, readonly: _readonly, onChange: (v) => setState(() => _p1 = v))),
+        demoBlock('error 校验失败（格子边框转危险色）',
+            WotPasswordInput(modelValue: _p1, error: _error, onChange: (v) => setState(() => _p1 = v))),
         demoBlock('onInput / onFocus / onBlur 回调',
             WotPasswordInput(
               modelValue: _p1,

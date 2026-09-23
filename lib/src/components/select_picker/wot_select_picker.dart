@@ -2,11 +2,16 @@
 
 import 'package:flutter/material.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_scheme.dart';
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 import '../empty/wot_empty.dart';
 import '../icon/wot_icon.dart';
 import '../search/wot_search.dart';
+
+/// 选择器选择模式（T3.3 枚举化）：checkbox 多选 / radio 单选。
+enum WotSelectPickerType { checkbox, radio }
 
 /// 列表选择器选项，对应 wot `wd-select-picker` 的选项。
 ///
@@ -42,7 +47,7 @@ class WotSelectPicker extends StatefulWidget {
   const WotSelectPicker({
     super.key,
     this.columns = const [],
-    this.type = 'radio',
+    this.type = WotSelectPickerType.checkbox,
     this.modelValue,
     this.modelVisible,
     this.onChange,
@@ -59,20 +64,22 @@ class WotSelectPicker extends StatefulWidget {
     this.labelKey = 'label',
     this.disabledKey = 'disabled',
     this.title,
-    this.placeholder = '请选择',
+    this.placeholder,
     this.disabled = false,
+    this.readonly = false,
+    this.error = false,
     this.loading = false,
     this.color,
     this.name,
-    this.emptyText = '暂无数据',
+    this.emptyText,
   });
 
   /// 扁平选项列表（对应 wot `columns`）。每项可为 [WotSelectPickerOption]、
   /// `String`、`Map`（配合 valueKey/labelKey/disabledKey 提取）。
   final List<Object> columns;
 
-  /// 选择类型：`radio`（单选，默认）或 `checkbox`（多选）。
-  final String type;
+  /// 选择类型：`radio`（单选）或 `checkbox`（多选，默认，对齐 wot）。
+  final WotSelectPickerType type;
 
   /// 当前选中值（受控 v-model）。radio 存单个值；checkbox 存 `List<Object?>`。
   final Object? modelValue;
@@ -123,10 +130,16 @@ class WotSelectPicker extends StatefulWidget {
   final String? title;
 
   /// 未选择任何项时的占位文本，默认「请选择」。
-  final String placeholder;
+  final String? placeholder;
 
-  /// 是否禁用整组件（不可点击弹出），默认 false。
+  /// 是否禁用整组件（不可点击弹出），默认 false。禁用时触发区灰化。
   final bool disabled;
+
+  /// 是否只读：不可弹出选择，但触发区保持正常配色（只读展示当前值），默认 false。
+  final bool readonly;
+
+  /// 是否处于校验失败态（error 态）。命中时触发区描红边。
+  final bool error;
 
   /// 弹层内是否显示加载中状态（覆盖选项区域并禁用交互）。
   final bool loading;
@@ -138,7 +151,7 @@ class WotSelectPicker extends StatefulWidget {
   final String? name;
 
   /// 空列表/搜索无结果时的提示文案，默认「暂无数据」。
-  final String emptyText;
+  final String? emptyText;
 
   /// 解析单个选项为内部统一结构。
   ({String label, Object? value, bool disabled}) _resolveOne(Object item) {
@@ -193,7 +206,7 @@ class WotSelectPicker extends StatefulWidget {
   static Future<T?> show<T>(
     BuildContext context, {
     List<Object> columns = const [],
-    String type = 'radio',
+    WotSelectPickerType type = WotSelectPickerType.checkbox,
     Object? initialValue,
     String? title,
     bool filterable = false,
@@ -206,7 +219,7 @@ class WotSelectPicker extends StatefulWidget {
     String disabledKey = 'disabled',
     bool loading = false,
     Color? color,
-    String emptyText = '暂无数据',
+    String? emptyText,
   }) {
     return showModalBottomSheet<T>(
       context: context,
@@ -277,7 +290,7 @@ class _WotSelectPickerState extends State<WotSelectPicker> {
   }
 
   void _clear() {
-    final empty = widget.type == 'checkbox' ? <Object?>[] : null;
+    final empty = widget.type == WotSelectPickerType.checkbox ? <Object?>[] : null;
     widget.onConfirm?.call(empty);
     widget.onChange?.call(empty);
   }
@@ -297,46 +310,65 @@ class _WotSelectPickerState extends State<WotSelectPicker> {
     final display = widget._display(widget.modelValue);
     final hasValue = widget._hasValue;
 
+    // 触发区是框类形态，套用框类三态规则：显式传参 > WotFieldScope 下发 > 默认。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = widget.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final readonly = widget.readonly || (fieldScope?.state == WotFieldState.readonly);
+    final hasError = widget.error || (fieldScope?.error ?? false);
+    final state = disabled
+        ? WotFieldState.disabled
+        : readonly
+            ? WotFieldState.readonly
+            : WotFieldState.editable;
+    final style = wotFieldStyle(
+      scheme,
+      state,
+      error: hasError,
+      baseBorder: scheme.borderMain,
+    );
+    // 禁用给浅灰底；只读 / 可编辑保持透明（只读额外去掉边框，表达非输入区）。
+    final bg = disabled ? style.background : scheme.borderZero;
+    final auxIconColor = disabled ? scheme.iconDisabled : scheme.iconAuxiliary;
+
     return InkWell(
-      onTap: widget.disabled ? null : _present,
+      onTap: (disabled || readonly) ? null : _present,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          border: Border.all(
-            color: widget.disabled ? scheme.borderLight : scheme.borderMain,
-          ),
+          color: bg,
+          border: Border.all(color: style.border),
           borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
           children: [
             Expanded(
               child: Text(
-                display.isEmpty ? widget.placeholder : display,
+                display.isEmpty
+                    ? widget.placeholder ?? tr(context, 'wot.common.pleaseSelect')
+                    : display,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 14,
-                  color: display.isEmpty
-                      ? scheme.textPlaceholder
-                      : scheme.textMain,
+                  color: display.isEmpty ? style.placeholder : style.text,
                 ),
               ),
             ),
-            if (hasValue && widget.clearable && !widget.disabled)
+            if (hasValue && widget.clearable && !disabled && !readonly)
               GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: _clear,
                 child: WotIcon(
                   name: 'close-circle',
                   size: 14,
-                  color: scheme.iconAuxiliary,
+                  color: auxIconColor,
                 ),
               ),
             const SizedBox(width: 8),
             WotIcon(
               name: 'arrow-down',
               size: 14,
-              color: scheme.iconAuxiliary,
+              color: auxIconColor,
             ),
           ],
         ),
@@ -362,11 +394,11 @@ class _WotSelectPickerSheet extends StatefulWidget {
     this.disabledKey = 'disabled',
     this.loading = false,
     this.color,
-    this.emptyText = '暂无数据',
+    this.emptyText,
   });
 
   final List<Object> columns;
-  final String type;
+  final WotSelectPickerType type;
   final Object? initialValue;
   final String? title;
   final bool filterable;
@@ -379,7 +411,7 @@ class _WotSelectPickerSheet extends StatefulWidget {
   final String disabledKey;
   final bool loading;
   final Color? color;
-  final String emptyText;
+  final String? emptyText;
 
   @override
   State<_WotSelectPickerSheet> createState() => _WotSelectPickerSheetState();
@@ -424,7 +456,7 @@ class _WotSelectPickerSheetState extends State<_WotSelectPickerSheet> {
     ];
   }
 
-  bool get _isCheckbox => widget.type == 'checkbox';
+  bool get _isCheckbox => widget.type == WotSelectPickerType.checkbox;
 
   List<Object?> get _checkedList => (_value is List) ? (_value! as List<Object?>) : [];
 
@@ -499,7 +531,7 @@ class _WotSelectPickerSheetState extends State<_WotSelectPickerSheet> {
               children: [
                 InkWell(
                   onTap: _cancel,
-                  child: Text('取消', style: TextStyle(fontSize: 14, color: scheme.textSecondary)),
+                  child: Text(tr(context, 'wot.common.cancel'), style: TextStyle(fontSize: 14, color: scheme.textSecondary)),
                 ),
                 Expanded(
                   child: Center(
@@ -518,7 +550,7 @@ class _WotSelectPickerSheetState extends State<_WotSelectPickerSheet> {
                 if (widget.showConfirm)
                   InkWell(
                     onTap: _confirm,
-                    child: Text('确定', style: TextStyle(fontSize: 14, color: primary, fontWeight: FontWeight.w600)),
+                    child: Text(tr(context, 'wot.common.confirm'), style: TextStyle(fontSize: 14, color: primary, fontWeight: FontWeight.w600)),
                   )
                 else
                   const SizedBox(width: 28),
@@ -530,7 +562,7 @@ class _WotSelectPickerSheetState extends State<_WotSelectPickerSheet> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: WotSearch(
                 modelValue: _keyword.isEmpty ? null : _keyword,
-                placeholder: '搜索',
+                placeholder: tr(context, 'wot.common.search'),
                 onChange: (v) => setState(() => _keyword = v),
               ),
             ),
@@ -548,7 +580,7 @@ class _WotSelectPickerSheetState extends State<_WotSelectPickerSheet> {
     List<({String label, Object? value, bool disabled})> options,
   ) {
     final body = options.isEmpty
-        ? WotEmpty(description: widget.emptyText)
+        ? WotEmpty(description: widget.emptyText ?? tr(context, 'wot.table.empty'))
         : ListView.separated(
             padding: EdgeInsets.zero,
             itemCount: options.length,

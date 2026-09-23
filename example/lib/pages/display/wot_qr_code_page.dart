@@ -17,6 +17,9 @@ class WotQrCodePage extends StatelessWidget {
             const WotQrCode(value: 'https://wot-design-uni.cn', size: 160)),
         demoSection('其余尺寸'),
         demoBlock('100px', const WotQrCode(value: 'https://flutter.dev', size: 100)),
+        demoSection('新增（D 类 P1）：dotType / margin / gapless'),
+        demoBlock('dotType=circle 圆点码', WotQrCode(value: 'https://example.com', size: 120, dotType: WotQrCodeDotType.circle)),
+        demoBlock('margin 内边距', WotQrCode(value: 'https://example.com', size: 120, margin: const EdgeInsets.all(12), border: 1)),
       ],
     );
   }

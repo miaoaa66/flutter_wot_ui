@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../locale/wot_messages.dart';
 import '../../theme/wot_theme.dart';
 import '../icon/wot_icon.dart';
 
@@ -17,6 +20,10 @@ enum WotVideoPreviewClosePosition { leftTop, rightTop }
 ///
 /// 画面为黑底（[Colors.black]），其上控件使用白色图标/文字（[Colors.white]），
 /// 其余 UI（如关闭按钮背景、上下渐变遮罩）使用 [BuildContext.wotScheme] 语义令牌。
+///
+/// 控制面板交互：播放中无操作 3 秒自动隐藏，点击画面切换显隐；暂停时中央显示
+/// 播放按钮，点击画面或按钮即可继续播放；快退 / 快进 15 秒按钮固定在画面左右两侧
+/// 垂直居中（不再挤在底栏，小屏也放得下）。
 class WotVideoPreview extends StatefulWidget {
   const WotVideoPreview({
     super.key,
@@ -50,7 +57,7 @@ class WotVideoPreview extends StatefulWidget {
     return showGeneralDialog<void>(
       context: context,
       barrierDismissible: false,
-      barrierLabel: '视频预览',
+      barrierLabel: tr(context, 'wot.video.title'),
       barrierColor: Colors.transparent,
       pageBuilder: (ctx, _, _) => WotVideoPreview(
         src: src,
@@ -119,11 +126,28 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
   /// 记住取消静音前的音量，便于一键恢复。
   double _savedVolume = 1.0;
 
+  /// 控制面板是否可见（播放中无操作后自动隐藏，暂停时常显）。
+  bool _controlsVisible = true;
+
+  /// 自动隐藏控制面板的计时器。
+  Timer? _hideTimer;
+
+  /// 上一帧的播放状态，用于只在「播放 / 暂停切换」时刷新控制面板显隐。
+  bool? _lastPlaying;
+
+  /// 播放中控制面板无操作后自动隐藏的时长。
+  static const Duration _kControlsAutoHide = Duration(seconds: 3);
+
   @override
   void initState() {
     super.initState();
-    widget.onOpen?.call();
     _controller = VideoPlayerController.networkUrl(Uri.parse(widget.src));
+    // initState 处于父级的 build 阶段，同步回调 onOpen 会让调用方的 setState
+    // 撞上「setState() called during build」。延后到本帧构建结束后再发出。
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.onOpen?.call();
+    });
     _controller.addListener(_onControllerChanged);
     _init();
   }
@@ -137,6 +161,8 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
         await _controller.setLooping(widget.loop);
         if (widget.autoplay || _controller.value.isPlaying) {
           await _controller.play();
+          _lastPlaying = true;
+          _restartHideTimer();
         }
         setState(() => _failed = false);
       } else if (_controller.value.hasError) {
@@ -147,16 +173,29 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
     }
   }
 
-  /// 控制器状态变化时的兜底刷新（主要处理错误态）。
+  /// 控制器状态变化：处理错误态，并在「播放 / 暂停切换」时刷新控制面板显隐。
   void _onControllerChanged() {
     if (!mounted) return;
-    if (_controller.value.hasError) {
-      setState(() => _failed = true);
+    final v = _controller.value;
+    if (v.hasError) {
+      if (!_failed) setState(() => _failed = true);
+      return;
+    }
+    final playing = v.isInitialized && v.isPlaying;
+    if (playing != _lastPlaying) {
+      _lastPlaying = playing;
+      if (playing) {
+        _restartHideTimer();
+      } else {
+        _hideTimer?.cancel();
+        if (!_controlsVisible) setState(() => _controlsVisible = true);
+      }
     }
   }
 
   @override
   void dispose() {
+    _hideTimer?.cancel();
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     // 仅触发一次关闭回调，避免与按钮路径重复 pop / 在树 finalization 阶段做祖先查找。
@@ -270,192 +309,340 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
     widget.onClose?.call();
   }
 
+  // ---------------------------------------------------------------- 控制面板显隐
+
+  /// 播放中重启自动隐藏计时；未播放时不启动。
+  void _restartHideTimer() {
+    _hideTimer?.cancel();
+    final v = _controller.value;
+    if (!v.isInitialized || !v.isPlaying) return;
+    _hideTimer = Timer(_kControlsAutoHide, () {
+      if (mounted && _controller.value.isPlaying) {
+        setState(() => _controlsVisible = false);
+      }
+    });
+  }
+
+  /// 显示控制面板并重置自动隐藏计时。
+  void _showControls() {
+    if (!_controlsVisible) setState(() => _controlsVisible = true);
+    _restartHideTimer();
+  }
+
+  /// 隐藏控制面板。
+  void _hideControls() {
+    _hideTimer?.cancel();
+    if (_controlsVisible) setState(() => _controlsVisible = false);
+  }
+
+  /// 点击画面：暂停时继续播放；播放时切换控制面板显隐。
+  void _toggleControls() {
+    final v = _controller.value;
+    if (v.isInitialized && !v.isPlaying) {
+      togglePlay();
+      _showControls();
+      return;
+    }
+    if (_controlsVisible) {
+      _hideControls();
+    } else {
+      _showControls();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final scheme = context.wotScheme;
     return Material(
       color: Colors.black,
       child: SafeArea(
         child: ValueListenableBuilder<VideoPlayerValue>(
           valueListenable: _controller,
           builder: (context, value, _) {
+            final ready = value.isInitialized && !_failed;
+            final controlsVisible = ready ? _controlsVisible : true;
             return Stack(
               fit: StackFit.expand,
               children: [
-                _buildVideoArea(context, value),
-                // 顶部渐变遮罩 + 关闭按钮 + 标题
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Colors.black.withValues(alpha: 0.45), Colors.transparent],
-                      ),
-                    ),
-                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 20),
-                    child: Stack(
-                      children: [
-                        if (widget.title != null && widget.title!.isNotEmpty)
-                          Center(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                              constraints: const BoxConstraints(maxWidth: 200),
-                              child: Text(
-                                widget.title!,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(color: Colors.white, fontSize: 15),
-                              ),
-                            ),
-                          ),
-                        Align(
-                          alignment: widget.closePosition == WotVideoPreviewClosePosition.leftTop
-                              ? Alignment.centerLeft
-                              : Alignment.centerRight,
-                          child: _CloseButton(
-                            label: widget.onClose == null ? '全屏' : '关闭',
-                            background: scheme.opacLightCover,
-                            onPressed:
-                                widget.onClose == null ? _openFullscreen : _handleClose,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                // 画面区域：点击切换控制面板（暂停时点击 = 继续播放）。
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _toggleControls,
+                  child: _buildVideoArea(context, value),
                 ),
-                // 底部控制条
-                if (value.isInitialized && !_failed)
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.bottomCenter,
-                          end: Alignment.topCenter,
-                          colors: [Colors.black.withValues(alpha: 0.45), Colors.transparent],
-                        ),
-                      ),
-                      padding: const EdgeInsets.fromLTRB(12, 20, 12, 8),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            children: [
-                              IconButton(
-                                visualDensity: VisualDensity.compact,
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-                                iconSize: 34,
-                                icon: Icon(
-                                  value.isPlaying ? Icons.pause : Icons.play_arrow,
-                                  color: Colors.white,
-                                ),
-                                onPressed: togglePlay,
-                              ),
-                              Expanded(
-                                child: SliderTheme(
-                                  data: SliderThemeData(
-                                    trackHeight: 3,
-                                    activeTrackColor: scheme.primaryOf(6),
-                                    inactiveTrackColor: Colors.white24,
-                                    thumbColor: Colors.white,
-                                    thumbShape: const RoundSliderThumbShape(
-                                      enabledThumbRadius: 6,
-                                    ),
-                                    overlayShape:
-                                        const RoundSliderOverlayShape(overlayRadius: 14),
-                                    overlayColor: Colors.white24,
-                                  ),
-                                  child: Slider(
-                                    min: 0,
-                                    max: value.duration.inMilliseconds.toDouble().clamp(
-                                          0,
-                                          double.infinity,
-                                        ),
-                                    value: value.position.inMilliseconds
-                                        .toDouble()
-                                        .clamp(0, value.duration.inMilliseconds.toDouble()),
-                                    onChanged: value.duration.inMilliseconds > 0
-                                        ? (ms) => _controller
-                                            .seekTo(Duration(milliseconds: ms.round()))
-                                        : null,
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.only(left: 4),
-                                child: Text(
-                                  '${_format(value.position)} / ${_format(value.duration)}',
-                                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              _PlayerControl(
-                                label: '-15s',
-                                onTap: () => seekRelative(-15),
-                              ),
-                              _PlayerControl(
-                                label: _speedLabel(value.playbackSpeed),
-                                onTap: nextSpeed,
-                              ),
-                              _PlayerControl(
-                                icon: Icons.repeat,
-                                active: value.isLooping,
-                                onTap: toggleLoop,
-                              ),
-                              _PlayerControl(
-                                icon: value.volume > 0
-                                    ? Icons.volume_up
-                                    : Icons.volume_off,
-                                onTap: toggleMute,
-                              ),
-                              Expanded(
-                                child: SliderTheme(
-                                  data: SliderThemeData(
-                                    trackHeight: 2,
-                                    activeTrackColor: scheme.primaryOf(6),
-                                    inactiveTrackColor: Colors.white24,
-                                    thumbColor: Colors.white,
-                                    thumbShape: const RoundSliderThumbShape(
-                                      enabledThumbRadius: 5,
-                                    ),
-                                    overlayShape:
-                                        const RoundSliderOverlayShape(overlayRadius: 12),
-                                    overlayColor: Colors.white24,
-                                  ),
-                                  child: Slider(
-                                    min: 0,
-                                    max: 1,
-                                    value: value.volume.clamp(0, 1),
-                                    onChanged: value.isInitialized
-                                        ? (v) => _controller.setVolume(v)
-                                        : null,
-                                  ),
-                                ),
-                              ),
-                              _PlayerControl(
-                                label: '+15s',
-                                onTap: () => seekRelative(15),
-                              ),
-                            ],
-                          ),
-                        ],
+                // 缓冲指示
+                if (ready && value.isBuffering)
+                  const Center(
+                    child: SizedBox(
+                      width: 34,
+                      height: 34,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 3,
+                        color: Colors.white,
                       ),
                     ),
                   ),
+                // 暂停时的中央播放按钮
+                if (ready && !value.isPlaying)
+                  Center(
+                    child: _CenterPlayButton(
+                      onTap: () {
+                        togglePlay();
+                        _showControls();
+                      },
+                    ),
+                  ),
+                // 快退 / 快进 15 秒：画面左右两侧垂直居中
+                if (ready) _buildSideSeek(controlsVisible),
+                _buildTopBar(context, controlsVisible),
+                if (ready) _buildBottomBar(context, value, controlsVisible),
               ],
             );
           },
+        ),
+      ),
+    );
+  }
+
+  /// 顶部栏：渐变遮罩 + 标题 + 操作按钮（内嵌模式为「全屏」，全屏预览为「关闭」）。
+  Widget _buildTopBar(BuildContext context, bool visible) {
+    final closeLeft =
+        widget.closePosition == WotVideoPreviewClosePosition.leftTop;
+    final action = _TopIconButton(
+      icon: widget.onClose == null ? Icons.fullscreen : Icons.close,
+      tooltip: widget.onClose == null
+          ? tr(context, 'wot.video.fullscreen')
+          : tr(context, 'wot.video.close'),
+      onPressed: widget.onClose == null ? _openFullscreen : _handleClose,
+    );
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: AnimatedOpacity(
+          opacity: visible ? 1 : 0,
+          duration: const Duration(milliseconds: 200),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.45),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+            child: Row(
+              children: [
+                if (closeLeft) action,
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Text(
+                      widget.title ?? '',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: closeLeft ? TextAlign.left : TextAlign.right,
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                    ),
+                  ),
+                ),
+                if (!closeLeft) action,
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 底部控制面板：第一行「播放 + 进度 + 时间」，第二行左「跳转」右「设置」。
+  Widget _buildBottomBar(
+      BuildContext context, VideoPlayerValue value, bool visible) {
+    final scheme = context.wotScheme;
+    final total = value.duration.inMilliseconds;
+    final pos = value.position.inMilliseconds.clamp(0, total).toDouble();
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 0,
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: AnimatedOpacity(
+          opacity: visible ? 1 : 0,
+          duration: const Duration(milliseconds: 200),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.5),
+                  Colors.transparent,
+                ],
+              ),
+            ),
+            padding: const EdgeInsets.fromLTRB(8, 24, 8, 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 第一行：播放/暂停 + 进度 + 时间
+                Row(
+                  children: [
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints:
+                          const BoxConstraints(minWidth: 40, minHeight: 40),
+                      iconSize: 32,
+                      icon: Icon(
+                        value.isPlaying ? Icons.pause : Icons.play_arrow,
+                        color: Colors.white,
+                      ),
+                      onPressed: () {
+                        togglePlay();
+                        _showControls();
+                      },
+                    ),
+                    Expanded(
+                      child: SliderTheme(
+                        data: SliderThemeData(
+                          trackHeight: 3,
+                          activeTrackColor: scheme.primaryOf(6),
+                          inactiveTrackColor: Colors.white24,
+                          thumbColor: Colors.white,
+                          thumbShape:
+                              const RoundSliderThumbShape(enabledThumbRadius: 6),
+                          overlayShape:
+                              const RoundSliderOverlayShape(overlayRadius: 14),
+                          overlayColor: Colors.white24,
+                        ),
+                        child: Slider(
+                          min: 0,
+                          max: total.toDouble().clamp(0, double.infinity),
+                          value: pos,
+                          onChanged: total > 0
+                              ? (ms) {
+                                  _controller
+                                      .seekTo(Duration(milliseconds: ms.round()));
+                                  _showControls();
+                                }
+                              : null,
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 4, right: 4),
+                      child: Text(
+                        '${_format(value.position)} / ${_format(value.duration)}',
+                        style:
+                            const TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                // 第二行：右对齐「倍速/循环/音量/全屏」（快退/快进已移至画面两侧居中）
+                Row(
+                  children: [
+                    const Spacer(),
+                    _PlayerControl(
+                      label: _speedLabel(value.playbackSpeed),
+                      onTap: () {
+                        nextSpeed();
+                        _showControls();
+                      },
+                    ),
+                    _PlayerControl(
+                      icon: Icons.repeat,
+                      active: value.isLooping,
+                      onTap: () {
+                        toggleLoop();
+                        _showControls();
+                      },
+                    ),
+                    _PlayerControl(
+                      icon: value.volume > 0 ? Icons.volume_up : Icons.volume_off,
+                      onTap: () {
+                        toggleMute();
+                        _showControls();
+                      },
+                    ),
+                    SizedBox(
+                      width: 96,
+                      child: SliderTheme(
+                        data: SliderThemeData(
+                          trackHeight: 2,
+                          activeTrackColor: scheme.primaryOf(6),
+                          inactiveTrackColor: Colors.white24,
+                          thumbColor: Colors.white,
+                          thumbShape:
+                              const RoundSliderThumbShape(enabledThumbRadius: 5),
+                          overlayShape:
+                              const RoundSliderOverlayShape(overlayRadius: 12),
+                          overlayColor: Colors.white24,
+                        ),
+                        child: Slider(
+                          min: 0,
+                          max: 1,
+                          value: value.volume.clamp(0, 1),
+                          onChanged: value.isInitialized
+                              ? (v) {
+                                  _controller.setVolume(v);
+                                  _showControls();
+                                }
+                              : null,
+                        ),
+                      ),
+                    ),
+                    if (widget.onClose == null)
+                      _PlayerControl(
+                        icon: Icons.fullscreen,
+                        onTap: _openFullscreen,
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 画面左右两侧垂直居中的「快退 / 快进 15 秒」按钮；随控制面板一同显隐。
+  Widget _buildSideSeek(bool visible) {
+    return Positioned.fill(
+      child: IgnorePointer(
+        ignoring: !visible,
+        child: AnimatedOpacity(
+          opacity: visible ? 1 : 0,
+          duration: const Duration(milliseconds: 200),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _SideSeekButton(
+                  forward: false,
+                  onTap: () {
+                    seekRelative(-15);
+                    _showControls();
+                  },
+                ),
+                _SideSeekButton(
+                  forward: true,
+                  onTap: () {
+                    seekRelative(15);
+                    _showControls();
+                  },
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -501,11 +688,11 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          WotIcon(name: 'error', size: 48, color: Colors.white54),
+          const WotIcon(name: 'error', size: 48, color: Colors.white54),
           const SizedBox(height: 12),
-          const Text(
-            '视频加载失败',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
+          Text(
+            tr(context, 'wot.video.loadFailed'),
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -515,7 +702,7 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
               minimumSize: const Size(120, 40),
             ),
             onPressed: _retry,
-            child: const Text('重试'),
+            child: Text(tr(context, 'wot.common.retry')),
           ),
         ],
       ),
@@ -523,33 +710,116 @@ class WotVideoPreviewState extends State<WotVideoPreview> {
   }
 }
 
-/// 顶部方形按钮（底色取自主题语义色，文字/图标用白色）。
-class _CloseButton extends StatelessWidget {
-  const _CloseButton({required this.label, required this.background, required this.onPressed});
+/// 顶部圆形操作按钮（底色取自主题语义色，图标为白色）。
+class _TopIconButton extends StatelessWidget {
+  const _TopIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
 
-  /// 按钮文案（内嵌为「全屏」，全屏预览为「关闭」）。
-  final String label;
+  /// 图标（内嵌为全屏、预览为关闭）。
+  final IconData icon;
 
-  /// 背景颜色（来自 [BuildContext.wotScheme] 语义令牌）。
-  final Color background;
+  /// 提示文案。
+  final String tooltip;
 
   /// 点击回调。
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
+    final background = context.wotScheme.opacLightCover;
     // 用 GestureDetector 而不是 InkWell，避免依赖上方有 Material（全屏预览可能是独立 overlay）。
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(6),
+    return Tooltip(
+      message: tooltip,
+      child: GestureDetector(
+        onTap: onPressed,
+        child: Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(color: background, shape: BoxShape.circle),
+          child: Icon(icon, color: Colors.white, size: 20),
         ),
-        child: Text(
-          label,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
+      ),
+    );
+  }
+}
+
+/// 暂停时画面中央的播放按钮。
+class _CenterPlayButton extends StatelessWidget {
+  const _CenterPlayButton({required this.onTap});
+
+  /// 点击回调（继续播放）。
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 60,
+        height: 60,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.45),
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.play_arrow, color: Colors.white, size: 34),
+      ),
+    );
+  }
+}
+
+/// 左右两侧的快退 / 快进按钮（圆形半透明底，中央显示 15 秒）。
+class _SideSeekButton extends StatelessWidget {
+  const _SideSeekButton({required this.forward, required this.onTap});
+
+  /// true 为快进（+15s），false 为快退（-15s）。
+  final bool forward;
+
+  /// 点击回调。
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    // 同一个环形箭头图标，快进时水平镜像；文字「15」不参与镜像。
+    final arrow = Icon(
+      Icons.replay,
+      color: Colors.white,
+      size: 34,
+      semanticLabel: forward
+          ? tr(context, 'wot.video.forward15')
+          : tr(context, 'wot.video.rewind15'),
+    );
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: Colors.black.withValues(alpha: 0.35),
+          shape: BoxShape.circle,
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            if (forward)
+              Transform.scale(scaleX: -1, child: arrow)
+            else
+              arrow,
+            const Padding(
+              padding: EdgeInsets.only(top: 1),
+              child: Text(
+                '15',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

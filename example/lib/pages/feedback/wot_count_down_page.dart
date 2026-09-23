@@ -20,6 +20,15 @@ class WotCountDownPage extends StatelessWidget {
         demoSection('样式（textStyle）'),
         demoBlock('自定义字号颜色',
             WotCountDown(value: 90 * 1000, textStyle: const TextStyle(fontSize: 20, color: Color(0xFFF14646), fontWeight: FontWeight.bold))),
+        demoSection('新增（D 类 P1）：millisecond 毫秒级刷新'),
+        demoBlock(
+            'millisecond=true + SS 百分秒实时显示',
+            WotCountDown(
+              value: 60000,
+              format: 'mm:ss:SS',
+              millisecond: true,
+            )),
+        demoBlock('默认（每秒一跳，SS 恒 00 属预期）', WotCountDown(value: 60000, format: 'mm:ss:SS')),
       ],
     );
   }

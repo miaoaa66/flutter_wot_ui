@@ -146,30 +146,35 @@ class _WotExpandState extends State<WotExpand> {
               ),
             ),
           ),
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
+        // 无障碍：展开/收起是可点区域，补 button 角色 + 点按动作（文案本身读屏可读）。
+        Semantics(
+          button: true,
           onTap: _toggle,
-          child: Container(
-            width: double.infinity,
-            color: scheme.filledOppo.withValues(alpha: 0.9),
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                WotText(
-                  expanded ? widget.collapseText : widget.expandText,
-                  type: WotTextType.primary,
-                  size: 14,
-                ),
-                if (widget.showArrow) ...[
-                  const SizedBox(width: 4),
-                  WotIcon(
-                    name: expanded ? 'arrow-up' : 'arrow-down',
-                    size: 16,
-                    color: scheme.primaryOf(6),
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _toggle,
+            child: Container(
+              width: double.infinity,
+              color: scheme.filledOppo.withValues(alpha: 0.9),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  WotText(
+                    expanded ? widget.collapseText : widget.expandText,
+                    type: WotTextType.primary,
+                    size: 14,
                   ),
+                  if (widget.showArrow) ...[
+                    const SizedBox(width: 4),
+                    WotIcon(
+                      name: expanded ? 'arrow-up' : 'arrow-down',
+                      size: 16,
+                      color: scheme.primaryOf(6),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),

@@ -139,14 +139,21 @@ class WotTabbarItem extends StatelessWidget {
       );
     }
 
+    void handleTap() {
+      onClick?.call();
+      onChange?.call(this);
+    }
+
     return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          onClick?.call();
-          onChange?.call(this);
-        },
-        child: content,
+      // 无障碍：标签项补 button 角色 + 点按动作（图标与文字本身读屏可读）。
+      child: Semantics(
+        button: true,
+        onTap: handleTap,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: handleTap,
+          child: content,
+        ),
       ),
     );
   }
@@ -162,8 +169,8 @@ class WotTabbar extends StatefulWidget {
     this.onChange,
     this.activeColor,
     this.inactiveColor,
-    this.fixed = false,
-    this.bordered = true,
+    @Deprecated('fixed 从未生效，将在后续版本移除。') this.fixed = false,
+    this.bordered = false,
     this.iconSize = 22,
     required this.children,
   });
@@ -173,8 +180,14 @@ class WotTabbar extends StatefulWidget {
   final Color? activeColor;
   final Color? inactiveColor;
 
-  /// 是否固定于屏幕底部（内部使用 bottomNavigationBar 演示不适用；置于底部时由外层布局决定）。
+  /// **已废弃**：该参数从未被 `build` 消费。
+  ///
+  /// wot 的 `fixed` 是 CSS `position: fixed; bottom: 0` 语义；Flutter 的布局由父级决定，
+  /// 组件无法把自己浮出父容器。要固定在底部，请直接把它放进 `Scaffold.bottomNavigationBar`
+  /// （组件已自动追加 `MediaQuery.padding.bottom` 安全区内边距）。
+  @Deprecated('fixed 从未生效。如需吸底，请把 WotTabbar 放进 Scaffold.bottomNavigationBar。')
   final bool fixed;
+  /// 是否显示顶部边框，默认 false（对齐 wot）。
   final bool bordered;
 
   /// 图标尺寸。
@@ -251,6 +264,7 @@ class _WotTabbarState extends State<WotTabbar> {
                   isDot: item.isDot,
                   modelValue: _current,
                   onChange: _onItem,
+                  onClick: item.onClick,
                   child: item.child,
                 ),
             ],

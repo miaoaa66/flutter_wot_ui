@@ -13,10 +13,15 @@ class WotGrid extends StatelessWidget {
     this.columnNum = 4,
     this.border = false,
     this.gap = 0,
-    this.square = true,
+    this.square = false,
     this.reverse = false,
     this.children = const [],
-  });
+    this.itemCount,
+    this.itemBuilder,
+  }) : assert(
+          itemCount == null || itemBuilder != null,
+          'itemCount 必须与 itemBuilder 同时提供',
+        );
 
   /// 列数。
   final int columnNum;
@@ -33,8 +38,23 @@ class WotGrid extends StatelessWidget {
   /// 是否反向显示内容（图标在文字下方时是否交换）。
   final bool reverse;
 
-  /// 宫格子项列表。
+  /// 宫格子项列表；与 [itemBuilder] 二选一，同时提供时以 [itemBuilder] 为准。
   final List<Widget> children;
+
+  /// 数据驱动模式的项数；须与 [itemBuilder] 同时提供，提供后忽略 [children]。
+  final int? itemCount;
+
+  /// 数据驱动模式的项构建器：`(context, index) => Widget`，一般返回 [WotGridItem]。
+  final Widget Function(BuildContext, int)? itemBuilder;
+
+  /// 解析最终的项列表（itemBuilder 优先）。
+  List<Widget> _resolveItems(BuildContext context) {
+    final builder = itemBuilder;
+    if (builder != null && itemCount != null) {
+      return List.generate(itemCount!, (i) => builder(context, i));
+    }
+    return children;
+  }
 
   /// 计算在给定总宽度下每个格子的宽度。
   double _cellWidth(double totalWidth, int count) {
@@ -45,15 +65,17 @@ class WotGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final items = _resolveItems(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth;
-        final cellWidth = _cellWidth(totalWidth, children.length);
+        final cellWidth = _cellWidth(totalWidth, items.length);
 
-        // 分组：按列数分成行。
+        // 分组：按列数分成行。[reverse] 为 true 时先整体倒序，再按列切分。
+        final ordered = reverse ? items.reversed.toList() : items;
         final rows = <List<Widget>>[];
-        for (var i = 0; i < children.length; i += columnNum) {
-          rows.add(children.sublist(i, (i + columnNum).clamp(0, children.length)));
+        for (var i = 0; i < ordered.length; i += columnNum) {
+          rows.add(ordered.sublist(i, (i + columnNum).clamp(0, ordered.length)));
         }
 
         return SingleChildScrollView(
@@ -203,7 +225,13 @@ class WotGridItem extends StatelessWidget {
     }
 
     if (onClick != null) {
-      cell = GestureDetector(behavior: HitTestBehavior.opaque, onTap: onClick, child: cell);
+      // 无障碍：宫格项可点时补 button 角色 + 点按动作。
+      cell = Semantics(
+        button: true,
+        onTap: onClick,
+        child: GestureDetector(
+            behavior: HitTestBehavior.opaque, onTap: onClick, child: cell),
+      );
     }
 
     return Container(

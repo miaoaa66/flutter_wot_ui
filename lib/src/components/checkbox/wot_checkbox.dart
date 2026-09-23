@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
+import '../form/wot_form.dart';
 
 /// 复选框选项数据，对齐 wot `WotCheckboxOption`。
 class WotCheckboxOption {
@@ -25,6 +27,9 @@ class WotCheckboxOption {
 }
 
 /// 复选框组配置（经 InheritedWidget 下发）。
+/// 复选框形状（T3.3 枚举化，checkbox / radio 共用）。
+enum WotCheckShape { circle, square }
+
 class _CheckGroupData {
   const _CheckGroupData({
     this.values,
@@ -39,7 +44,7 @@ class _CheckGroupData {
   final int? max;
   final int? min;
   final bool groupDisabled;
-  final String? shape;
+  final WotCheckShape? shape;
 }
 
 /// 复选框组配置作用域。
@@ -48,7 +53,9 @@ class _WotCheckboxScope extends InheritedWidget {
   final _CheckGroupData? control;
 
   static _CheckGroupData? of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<_WotCheckboxScope>()?.control;
+    return context
+        .dependOnInheritedWidgetOfExactType<_WotCheckboxScope>()
+        ?.control;
   }
 
   @override
@@ -63,7 +70,7 @@ class WotCheckboxGroup extends StatelessWidget {
     this.onChange,
     this.max,
     this.min,
-    this.shape = 'square',
+    this.shape = WotCheckShape.square,
     this.disabled = false,
     this.name,
     this.children,
@@ -84,7 +91,7 @@ class WotCheckboxGroup extends StatelessWidget {
 
   /// 复选框形状：`circle`（圆形）或 `square`（方形），默认 `square`，
   /// 仅对 [options] 自动生成的选项生效。
-  final String shape;
+  final WotCheckShape shape;
 
   /// 是否禁用整组复选框，默认 false。
   final bool disabled;
@@ -116,11 +123,16 @@ class WotCheckboxGroup extends StatelessWidget {
             if (max != null && list.length >= max!) return;
             list.add(v);
           }
+          // 按组 name 把整组选中值（List）登记到表单（原先漏登记，name 是死参数）。
+          wotFormPushValue(context, name, list);
           onChange?.call(list);
         },
       ),
       child: options.isEmpty
-          ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: children ?? [])
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: children ?? [],
+            )
           : Wrap(
               spacing: 10,
               runSpacing: 10,
@@ -153,8 +165,9 @@ class WotCheckbox extends StatefulWidget {
     this.disabled = false,
     this.checkColor,
     this.size = 18,
-    this.shape = 'square',
+    this.shape = WotCheckShape.square,
     this.readonly = false,
+    this.error = false,
     this.name,
   });
 
@@ -181,10 +194,13 @@ class WotCheckbox extends StatefulWidget {
 
   /// 复选框形状：`circle`（圆形）或 `square`（方形），默认 `square`；
   /// 作为 [WotCheckboxGroup] 成员时默认取组配置。
-  final String shape;
+  final WotCheckShape shape;
 
   /// 是否只读（展示但不可点击切换），默认 false。
   final bool readonly;
+
+  /// 是否处于校验失败态（error 态）。未显式传入时取父级 [WotFieldScope] 下发的值。
+  final bool error;
 
   /// 组件名称（表单标识，可选）。
   final String? name;
@@ -212,10 +228,13 @@ class _WotCheckboxState extends State<WotCheckbox> {
     if (widget.disabled || widget.readonly) return;
     final group = _WotCheckboxScope.of(context);
     if (group != null) {
+      // 组模式：由 [WotCheckboxGroup] 负责登记整组选中值（组名）。
       group.onChange?.call(widget.value);
       return;
     }
     setState(() => _checked = !_checked);
+    // 独立模式：按自身 name 登记到表单（原先漏登记，name 是死参数）。
+    wotFormPushValue(context, widget.name, _checked);
     widget.onChange?.call(_checked);
   }
 
@@ -227,16 +246,40 @@ class _WotCheckboxState extends State<WotCheckbox> {
         ? (group.values ?? []).any((e) => e == widget.value)
         : _checked;
     final shape = group?.shape ?? widget.shape;
-    final disabled = widget.disabled || (group?.groupDisabled ?? false);
+    // 三态：显式 disabled / 组合禁用优先，其次取父级 WotFieldScope 下发。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled =
+        widget.disabled ||
+        (group?.groupDisabled ?? false) ||
+        (fieldScope?.state == WotFieldState.disabled);
+    final hasError = widget.error || (fieldScope?.error ?? false);
+    final style = wotFieldStyle(
+      scheme,
+      disabled ? WotFieldState.disabled : WotFieldState.editable,
+      error: hasError,
+      baseBorder: scheme.borderStrong,
+    );
     // 在组中受 min/max 限制：已达上限且未选中、或已达下限且已选中时不可操作。
-    final locked = group != null &&
-        ((group.max != null && !checked && (group.values ?? []).length >= group.max!) ||
-            (group.min != null && checked && (group.values ?? []).length <= group.min!));
-    final boxColor = widget.checkColor ?? scheme.primaryOf(6);
+    final locked =
+        group != null &&
+        ((group.max != null &&
+                !checked &&
+                (group.values ?? []).length >= group.max!) ||
+            (group.min != null &&
+                checked &&
+                (group.values ?? []).length <= group.min!));
+    // 勾选块：禁用转灰；其余用自定义色 / 主色（错误只体现在未选中描边与标签）。
+    final boxColor = disabled
+        ? scheme.filledExtraStrong
+        : (widget.checkColor ?? scheme.primaryOf(6));
+
+    final semanticOnTap = disabled || widget.readonly || locked
+        ? null
+        : _toggle;
 
     final icon = GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: disabled || widget.readonly || locked ? null : _toggle,
+      onTap: semanticOnTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: widget.size,
@@ -244,11 +287,9 @@ class _WotCheckboxState extends State<WotCheckbox> {
         decoration: BoxDecoration(
           color: checked ? boxColor : Colors.transparent,
           borderRadius: BorderRadius.circular(
-            shape == 'circle' ? widget.size / 2 : widget.size * 0.2,
+            shape == WotCheckShape.circle ? widget.size / 2 : widget.size * 0.2,
           ),
-          border: Border.all(
-            color: checked ? boxColor : (disabled ? scheme.textDisabled : scheme.borderStrong),
-          ),
+          border: Border.all(color: checked ? boxColor : style.border),
         ),
         child: checked
             ? Icon(Icons.check, size: widget.size * 0.7, color: Colors.white)
@@ -256,24 +297,35 @@ class _WotCheckboxState extends State<WotCheckbox> {
       ),
     );
 
-    if (widget.label == null) return icon;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: disabled || widget.readonly || locked ? null : _toggle,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          icon,
-          const SizedBox(width: 6),
-          Text(
-            widget.label!,
-            style: TextStyle(
-              fontSize: 14,
-              color: disabled ? scheme.textDisabled : scheme.textMain,
+    Widget result;
+    if (widget.label == null) {
+      result = icon;
+    } else {
+      result = GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: semanticOnTap,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            icon,
+            const SizedBox(width: 6),
+            Text(
+              widget.label!,
+              style: TextStyle(fontSize: 14, color: style.label),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      );
+    }
+
+    // 无障碍：裸 GestureDetector 不产生语义节点，屏幕阅读器读不出「选中 / 未选中」。
+    // checked 采用 Flutter 官方 checkbox 同款标志（switch 语义同样用 checked 表达）。
+    return Semantics(
+      checked: checked,
+      enabled: !disabled,
+      onTap: semanticOnTap,
+      label: widget.label,
+      child: result,
     );
   }
 }

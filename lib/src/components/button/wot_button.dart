@@ -56,7 +56,6 @@ class WotButton extends StatelessWidget {
     this.color,
     this.textColor,
     this.loadingColor,
-    this.classPrefix = 'wd-icon',
     this.onClick,
     this.onTap,
     this.border,
@@ -105,9 +104,6 @@ class WotButton extends StatelessWidget {
 
   /// 加载图标颜色。
   final Color? loadingColor;
-
-  /// 图标样式类前缀，默认 `wd-icon`。
-  final String classPrefix;
 
   /// 点击按钮时触发的回调。
   final VoidCallback? onClick;
@@ -279,15 +275,13 @@ class _DashedBorderPainter extends CustomPainter {
     required this.borderRadius,
     required this.color,
     required this.strokeWidth,
-    this.dashLength = 4,
-    this.gapLength = 3,
   });
 
   final BorderRadius borderRadius;
   final Color color;
   final double strokeWidth;
-  final double dashLength;
-  final double gapLength;
+  final double dashLength = 4;
+  final double gapLength = 3;
 
   @override
   void paint(Canvas canvas, Size size) {

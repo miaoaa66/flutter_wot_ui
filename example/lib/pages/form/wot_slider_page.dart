@@ -19,6 +19,8 @@ class _WotSliderPageState extends State<WotSliderPage> {
   num _low = 20;
   num _high = 80;
   bool _disabled = false;
+  bool _readonly = false;
+  bool _error = false;
 
   @override
   Widget build(BuildContext context) {
@@ -58,12 +60,19 @@ class _WotSliderPageState extends State<WotSliderPage> {
                 _high = v.last;
               }),
             )),
-        demoSection('状态（disabled）'),
-        Row(children: [
-          Flexible(child: FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled'))),
+        demoSection('状态（disabled / readonly / error）'),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled')),
+          FilledButton.tonal(onPressed: () => setState(() => _readonly = !_readonly), child: Text('readonly: $_readonly')),
+          FilledButton.tonal(onPressed: () => setState(() => _error = !_error), child: Text('error: $_error')),
         ]),
         const SizedBox(height: 8),
-        demoBlock('disabled 禁用', WotSlider(modelValue: _v1, disabled: _disabled, onChange: (v) => setState(() => _v1 = v))),
+        demoBlock('disabled 禁用（轨道灰化，不可拖动）',
+            WotSlider(modelValue: _v1, disabled: _disabled, onChange: (v) => setState(() => _v1 = v))),
+        demoBlock('readonly 只读（锁拖动、保持正常配色 —— 区别于 disabled 的灰化）',
+            WotSlider(modelValue: _v1, readonly: _readonly, onChange: (v) => setState(() => _v1 = v))),
+        demoBlock('error 校验失败（激活段转危险色）',
+            WotSlider(modelValue: _v1, error: _error, onChange: (v) => setState(() => _v1 = v))),
         demoSection('颜色（activeColor / inactiveColor）'),
         demoBlock('自定义颜色滑块',
             WotSlider(modelValue: _v2, activeColor: const Color(0xFF12B886), inactiveColor: const Color(0xFFD0D0D0), onChange: (v) => setState(() => _v2 = v))),

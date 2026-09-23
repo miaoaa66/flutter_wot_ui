@@ -49,15 +49,10 @@ class _WotFabPageState extends State<WotFabPage> {
               ),
             )),
         demoSection('类型（type）'),
-        demoBlock('success 类型',
-            SizedBox(
-              height: 120,
-              child: Align(
-                alignment: Alignment.bottomRight,
-                child: WotFab(icon: 'heart', type: WotFabType.success,
-                    onClick: () => demoToast(context, 'success FAB')),
-              ),
-            )),
+        demoBlock('success 类型', WotFab(icon: 'heart', type: WotFabType.success, onClick: () => demoToast(context, 'success FAB'))),
+        demoSection('新增（D 类 P1）：disabled 禁用'),
+        demoBlock('disabled：主按钮与动作列表均不可点，整体半透明',
+            WotFab(disabled: true, icon: 'add')),
       ],
     );
   }

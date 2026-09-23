@@ -2,6 +2,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../locale/wot_messages.dart';
+import '../../theme/wot_state.dart';
 import '../../theme/wot_theme.dart';
 
 /// 键盘模式。
@@ -23,9 +25,9 @@ class WotKeyboard extends StatefulWidget {
     this.onDelete,
     this.onPressEnsure,
     this.onClose,
-    this.title = '安全键盘',
+    this.title,
     this.showTitle = false,
-    this.ensureText = '完成',
+    this.ensureText,
     this.mode = WotKeyboardMode.number,
     this.randomOrder = false,
     this.loading = false,
@@ -33,6 +35,7 @@ class WotKeyboard extends StatefulWidget {
     this.showDeleteKey = true,
     this.color,
     this.disabled = false,
+    this.readonly = false,
   });
 
   /// 点击数字（含小数点）键时回调，参数为按键文本。
@@ -48,13 +51,13 @@ class WotKeyboard extends StatefulWidget {
   final VoidCallback? onClose;
 
   /// 标题文本；默认“安全键盘”，需 [showTitle] 为 true 时展示。
-  final String title;
+  final String? title;
 
   /// 是否显示标题栏。
   final bool showTitle;
 
   /// 确定键文案；默认“完成”。
-  final String ensureText;
+  final String? ensureText;
 
   /// 键盘模式；`number` 常规数字键盘，`idcard` 身份证键盘（小数点换为 X）。
   final WotKeyboardMode mode;
@@ -74,8 +77,11 @@ class WotKeyboard extends StatefulWidget {
   /// 确定键高亮色；不传时用主题主色。
   final Color? color;
 
-  /// 是否禁用整个键盘（点击不触发任何回调）。
+  /// 是否禁用整个键盘（点击不触发任何回调，并整体淡化）。
   final bool disabled;
+
+  /// 是否只读：点击不触发任何回调，但保持正常配色，默认 false。
+  final bool readonly;
 
   @override
   State<WotKeyboard> createState() => _WotKeyboardState();
@@ -131,7 +137,14 @@ class _WotKeyboardState extends State<WotKeyboard> {
     final scheme = context.wotScheme;
     final primary = widget.color ?? scheme.primaryOf(6);
 
-    return Container(
+    // 三态：readonly 锁全部按键、配色不变；disabled 额外整体淡化。
+    // 键盘无「校验语义」，故不提供 error 态（错误由配套的密码框 / 单元格表达）。
+    final fieldScope = WotFieldScope.of(context);
+    final disabled = widget.disabled || (fieldScope?.state == WotFieldState.disabled);
+    final readonly = widget.readonly || (fieldScope?.state == WotFieldState.readonly);
+    final locked = disabled || readonly;
+
+    final panel = Container(
       color: scheme.filledBottom,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -140,7 +153,7 @@ class _WotKeyboardState extends State<WotKeyboard> {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 8),
               alignment: Alignment.center,
-              child: Text(widget.title,
+              child: Text(widget.title ?? tr(context, 'wot.keyboard.title'),
                   style: TextStyle(fontSize: 14, color: scheme.textSecondary)),
             ),
           _row(context, _keysForRow(0)),
@@ -164,6 +177,8 @@ class _WotKeyboardState extends State<WotKeyboard> {
         ],
       ),
     );
+    final wrapped = locked ? IgnorePointer(child: panel) : panel;
+    return disabled ? Opacity(opacity: 0.5, child: wrapped) : wrapped;
   }
 
   List<Widget> _keysForRow(int row) {
@@ -191,7 +206,7 @@ class _WotKeyboardState extends State<WotKeyboard> {
                 ),
               )
             : Text(
-                widget.ensureText,
+                widget.ensureText ?? tr(context, 'wot.common.done'),
                 style: const TextStyle(fontSize: 18, color: Colors.white),
               ),
       ),

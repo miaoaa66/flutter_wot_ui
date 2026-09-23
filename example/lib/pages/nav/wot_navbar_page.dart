@@ -13,9 +13,10 @@ class WotNavbarPage extends StatelessWidget {
       title: 'WotNavbar 顶部导航栏',
       children: [
         demoSection('基础用法'),
-        demoBlock('默认箭头 + 标题 + 右侧文字',
+        demoBlock('leftArrow: true（显示返回箭头）+ 标题 + 右侧文字',
             WotNavbar(
               title: '导航栏标题',
+              leftArrow: true,
               rightText: '分享',
               onClickLeft: () => demoToast(context, '返回'),
               onClickRight: () => demoToast(context, '右侧'),
@@ -59,6 +60,34 @@ class WotNavbarPage extends StatelessWidget {
             )),
         demoSection('样式（background / color / bordered）'),
         demoBlock('无边框默认', const WotNavbar(title: '默认样式', leftArrow: false)),
+        demoSection('高度与尺寸（height / preferredSize）'),
+        demoBlock('height: 64（内容区高度可配）',
+            const WotNavbar(title: 'height=64', leftArrow: true, height: 64)),
+        demoBlock(
+            '作为 Scaffold.appBar：safeArea=false + topPadding',
+            // 实现 PreferredSizeWidget 后可直接放进 appBar。
+            // 关键：Scaffold 已自行避让状态栏，故必须 safeArea: false，
+            // 否则会出现双份顶部留白；topPadding 只用于让 preferredSize 算准。
+            SizedBox(
+              height: 44 + MediaQuery.of(context).padding.top + 16,
+              child: Scaffold(
+                appBar: WotNavbar(
+                  title: '我是 appBar',
+                  leftArrow: true,
+                  bordered: true,
+                  safeArea: false,
+                  topPadding: MediaQuery.of(context).padding.top,
+                  onClickLeft: () => demoToast(context, 'appBar 返回'),
+                ),
+                body: Center(
+                  child: Text(
+                    'preferredSize = ${WotNavbar(title: '', safeArea: false, topPadding: MediaQuery.of(context).padding.top).preferredSize}',
+                    style: const TextStyle(fontSize: 11),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            )),
       ],
     );
   }

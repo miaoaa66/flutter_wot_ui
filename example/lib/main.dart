@@ -7,7 +7,7 @@ void main() {
   runApp(const WotExampleApp());
 }
 
-/// 示例应用根：用 [WotConfigProvider] 下发 wot 主题，并演示 Light/Dark 切换。
+/// 示例应用根：用 [WotConfigProvider] 下发 wot 主题与语言，并演示 Light/Dark、zh_CN/en_US 切换。
 class WotExampleApp extends StatefulWidget {
   const WotExampleApp({super.key});
 
@@ -18,6 +18,9 @@ class WotExampleApp extends StatefulWidget {
 class _WotExampleAppState extends State<WotExampleApp> {
   bool _dark = false;
 
+  /// 当前 wot 语言：zh_CN（默认）/ en_US，经 [WotConfigProvider] 下发到全部组件。
+  String _locale = 'zh_CN';
+
   @override
   Widget build(BuildContext context) {
     final themed = _dark ? WotThemeData.dark : WotThemeData.light;
@@ -26,6 +29,7 @@ class _WotExampleAppState extends State<WotExampleApp> {
       // 演示组件级默认配置级联：Button 全局默认小号 + 主色
       button: const WotButtonDefaults(size: 'small', type: 'primary'),
       wotTheme: themed,
+      locale: _locale,
       themeMode: _dark ? ThemeMode.dark : ThemeMode.light,
       theme: ThemeData(
         useMaterial3: true,
@@ -64,6 +68,9 @@ class _WotExampleAppState extends State<WotExampleApp> {
         home: WotIndexPage(
           dark: _dark,
           onToggleDark: () => setState(() => _dark = !_dark),
+          locale: _locale,
+          onToggleLocale: () =>
+              setState(() => _locale = _locale == 'zh_CN' ? 'en_US' : 'zh_CN'),
         ),
       ),
     );

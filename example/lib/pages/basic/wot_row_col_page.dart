@@ -34,9 +34,13 @@ class WotRowColPage extends StatelessWidget {
               WotCol(span: 8, child: _box(context, 'span=8')),
             ])),
         demoSection('偏移（offset）'),
-        demoBlock('offset=4 偏移',
+        demoBlock('offset=4 偏移（左空 4/24，块占 8/24，右侧空 12/24）',
             WotRow(gutter: 8, children: [
               WotCol(span: 8, offset: 4, child: _box(context, 'span=8 offset=4')),
+            ])),
+        demoBlock('对照：offset=0（块贴左，占 8/24）',
+            WotRow(gutter: 8, children: [
+              WotCol(span: 8, child: _box(context, 'span=8')),
             ])),
         demoSection('间距（gutter）'),
         demoBlock('gutter=16',

@@ -19,9 +19,9 @@ enum WotSwiperIndicatorPosition {
 class WotSwiper extends StatefulWidget {
   const WotSwiper({
     super.key,
-    this.autoplay = false,
-    this.interval = 3000,
-    this.duration = 500,
+    this.autoplay = true,
+    this.interval = 5000,
+    this.duration = 300,
     this.loop = true,
     this.indicator = true,
     this.indicatorPosition = WotSwiperIndicatorPosition.bottomCenter,
@@ -29,15 +29,20 @@ class WotSwiper extends StatefulWidget {
     this.height,
     this.onChange,
     this.children = const [],
-  });
+    this.itemCount,
+    this.itemBuilder,
+  }) : assert(
+          itemCount == null || itemBuilder != null,
+          'itemCount 必须与 itemBuilder 同时提供',
+        );
 
-  /// 是否自动播放，默认 false。
+  /// 是否自动播放，默认 true（对齐 wot）。
   final bool autoplay;
 
-  /// 自动播放间隔（毫秒），默认 3000。
+  /// 自动播放间隔（毫秒），默认 5000（对齐 wot）。
   final int interval;
 
-  /// 切换动画时长（毫秒），默认 500。
+  /// 切换动画时长（毫秒），默认 300（对齐 wot）。
   final int duration;
 
   /// 是否循环播放，默认 true。
@@ -58,30 +63,77 @@ class WotSwiper extends StatefulWidget {
   /// 页码变化回调，参数为当前页索引。
   final ValueChanged<int>? onChange;
 
-  /// 子项列表（每项对应一页，可为 [WotSwiperItem]）。
+  /// 子项列表（每项对应一页，可为 [WotSwiperItem]）；与 [itemBuilder] 二选一，
+  /// 同时提供时以 [itemBuilder] 为准。
   final List<Widget> children;
+
+  /// 数据驱动模式的页数；须与 [itemBuilder] 同时提供，提供后忽略 [children]。
+  final int? itemCount;
+
+  /// 数据驱动模式的页构建器：`(context, index) => Widget`，一般返回 [WotSwiperItem]。
+  final Widget Function(BuildContext, int)? itemBuilder;
 
   @override
   State<WotSwiper> createState() => _WotSwiperState();
 }
 
 class _WotSwiperState extends State<WotSwiper> with SingleTickerProviderStateMixin {
+  /// 循环模式的起始页。取足够大的数，使用户无论向哪一侧滑动都有充足余量，
+  /// 从而实现视觉上的无限循环（大数取模法）。
+  static const int _loopBase = 10000;
+
   late PageController _controller;
   Timer? _timer;
-  int _current = 0;
 
-  bool get _canLoop => widget.loop && widget.children.length > 1;
+  /// PageView 的真实页索引（循环模式下会一直递增/递减）。
+  int _raw = 0;
+
+  bool get _canLoop => widget.loop && _sourceCount > 1;
+
+  /// 数据驱动模式的页数；itemBuilder 未提供时回退 children。
+  int get _sourceCount {
+    if (widget.itemBuilder != null && widget.itemCount != null) {
+      return widget.itemCount!;
+    }
+    return widget.children.length;
+  }
+
+  /// 第 i 页内容（数据驱动模式经 itemBuilder 构建）。
+  Widget _sourceAt(BuildContext context, int i) {
+    final builder = widget.itemBuilder;
+    if (builder != null && widget.itemCount != null) return builder(context, i);
+    return widget.children[i];
+  }
+
+  /// 子项数量；为空列表时至少按 1 计，避免取模除零。
+  int get _count => _sourceCount == 0 ? 1 : _sourceCount;
+
+  /// 对外暴露的逻辑页索引（0 .. count-1）。
+  int get _realIndex => _canLoop ? _raw % _count : _raw;
+
+  void _initController() {
+    _controller = PageController(
+      viewportFraction: 1,
+      initialPage: _canLoop ? _loopBase : 0,
+    );
+    _raw = _canLoop ? _loopBase : 0;
+  }
 
   @override
   void initState() {
     super.initState();
-    _controller = PageController(viewportFraction: 1);
+    _initController();
     _startAutoPlay();
   }
 
   @override
   void didUpdateWidget(WotSwiper oldWidget) {
     super.didUpdateWidget(oldWidget);
+    // 循环开关变化会改变页数语义（有限 ↔ 无限），必须重建控制器。
+    if (oldWidget.loop != widget.loop) {
+      _controller.dispose();
+      _initController();
+    }
     if (oldWidget.autoplay != widget.autoplay ||
         oldWidget.interval != widget.interval ||
         oldWidget.loop != widget.loop) {
@@ -98,13 +150,12 @@ class _WotSwiperState extends State<WotSwiper> with SingleTickerProviderStateMix
 
   void _startAutoPlay() {
     _timer?.cancel();
-    if (!widget.autoplay || widget.children.length < 2) return;
+    if (!widget.autoplay || _sourceCount < 2) return;
     _timer = Timer.periodic(Duration(milliseconds: widget.interval), (_) {
       if (!_controller.hasClients) return;
-      final next = (_canLoop
-          ? (_current + 1) % widget.children.length
-          : _current + 1);
-      if (!_canLoop && next >= widget.children.length) return;
+      // 循环模式下直接前进到下一页（索引无限增长），非循环模式到末尾即停。
+      final next = _raw + 1;
+      if (!_canLoop && next >= _count) return;
       animateTo(next);
     });
   }
@@ -123,13 +174,16 @@ class _WotSwiperState extends State<WotSwiper> with SingleTickerProviderStateMix
   }
 
   void _onPageChanged(int index) {
-    setState(() => _current = index);
-    widget.onChange?.call(index);
+    setState(() => _raw = index);
+    widget.onChange?.call(_realIndex);
   }
 
   @override
   Widget build(BuildContext context) {
-    final children = widget.children.isNotEmpty ? widget.children : [_emptySlot(context)];
+    final count = _sourceCount;
+    final children = count > 0
+        ? List.generate(count, (i) => _sourceAt(context, i))
+        : [_emptySlot(context)];
 
     return SizedBox(
       width: widget.width,
@@ -139,10 +193,11 @@ class _WotSwiperState extends State<WotSwiper> with SingleTickerProviderStateMix
         children: [
           PageView.builder(
             controller: _controller,
-            itemCount: children.length,
+            // 循环模式用无限列表 + 取模复用子项；非循环模式为有限列表。
+            itemCount: _canLoop ? null : children.length,
             onPageChanged: _onPageChanged,
             physics: children.length > 1 ? const PageScrollPhysics() : const NeverScrollableScrollPhysics(),
-            itemBuilder: (_, i) => children[i],
+            itemBuilder: (_, i) => children[_canLoop ? i % children.length : i],
           ),
           if (widget.indicator && children.length > 1)
             _buildIndicator(context),
@@ -156,14 +211,14 @@ class _WotSwiperState extends State<WotSwiper> with SingleTickerProviderStateMix
     final indicators = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        for (var i = 0; i < widget.children.length; i++)
+          for (var i = 0; i < _sourceCount; i++)
           AnimatedContainer(
             duration: Duration(milliseconds: widget.duration),
-            width: i == _current ? 18 : 6,
+            width: i == _realIndex ? 18 : 6,
             height: 6,
             margin: const EdgeInsets.symmetric(horizontal: 2),
             decoration: BoxDecoration(
-              color: i == _current ? scheme.primaryOf(6) : Colors.white.withValues(alpha: 0.6),
+              color: i == _realIndex ? scheme.primaryOf(6) : Colors.white.withValues(alpha: 0.6),
               borderRadius: BorderRadius.circular(3),
             ),
           ),

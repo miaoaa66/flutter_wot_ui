@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 /// 行布局组件，对应 wot `wd-row`（flex 的 24 栅格容器）。
 ///
-/// 直接子级若为 [WotCol]，会按 `span/offset` 分配弹性份额；其他子级原样放置。
+/// 直接子级若为 [WotCol]，宽度 = 行宽 × span/24，offset 在其左侧插入
+/// 行宽 × offset/24 的空白；其余空间由 [justify] 分配（对齐 wot 的 CSS
+/// flex 语义）。其他子级原样放置。
 class WotRow extends StatelessWidget {
   const WotRow({
     super.key,
@@ -30,39 +32,48 @@ class WotRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = <Widget>[
-      for (final child in children)
-        if (child is WotCol)
-          Expanded(
-            flex: child.offset + child.span,
-            child: Row(
-              children: [
-                if (child.offset > 0)
-                  Expanded(flex: child.offset, child: const SizedBox.shrink()),
-                Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: gutter / 2),
-                    child: child.child,
+    return LayoutBuilder(builder: (context, constraints) {
+      final bounded = constraints.maxWidth.isFinite;
+      final unit = bounded ? constraints.maxWidth / 24.0 : 0.0;
+
+      final items = <Widget>[
+        for (final child in children)
+          if (child is WotCol && bounded)
+            SizedBox(
+              width: unit * (child.offset + child.span),
+              child: Row(
+                children: [
+                  if (child.offset > 0) SizedBox(width: unit * child.offset),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: gutter / 2),
+                      child: child.child,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          )
-        else
-          child,
-    ];
+                ],
+              ),
+            )
+          else if (child is WotCol)
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: gutter / 2),
+              child: child.child,
+            )
+          else
+            child,
+      ];
 
-    final row = Flex(
-      direction: Axis.horizontal,
-      mainAxisAlignment: justify,
-      crossAxisAlignment: align,
-      children: items,
-    );
+      final row = Flex(
+        direction: Axis.horizontal,
+        mainAxisAlignment: justify,
+        crossAxisAlignment: align,
+        children: items,
+      );
 
-    final content = onClick == null
-        ? row
-        : InkWell(onTap: onClick, child: row);
-    return content;
+      final content = onClick == null
+          ? row
+          : InkWell(onTap: onClick, child: row);
+      return content;
+    });
   }
 }
 

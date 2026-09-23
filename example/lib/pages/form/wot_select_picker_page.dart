@@ -20,6 +20,8 @@ class _WotSelectPickerPageState extends State<WotSelectPickerPage> {
   Object? _auto;
   Object? _objVal;
   bool _disabled = false;
+  bool _readonly = false;
+  bool _error = false;
   bool _loading = false;
 
   @override
@@ -30,7 +32,7 @@ class _WotSelectPickerPageState extends State<WotSelectPickerPage> {
         demoSection('基础（type=radio，columns 传简单值数组）'),
         demoBlock('单选（radio，showConfirm=true）',
             WotSelectPicker(
-              type: 'radio',
+              type: WotSelectPickerType.radio,
               columns: ['苹果', '香蕉', '橙子'],
               modelValue: _fruit,
               placeholder: '请选择水果',
@@ -39,7 +41,7 @@ class _WotSelectPickerPageState extends State<WotSelectPickerPage> {
         demoSection('多选（type=checkbox，值为 List<Object?>）'),
         demoBlock('多选（checkbox，可清除）',
             WotSelectPicker(
-              type: 'checkbox',
+              type: WotSelectPickerType.checkbox,
               columns: [
                 WotSelectPickerOption(label: '篮球', value: '篮球'),
                 WotSelectPickerOption(label: '足球', value: '足球'),
@@ -54,7 +56,7 @@ class _WotSelectPickerPageState extends State<WotSelectPickerPage> {
         demoSection('可搜索（filterable）'),
         demoBlock('filterable 单选可搜索',
             WotSelectPicker(
-              type: 'radio',
+              type: WotSelectPickerType.radio,
               filterable: true,
               columns: ['北京市', '上海市', '广州市', '深圳市', '杭州市', '南京市'],
               modelValue: _city,
@@ -64,7 +66,7 @@ class _WotSelectPickerPageState extends State<WotSelectPickerPage> {
         demoSection('选择数量限制（min / max）'),
         demoBlock('多选 max=3 min=1',
             WotSelectPicker(
-              type: 'checkbox',
+              type: WotSelectPickerType.checkbox,
               columns: ['篮球', '足球', '羽毛球', '游泳', '跑步'],
               modelValue: _limit,
               min: 1,
@@ -75,7 +77,7 @@ class _WotSelectPickerPageState extends State<WotSelectPickerPage> {
         demoSection('确认前校验（before-confirm）'),
         demoBlock('before-confirm：选「选项二」则拒绝确认',
             WotSelectPicker(
-              type: 'radio',
+              type: WotSelectPickerType.radio,
               columns: ['选项一', '选项二', '选项三'],
               modelValue: _confirm,
               placeholder: '点击选择（选"选项二"会拒绝确认）',
@@ -91,7 +93,7 @@ class _WotSelectPickerPageState extends State<WotSelectPickerPage> {
         demoSection('单选自动回填（showConfirm=false）'),
         demoBlock('showConfirm=false：点击即选中关闭',
             WotSelectPicker(
-              type: 'radio',
+              type: WotSelectPickerType.radio,
               showConfirm: false,
               columns: ['选项A', '选项B', '选项C'],
               modelValue: _auto,
@@ -101,7 +103,7 @@ class _WotSelectPickerPageState extends State<WotSelectPickerPage> {
         demoSection('对象选项 + value-key / label-key'),
         demoBlock('Map options（valueKey/labelKey）',
             WotSelectPicker(
-              type: 'radio',
+              type: WotSelectPickerType.radio,
               columns: [
                 {'id': 1, 'name': '北京'},
                 {'id': 2, 'name': '上海'},
@@ -113,16 +115,22 @@ class _WotSelectPickerPageState extends State<WotSelectPickerPage> {
               placeholder: '选择城市（值存 id）',
               onChange: (v) => setState(() => _objVal = v),
             )),
-        demoSection('状态（disabled / loading / clearable）'),
-        Row(children: [
-          Flexible(child: FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled'))),
-          const SizedBox(width: 8),
-          Flexible(child: FilledButton.tonal(onPressed: () => setState(() => _loading = !_loading), child: Text('loading: $_loading'))),
+        demoSection('三态与状态（disabled / readonly / error / loading / clearable）'),
+        Wrap(spacing: 8, runSpacing: 8, children: [
+          FilledButton.tonal(onPressed: () => setState(() => _disabled = !_disabled), child: Text('disabled: $_disabled')),
+          FilledButton.tonal(onPressed: () => setState(() => _readonly = !_readonly), child: Text('readonly: $_readonly')),
+          FilledButton.tonal(onPressed: () => setState(() => _error = !_error), child: Text('error: $_error')),
+          FilledButton.tonal(onPressed: () => setState(() => _loading = !_loading), child: Text('loading: $_loading')),
         ]),
         const SizedBox(height: 8),
-        demoBlock('disabled 禁用', WotSelectPicker(type: 'radio', modelValue: _fruit, columns: ['苹果'], disabled: _disabled)),
-        demoBlock('loading 加载态弹层', WotSelectPicker(type: 'radio', modelValue: _fruit, columns: ['苹果'], loading: _loading)),
-        demoBlock('clearable=false 不可清除', WotSelectPicker(type: 'radio', modelValue: _fruit, columns: ['苹果'], clearable: false)),
+        demoBlock('disabled 禁用（浅灰底 + 灰字，不可弹出）',
+            WotSelectPicker(type: WotSelectPickerType.radio, modelValue: _fruit, columns: ['苹果'], disabled: _disabled)),
+        demoBlock('readonly 只读（去边框、正常字色，不可弹出 —— 区别于 disabled 的灰化）',
+            WotSelectPicker(type: WotSelectPickerType.radio, modelValue: _fruit, columns: ['苹果'], readonly: _readonly)),
+        demoBlock('error 校验失败（触发区描红边）',
+            WotSelectPicker(type: WotSelectPickerType.radio, modelValue: _fruit, columns: ['苹果'], error: _error)),
+        demoBlock('loading 加载态弹层', WotSelectPicker(type: WotSelectPickerType.radio, modelValue: _fruit, columns: ['苹果'], loading: _loading)),
+        demoBlock('clearable=false 不可清除', WotSelectPicker(type: WotSelectPickerType.radio, modelValue: _fruit, columns: ['苹果'], clearable: false)),
       ],
     );
   }

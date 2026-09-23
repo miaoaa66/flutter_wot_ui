@@ -14,6 +14,7 @@ class WotDropMenuPage extends StatefulWidget {
 class _WotDropMenuPageState extends State<WotDropMenuPage> {
   String _sort = '综合';
   String _price = '不限';
+  String _filter = '全部';
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +68,25 @@ class _WotDropMenuPageState extends State<WotDropMenuPage> {
                 ],
               ),
             ])),
+        demoSection('展开方向（direction）'),
+        demoBlock(
+          'direction: up——面板渲染在菜单栏上方，适合页面底部的筛选条；'
+          '展开/收起动画时长由 duration 控制（默认 200ms）。',
+          WotDropMenu(
+            direction: WotDropMenuDirection.up,
+            menus: [
+              WotDropMenuItem(
+                title: '筛选',
+                modelValue: _filter,
+                onChange: (v) => setState(() => _filter = v as String),
+                options: const [
+                  WotDropMenuOption(label: '全部', value: '全部'),
+                  WotDropMenuOption(label: '今日', value: '今日'),
+                  WotDropMenuOption(label: '本周', value: '本周'),
+                ],
+              ),
+            ],
+          )),
       ],
     );
   }
