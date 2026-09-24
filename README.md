@@ -9,18 +9,18 @@ A Flutter re-implementation of the **Wot UI** component library (uni-app version
 - One directory per component with a single barrel export — highly cohesive, loosely coupled, easy to adopt.
 - Minimal third-party dependencies; everything else is drawn from scratch.
 
-> Open source repository: <https://gitee.com/miaoaa66/flutter_wot_ui>
-> Open source repository: <https://github.com/miaoaa66/flutter_wot_ui>
+> Open source repository: <https://gitee.com/miaoaa66/flutter_wot_ui>   
+> Open source repository: <https://github.com/miaoaa66/flutter_wot_ui>   
 
 ---
 
 
 ## Notes
 
-This library has only been tested and built for Web and Android; other platforms are untested.
-Not all properties of all components have been fully covered by tests.
-For integrating the library into a new Flutter project, see: <https://gitee.com/miaoaa66/flutter_wot_ui_demo>
-For integrating the library into a new Flutter project, see: <https://github.com/miaoaa66/flutter_wot_ui_demo>
+This library has only been tested and built for Web and Android; other platforms are untested.   
+Not all properties of all components have been fully covered by tests.   
+For integrating the library into a new Flutter project, see: <https://gitee.com/miaoaa66/flutter_wot_ui_demo>   
+For integrating the library into a new Flutter project, see: <https://github.com/miaoaa66/flutter_wot_ui_demo>   
 
 ## Component List
 
