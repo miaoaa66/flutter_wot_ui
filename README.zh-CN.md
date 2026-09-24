@@ -9,8 +9,8 @@
 - 组件独立目录、单一 barrel 出口，高内聚低耦合，接入简单。
 - 尽量少引三方库，其余全部自绘。
 
-> 开源仓库：<https://gitee.com/miaoaa66/flutter_wot_ui>
-> 开源仓库：<https://github.com/miaoaa66/flutter_wot_ui>
+> 开源仓库：<https://gitee.com/miaoaa66/flutter_wot_ui>   
+> 开源仓库：<https://github.com/miaoaa66/flutter_wot_ui>   
 
 ---
 
