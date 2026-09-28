@@ -182,6 +182,17 @@ A repository is created on Gitee; Gitee's repository mirroring feature syncs aut
 
 
 
+## ⚠️ Warehouse description
+The main repository of this project is located on Gitee, and GitHub is a read-only mirror with automatic one-way synchronization.
+
+1. You are free to fork a copy of the code on GitHub, but for all code submissions, bug feedback, feature suggestions, and Pull Requests, please go to the Gitee main repository.
+2. All files in the GitHub warehouse are automatically synchronized and overwritten by Gitee, and any manual modifications here will be lost.
+
+👉 Gitee main warehouse address: https://gitee.com/miaoaa66/flutter_wot_ui
+
+
+
+
 
 
 
