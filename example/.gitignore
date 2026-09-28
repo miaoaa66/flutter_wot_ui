@@ -43,3 +43,12 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# ================ apkgo 相关 ================
+# apkgo 配置文件（含密钥，绝对不能提交）
+apkgo.yaml
+# 凭证文件
+credentials/
+*.sa.json
+*-private-key.pem
+.apkgo.path
