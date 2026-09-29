@@ -11,9 +11,8 @@
 ```
 example/
 ├── apkgo.yaml              # 商店密钥配置（必填字段已空着，自行填入，不提交）
-├── .apkgo.path             # 项目级 apkgo.exe 路径（自动读取，不提交）
 ├── scripts/
-│   └── upload.ps1          # 一键上传脚本（自动按优先级找 apkgo）
+│   └── upload.ps1          # 一键上传脚本
 ```
 
 ### 一、在各商店后台创建应用（一次性前置）
@@ -118,15 +117,16 @@ cd example
 flutter build apk --release
 
 # 2. 一键上传到 apkgo.yaml 里所有配置好的商店
-.\scripts\upload.ps1 -Notes "v1.0.1：修复表格拖拽"
+.\scripts\upload.ps1 -Notes "测试"
 
 # 只传指定商店
+.\scripts\upload.ps1 -Store pgyer -Notes "内测专用"
 .\scripts\upload.ps1 -Store pgyer,huawei -Notes "内测专用"
 
 # 用文件传入多行更新说明
 .\scripts\upload.ps1 -NotesFile CHANGELOG.md
 
-# 预检查（不上传，只验证密钥配置是否正确）
+# 预检查（不上传，只验证密钥配置apkgo.yaml是否正确）
 .\scripts\upload.ps1 -DryRun
 ```
 
@@ -141,36 +141,22 @@ apkgo stores
 # 查看上传历史
 apkgo history
 
-# apkgo 自身升级
-apkgo upgrade
+# 查看当前 apkgo 版本
+apkgo version
+
+# 更多命令去apkgo仓库看
 ```
 
 ### 零：准备 apkgo（一次性前置）
 
-`upload.ps1` 按以下优先级自动定位 apkgo，**无需修改系统 PATH**：
-
-| 优先级 | 方式 | 说明 |
-|---|---|---|
-| 1️⃣ | `-ApkgoPath 'E:\...\apkgo.exe'` | 命令行参数临时指定 |
-| 2️⃣ | `example/.apkgo.path` | 项目级配置文件（推荐，默认方式） |
-| 3️⃣ | 系统 PATH | 兜底，自动跳过低于 v3 的旧版本 |
-
-#### 推荐方式：`.apkgo.path`（不污染 PATH）
-
-1. 从 <https://github.com/KevinGong2013/apkgo/releases> 下载 `apkgo_Windows_x86_64.zip`（需要 **v3.x**，别下旧版）
+1. 从 <https://github.com/KevinGong2013/apkgo/releases> 下载 **v3.x**（别下旧版 v1.x 或 vdev），Windows 如果电脑是 64 位，选 `apkgo_Windows_x86_64.zip`
 2. 解压到固定目录，例如 `E:\app\apkgo\apkgo_Windows_x86_64\`
-3. 在 `example/` 目录下创建 `.apkgo.path` 文件（**无扩展名**），写入 apkgo.exe 的完整路径，**一行即可**：
-
-```
-E:\app\apkgo\apkgo_Windows_x86_64\apkgo.exe
-```
-
-4. 验证：
+3. 把这个目录加到 Windows **用户环境变量 `PATH`**（设置 → 系统 → 关于 → 高级系统设置 → 环境变量 → 用户变量 → Path → 新增）
+4. **重启终端**，验证：
 
 ```powershell
-cd example
-powershell -ExecutionPolicy Bypass -File .\scripts\upload.ps1 -DryRun
-# 看到 "apkgo v3.x.x ready" + "store pgyer: api_key is required" 即为成功
+apkgo version
+# 输出包含 "version": "3.x.x" 即为成功
 ```
 
-> 💡 为什么不用改 PATH？Windows 默认 PATH 里常混有旧版 apkgo（比如 Go 编译装的 vdev 版），PATH 排序不对就会被命中。`.apkgo.path` 是项目级隔离，每台机器改一下就行，也不会被提交到 git（已在 `.gitignore` 里）。
+> 💡 兜底：不想改 PATH？脚本也支持 `-ApkgoPath "E:\...\apkgo.exe"` 临时指定，或在 `example/` 下创建 `.apkgo.path`（无扩展名）写一行 apkgo.exe 完整路径即可（已在 `.gitignore` 里，不提交）。

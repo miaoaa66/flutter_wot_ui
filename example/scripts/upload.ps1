@@ -6,10 +6,10 @@
   Auto-finds the latest release APK under build/app/outputs/flutter-apk/,
   then invokes apkgo v3.x with apkgo.yaml config.
 
-  apkgo path resolution order:
+  apkgo path resolution (first match wins):
     1. -ApkgoPath CLI argument
-    2. .apkgo.path file in example/ dir (recommended, does not pollute system PATH)
-    3. Find v3.x from system PATH (auto-skips old vdev builds)
+    2. .apkgo.path file in example/ dir (one line = full exe path)
+    3. apkgo from system PATH
 
 .PARAMETER ApkPath
   Explicit APK path. If omitted, auto-finds the newest *-release.apk.
@@ -65,52 +65,38 @@ elseif ((Test-Path $pathFile) -and -not $ApkgoPath) {
         $apkgoCmd = $configured
     }
 }
-
-# fallback: PATH (v3.x only, skip old builds)
-if (-not $apkgoCmd) {
+else {
     $resolved = Get-Command apkgo -ErrorAction SilentlyContinue
-    if ($resolved) {
+    if (-not $resolved) {
+        # fallback: re-read User PATH from registry (handles terminals opened before PATH change)
         try {
-            $verText = (& $resolved.Source version 2>&1) -join "`n"
-            $verJson = $verText | ConvertFrom-Json -ErrorAction Stop
-            $major   = [int]($verJson.version -split '\.')[0]
-            if ($major -ge 3) {
-                $apkgoCmd = $resolved.Source
+            $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+            if ($userPath) {
+                $env:Path = $userPath + ";" + [Environment]::GetEnvironmentVariable("Path", "Machine")
+                $resolved = Get-Command apkgo -ErrorAction SilentlyContinue
             }
-            else {
-                Write-Host ("PATH apkgo is v{0}, skipping." -f $verJson.version) -ForegroundColor DarkGray
-            }
-        }
-        catch {
-            Write-Host "PATH apkgo version unreadable, skipping." -ForegroundColor DarkGray
-        }
+        } catch {}
     }
+    if ($resolved) { $apkgoCmd = $resolved.Source }
 }
 
 if (-not $apkgoCmd) {
     Write-Host ""
-    Write-Host "No usable apkgo v3.x found. Pick one way:" -ForegroundColor Red
-    Write-Host "  1. Write full apkgo.exe path into example/.apkgo.path (recommended)" -ForegroundColor Red
-    Write-Host "  2. Add apkgo v3.x dir to system PATH (remove old go\bin\apkgo.exe or move it down)" -ForegroundColor Red
-    Write-Host "  3. -ApkgoPath 'E:\app\apkgo\apkgo_Windows_x86_64\apkgo.exe'" -ForegroundColor Red
+    Write-Host "apkgo not found." -ForegroundColor Red
+    Write-Host "  Option A: add apkgo v3.x dir to system PATH" -ForegroundColor Red
+    Write-Host "  Option B: create example/.apkgo.path with full apkgo.exe path" -ForegroundColor Red
+    Write-Host "  Option C: run with -ApkgoPath 'E:\...\apkgo.exe'" -ForegroundColor Red
     Write-Host "Download: https://github.com/KevinGong2013/apkgo/releases" -ForegroundColor Red
     exit 1
 }
 
 # --- 2. show version ---
 try {
-    $verText = (& $apkgoCmd version 2>&1) -join "`n"
-    $verJson = $verText | ConvertFrom-Json -ErrorAction Stop
-    $major   = [int]($verJson.version -split '\.')[0]
-    if ($major -lt 3) {
-        Write-Host ("WARN: apkgo v{0} is old, some flags may not work." -f $verJson.version) -ForegroundColor Yellow
-    }
-    else {
-        Write-Host ("apkgo v{0} ready: {1}" -f $verJson.version, $apkgoCmd) -ForegroundColor Green
-    }
+    $verJson = ((& $apkgoCmd version 2>&1) -join "`n") | ConvertFrom-Json -ErrorAction Stop
+    Write-Host ("apkgo v{0} ready: {1}" -f $verJson.version, $apkgoCmd) -ForegroundColor Green
 }
 catch {
-    Write-Host ("apkgo ready (version unknown): " + $apkgoCmd) -ForegroundColor Green
+    Write-Host ("apkgo ready: " + $apkgoCmd) -ForegroundColor Green
 }
 
 # --- 3. apkgo.yaml ---
