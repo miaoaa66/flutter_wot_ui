@@ -198,7 +198,7 @@ flutter build apk --release --target-platform android-arm64
 
 ## AI 辅助与环境
 
-- **本地环境：** Java 17.0.12、Flutter 3.41.4。
+- **本地环境：** Java 17.0.12、Flutter 3.47.7（Dart 3.13.5）。
 - **参与的 AI 模型：** 本项目开发过程使用了以下 AI 模型辅助 —— deepseek-v4-flash、deepseek-v4-pro、seed-code、qwen-3.7-plus、glm-5.3-flash、hy3、hy4。
 
 ## 许可证

@@ -17,6 +17,7 @@ migrate_working_dir/
 *.ipr
 *.iws
 .idea/
+.workbuddy/
 
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
@@ -46,3 +47,6 @@ app.*.map.json
 
 # FVM Version Cache
 .fvm/
+
+# Golden 测试失败产物（flutter test 像素比对失败时自动生成，不入库）
+test/golden/failures/

@@ -259,14 +259,21 @@ class _WotIndexPageState extends State<WotIndexPage> {
                           ]
                         : [
                             for (final e in g.entries)
-                              ListTile(
-                                leading: WotIcon(
-                                    name: _entryIcons[e.name] ?? 'category',
-                                    size: 16),
-                                title: Text(e.name),
-                                subtitle: Text(e.desc),
-                                trailing: const Icon(Icons.chevron_right),
-                                onTap: e.onTap,
+                              // Flutter 3.47 新增断言：ListTile 的墨迹绘制在最近的 Material 祖先上，
+                              // 若中间夹一层带背景色的 DecoratedBox/ColoredBox 会报
+                              // "ListTile background color or ink splashes may be invisible"。
+                              // 折叠面板内容区自带白底，故此处显式插入透明 Material 承接墨迹。
+                              Material(
+                                type: MaterialType.transparency,
+                                child: ListTile(
+                                  leading: WotIcon(
+                                      name: _entryIcons[e.name] ?? 'category',
+                                      size: 16),
+                                  title: Text(e.name),
+                                  subtitle: Text(e.desc),
+                                  trailing: const Icon(Icons.chevron_right),
+                                  onTap: e.onTap,
+                                ),
                               ),
                           ],
                   ),

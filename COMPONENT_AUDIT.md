@@ -910,7 +910,7 @@ flutter test             :: example 的 widget 测试
   组件销毁后仍存活 → 已保存引用并在 dispose 中 cancel（首次全量 `flutter test` 暴露的既有问题）。
   **待用户重跑**：`flutter test --update-goldens test/golden` 生成剩余 3 张基线并确认全绿。
 - [x] T4.2 接入 CI（analyze + test + golden）—— ✅ 已完成（2026-09-21）：GitHub Actions
-  全绿（windows-latest + Flutter 3.41.4 固定，4m25s），push 全分支自动触发
+  全绿（windows-latest + Flutter 3.47.7 固定，push 全分支自动触发）
 - [ ] T4.3 发布准备（评估移除 `publish_to: none`、补 dartdoc 元信息）
 
 **Stage 5 生态与收尾**

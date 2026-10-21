@@ -177,8 +177,12 @@ class WotTable extends StatefulWidget {
   /// loading / 空态时不触发。
   final bool dragSort;
 
-  /// 拖拽行重排完成回调，参数为拖拽起止位置（`onReorder(oldIndex, newIndex)`）。
+  /// 拖拽行重排完成回调（`onReorder(oldIndex, newIndex)`）。
   /// 组件内部会先按新顺序更新顺序再回调；此处可据此同步外部数据。
+  ///
+  /// 语义说明（随 Flutter 3.47 对齐 `onReorderItem`）：`newIndex` 为**最终落位索引**，
+  /// 即已扣除「被拖拽项移出后」的位移。旧版 SDK 的 `onReorder` 语义是「移除前插入位」，
+  /// 调用方若沿用过 `if (newIndex > oldIndex) newIndex -= 1` 修正，需要删除该修正。
   final void Function(int oldIndex, int newIndex)? onReorder;
 
   @override
@@ -209,10 +213,16 @@ class _WotTableState extends State<WotTable> {
   }
 
   /// 拖拽完成后提交新顺序：更新内部数据源再回调外部。
-  void _handleReorder(int oldIndex, int newIndex) {
+  ///
+  /// Flutter 3.41 起 `SliverReorderableList.onReorder` 被弃用，改由
+  /// [SliverReorderableList.onReorderItem] 提供回调。两者的关键差异：
+  /// 旧 `onReorder` 的 `newIndex` 是「移除前」的插入位，需要手动
+  /// `if (newIndex > oldIndex) newIndex -= 1` 修正；`onReorderItem` 已完成该修正，
+  /// 传入的 `newIndex` 即最终落位索引，因此这里不再做自减。
+  void _handleReorderItem(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= _rows.length) return;
+    if (newIndex < 0 || newIndex >= _rows.length) return;
     setState(() {
-      if (newIndex > oldIndex) newIndex -= 1;
-      if (newIndex < 0 || newIndex >= _rows.length) return;
       final item = _rows.removeAt(oldIndex);
       _rows.insert(newIndex, item);
     });
@@ -404,7 +414,7 @@ class _WotTableState extends State<WotTable> {
                 SliverReorderableList(
                   itemExtent: widget.rowHeight,
                   itemCount: _displayData.length,
-                  onReorder: _handleReorder,
+                  onReorderItem: _handleReorderItem,
                   onReorderStart: (i) => setState(() => _dragIndex = i),
                   onReorderEnd: (_) => setState(() => _dragIndex = null),
                   proxyDecorator: _dragProxyDecorator,
@@ -534,7 +544,7 @@ class _WotTableState extends State<WotTable> {
                             SliverReorderableList(
                               itemExtent: widget.rowHeight,
                               itemCount: _displayData.length,
-                              onReorder: _handleReorder,
+                              onReorderItem: _handleReorderItem,
                               onReorderStart: (i) => setState(() => _dragIndex = i),
                               onReorderEnd: (_) => setState(() => _dragIndex = null),
                               proxyDecorator: _dragProxyDecorator,
@@ -620,7 +630,7 @@ class _WotTableState extends State<WotTable> {
                   child: NotificationListener<ScrollUpdateNotification>(
                     onNotification: (n) => _onFixedScroll(n, fixedCtrl),
                       child: widget.dragSort
-                          // 拖拽排序开启时，左右固定列同样支持长按拖拽重排（复用主体的 _handleReorder）。
+                          // 拖拽排序开启时，左右固定列同样支持长按拖拽重排（复用主体的 _handleReorderItem）。
                           // 拖动期间固定列保持原位，放下瞬间与其它列精确对齐同步。
                           ? CustomScrollView(
                               controller: fixedCtrl,
@@ -628,7 +638,7 @@ class _WotTableState extends State<WotTable> {
                                 SliverReorderableList(
                                   itemExtent: widget.rowHeight,
                                   itemCount: _displayData.length,
-                                  onReorder: _handleReorder,
+                                  onReorderItem: _handleReorderItem,
                                   onReorderStart: (i) =>
                                       setState(() => _dragIndex = i),
                                   onReorderEnd: (_) =>

@@ -4,7 +4,42 @@
 
 ---
 
-## Unreleased — 2026-09-22
+## Unreleased — 2026-10-21
+
+开发基线从 Flutter 3.41.4 升级到 **3.47.7**（Dart 3.13.5），同步清理新版 SDK 的弃用 API。
+
+### Changed
+
+- **SDK 基线**：`.fvmrc` / `.github/workflows/ci.yml` 固定 `3.47.7`；README 环境说明同步
+  （`flutter: ">=3.41.0"` 兼容下限暂不抬高，避免影响下游使用者）。
+- **`WotTable` 拖拽重排回调适配**：`SliverReorderableList.onReorder` 在 3.41 起弃用，
+  内部三处（轻量模式 / 有界模式主体 / 固定列层）改用 `onReorderItem`；组件已不再自行
+  `if (newIndex > oldIndex) newIndex -= 1` 修正索引。
+
+### Added
+
+- 新增 `test/table_drag_sort_test.dart`：上/下两向拖拽重排回归，锁定「内部数据顺序」
+  与「`onReorder` 的 `newIndex` = 最终落位索引」两条不变式（此前 `dragSort` 无测试覆盖）。
+
+### Fixed
+
+- example `WotIndexBar` 页 `ListView.cacheExtent` → `scrollCacheExtent: ScrollCacheExtent.pixels(2000)`
+  （`ScrollCacheExtent` 仅在 `package:flutter/rendering.dart` 导出，需额外 import）。
+- golden 基线 `checkbox_states.png` 重新生成：3.47.7 勾选笔画抗锯齿产生 0.08%（135px）
+  亚像素差异，形态无变化。
+- example 索引页 `ListTile` 外包 `Material(type: MaterialType.transparency)`：3.47 新增断言
+  「ListTile 被带背景色的 DecoratedBox/ColoredBox 包裹时墨迹不可见」，折叠面板内容区自带
+  白底，导致 `example/test/widget_test.dart` 一次性抛出 79 条断言（真实体验问题：点按无涟漪）。
+
+### Note
+
+- **行为变更**：`WotTable.onReorder(oldIndex, newIndex)` 的 `newIndex` 现为**最终落位索引**
+  （旧语义为「移除前插入位」）。若调用方沿用过 `newIndex > oldIndex` 的自减修正，需删除。
+- 本地跑 `flutter test` 若报 `Unable to connect to flutter_tester process: WebSocketException`，
+  是 HTTP 代理拦截 flutter_tester 的本地 WebSocket，需清空 `HTTP(S)_PROXY` 或把
+  `127.0.0.1` 加入 `NO_PROXY`。
+
+
 
 D 类 P1 缺失配置项批量补齐（T3.4，三批 13 个组件条目）+ a11y / i18n 验证基线。
 

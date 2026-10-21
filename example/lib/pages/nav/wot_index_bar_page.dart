@@ -1,4 +1,6 @@
 ﻿import 'package:flutter/material.dart';
+// ScrollCacheExtent（ListView.scrollCacheExtent 的参数类型）只在 rendering 库导出。
+import 'package:flutter/rendering.dart';
 import 'package:flutter_wot_ui/flutter_wot_ui.dart';
 
 import '../../common/demo_scaffold.dart';
@@ -65,7 +67,7 @@ class _WotIndexBarPageState extends State<WotIndexBarPage> {
                 onSelect: _jump,
                 child: ListView(
                   controller: _controller,
-                  cacheExtent: 2000,
+                  scrollCacheExtent: const ScrollCacheExtent.pixels(2000),
                   children: [
                     for (final e in _cities.entries)
                       WotIndexBarAnchor(

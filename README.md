@@ -198,7 +198,7 @@ The main repository of this project is located on Gitee, and GitHub is a read-on
 
 ## Development Environment & AI Assistance
 
-- **Local environment:** Java 17.0.12, Flutter 3.41.4.
+- **Local environment:** Java 17.0.12, Flutter 3.47.7 (Dart 3.13.5).
 - **AI models involved:** The development of this project was assisted by the following AI models — deepseek-v4-flash, deepseek-v4-pro, seed-code, qwen-3.7-plus, glm-5.3-flash, hy3, hy4.
 
 ## License
