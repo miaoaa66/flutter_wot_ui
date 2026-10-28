@@ -50,6 +50,17 @@ class WotNotifyPage extends StatelessWidget {
                     position: WotNotifyPosition.bottom,
                     onClosed: () {}),
                 child: const Text('底部通知'))),
+        demoBlock(
+            'position 顶部（默认，显式传入）+ safeHeight 额外安全区偏移 + onClosed 统一关闭回调'
+            '（超时 / 点击 / 手动关闭三路径均触发）',
+            FilledButton.tonal(
+                onPressed: () => WotNotify.show(context,
+                    message: '顶部通知（关闭时触发 onClosed）',
+                    type: WotNotifyType.primary,
+                    position: WotNotifyPosition.top,
+                    safeHeight: 0,
+                    onClosed: () => demoToast(context, 'onClosed 已触发')),
+                child: const Text('顶部通知 + onClosed'))),
       ],
     );
   }

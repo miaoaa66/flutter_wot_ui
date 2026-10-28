@@ -84,4 +84,41 @@ void main() {
     await tester.pump();
     expect(result, isA<DateTime>());
   });
+
+  testWidgets('none 平铺渲染范围内全部月份且可在受限高度内滚动', (tester) async {
+    final now = DateTime.now();
+    final min = DateTime(now.year, now.month - 2, 1);
+    final max = DateTime(now.year, now.month + 2, 1);
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: SizedBox(
+            height: 480, // 有界高度：平铺月份列表应内部滚动而非溢出
+            child: WotCalendar(
+              type: WotCalendarType.single,
+              title: '平铺',
+              minDate: min,
+              maxDate: max,
+              onConfirm: (v) {},
+            ),
+          ),
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle(); // 等待首帧自动定位当前月的滚动动画结束
+    expect(tester.takeException(), isNull, reason: '平铺 5 个月在受限高度内不应溢出');
+    // 范围内首尾月份标题均应被渲染
+    expect(find.text('${min.year} 年 ${min.month} 月'), findsOneWidget);
+    expect(find.text('${max.year} 年 ${max.month} 月'), findsOneWidget);
+    // none 模式不展示 ‹ › 月份切换按钮
+    expect(find.text('‹'), findsNothing);
+    expect(find.text('›'), findsNothing);
+    // 中部月份列表可滚动到最后一个月
+    await tester.scrollUntilVisible(
+      find.text('${max.year} 年 ${max.month} 月'),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(tester.takeException(), isNull);
+  });
 }

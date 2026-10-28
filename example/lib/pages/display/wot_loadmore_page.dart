@@ -18,7 +18,7 @@ class WotLoadmorePage extends StatelessWidget {
         demoBlock('没有更多',
             const WotLoadmore(state: WotLoadmoreState.noMore)),
         demoBlock('加载失败可点击重试',
-            WotLoadmore(state: WotLoadmoreState.loadingFailed, onLoadmore: () => demoToast(context, '点击重试'))),
+            WotLoadmore(state: WotLoadmoreState.loadingFailed, onLoadMore: () => demoToast(context, '点击重试'))),
       ],
     );
   }

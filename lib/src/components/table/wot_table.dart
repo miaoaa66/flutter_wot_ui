@@ -392,8 +392,10 @@ class _WotTableState extends State<WotTable> {
       // ===== 轻量模式：全量渲染 =====
       // 最外层 border:true 时左右边框 0.5*2=1px 会压缩内容区，列宽求和需按压缩后的宽度算，
       // 否则表头/合计行 Row 会恰好多出 1px 而溢出。
-      final layoutWidth =
-          math.max(1.0, viewportWidth - (widget.border ? 1.0 : 0.0));
+      // 行首还有固定宽的选择列，列宽分配前需先扣除，否则「选择列 + 各列」求和会
+      // 超出可用宽度（溢出量恰为选择列宽），导致表头/数据行横向溢出。
+      final layoutWidth = math.max(
+          1.0, viewportWidth - (widget.border ? 1.0 : 0.0) - _selWidth());
       final layout = _computeLayout(layoutWidth, widget.columns);
       final table = Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -431,7 +433,9 @@ class _WotTableState extends State<WotTable> {
             for (var i = 0; i < _displayData.length; i++)
               _buildLightRow(context, layout, _displayData[i], i,
                   hasSelectionCell: _hasSelection),
-          if (widget.footer != null) _buildFooter(context, layout),
+          // 合计行需带选择列占位，才能与上方表头/数据行的列位置对齐。
+          if (widget.footer != null)
+            _buildFooter(context, layout, includeSelection: _hasSelection),
         ],
       );
       return Container(

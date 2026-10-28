@@ -35,4 +35,45 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('气泡按钮行窄 maxWidth + 长文案不溢出（回归：Row 溢出 1.8px）', (tester) async {
+    late BuildContext pageContext;
+    await tester.pumpWidget(WotConfigProvider(
+      wotTheme: WotThemeData.light,
+      child: MaterialApp(
+        home: Builder(
+          builder: (ctx) {
+            pageContext = ctx;
+            return const SizedBox.shrink();
+          },
+        ),
+        debugShowCheckedModeBanner: false,
+      ),
+    ));
+
+    // 行宽 = 240 - 24(卡片左右 padding) = 216。测试字体下各字符宽度 = 字号：
+    // 旧实现按钮行总宽 = 跳过(94) + 上一步(55) + 间距(8) + 完成(84) = 241 > 216 必溢出；
+    // 新实现仅“跳过”为 Expanded（94→69 省略），其余固定宽 147 ≤ 216 不溢出。
+    WotTour.show(
+      pageContext,
+      steps: const [
+        WotTourStep(title: '第一步', description: '说明'),
+        WotTourStep(title: '第二步', description: '说明'),
+      ],
+      maxWidth: 240,
+      skipButtonText: '跳过引导流程',
+      prevButtonText: '上一步',
+      finishButtonText: '完成引导',
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.takeException(), isNull, reason: '第一步（无上一步）按钮行不应溢出');
+
+    // 进入最后一步：跳过 + 上一步 + 完成三按钮同行，最易触发溢出。
+    await tester.tap(find.text('下一步'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('完成引导'), findsOneWidget);
+    expect(tester.takeException(), isNull, reason: '最后一步按钮行不应溢出');
+  });
 }

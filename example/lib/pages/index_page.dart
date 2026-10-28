@@ -4,6 +4,7 @@ import 'package:flutter_wot_ui/flutter_wot_ui.dart';
 import 'basic/wot_button_page.dart';
 import 'basic/wot_cell_group_page.dart';
 import 'basic/wot_cell_page.dart';
+import 'basic/wot_config_provider_page.dart';
 import 'basic/wot_divider_page.dart';
 import 'basic/wot_fab_page.dart';
 import 'basic/wot_gap_page.dart';
@@ -61,6 +62,7 @@ import 'display/wot_tag_page.dart';
 import 'display/wot_video_preview_page.dart';
 import 'display/wot_watermark_page.dart';
 import 'form/wot_calendar_page.dart';
+import 'form/wot_calendar_view_page.dart';
 import 'form/wot_cascader_page.dart';
 import 'form/wot_checkbox_page.dart';
 import 'form/wot_datetime_picker_page.dart';
@@ -116,6 +118,7 @@ class _WotIndexPageState extends State<WotIndexPage> {
   Widget build(BuildContext context) {
     final groups = [
       _Group('basic', '基础 Basic', [
+        _Entry('ConfigProvider', '全局配置·主题·语言', () => _push(context, const WotConfigProviderPage())),
         _Entry('Button', '按钮', () => _push(context, const WotButtonPage())),
         _Entry('Icon', '图标', () => _push(context, const WotIconPage())),
         _Entry('Text', '文本', () => _push(context, const WotTextPage())),
@@ -154,6 +157,7 @@ class _WotIndexPageState extends State<WotIndexPage> {
         _Entry('PickerView', '滚轮视图', () => _push(context, const WotPickerViewPage())),
         _Entry('Cascader', '级联选择', () => _push(context, const WotCascaderPage())),
         _Entry('Calendar', '日历', () => _push(context, const WotCalendarPage())),
+        _Entry('CalendarView', '月历视图', () => _push(context, const WotCalendarViewPage())),
         _Entry('DatetimePicker', '日期时间', () => _push(context, const WotDatetimePickerPage())),
         _Entry('Signature', '手写签名', () => _push(context, const WotSignaturePage())),
         _Entry('Upload', '上传', () => _push(context, const WotUploadPage())),
@@ -295,6 +299,7 @@ class _WotIndexPageState extends State<WotIndexPage> {
 /// 替换原先「所有条目都用 arrow-right」的重复感，按组件语义给出更有辨识度的图标。
 const Map<String, String> _entryIcons = <String, String>{
   // 基础
+  'ConfigProvider': 'category',
   'Button': 'check',
   'Icon': 'star',
   'Text': 'text',
@@ -331,6 +336,7 @@ const Map<String, String> _entryIcons = <String, String>{
   'PickerView': 'sort',
   'Cascader': 'category',
   'Calendar': 'calendar',
+  'CalendarView': 'calendar',
   'DatetimePicker': 'clock',
   'Signature': 'edit',
   'Upload': 'upload',

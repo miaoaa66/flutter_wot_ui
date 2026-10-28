@@ -73,6 +73,15 @@ class _WotBadgePageState extends State<WotBadgePage> {
               WotBadge(modelValue: 6, shape: WotBadgeShape.square, child: const Icon(Icons.folder, size: 28)),
               WotBadge(modelValue: 8, offset: const Offset(4, -4), child: const Icon(Icons.chat_bubble, size: 28)),
             ])),
+        demoBlock(
+            'showZero: true（值为 0 仍显示，默认 0 隐藏）+ showDot（兼容旧 API，等价 isDot）'
+            '；type 默认即 danger 红色',
+            Wrap(spacing: 24, runSpacing: 16, children: [
+              WotBadge(modelValue: 0, showZero: true, child: _box(context)),
+              WotBadge(modelValue: 0, child: _box(context)),
+              WotBadge(showDot: true, child: _box(context)),
+              WotBadge(modelValue: 3, type: WotBadgeType.danger, child: _box(context)),
+            ])),
       ],
     );
   }

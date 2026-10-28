@@ -71,7 +71,13 @@ class WotDialog {
     VoidCallback? onConfirm,
     VoidCallback? onClose,
     Color? confirmColor,
+    Future<bool> Function()? beforeConfirm,
   }) async {
+    // 确认前拦截（与 confirm 一致的 API 对称性）：返回 false 时取消本次弹窗。
+    if (beforeConfirm != null) {
+      final pass = await beforeConfirm();
+      if (!pass || !context.mounted) return;
+    }
     await showDialog(
       context: context,
       builder: (ctx) => WotDialogView(

@@ -211,7 +211,7 @@ class _WotPaginationState extends State<WotPagination> {
           '$num',
           style: TextStyle(
             fontSize: 13,
-            color: active ? kWhite : null,
+            color: active ? Colors.white : null,
           ),
         ),
       ),
@@ -565,5 +565,3 @@ class _SettingsDialogContentState extends State<_SettingsDialogContent> {
     );
   }
 }
-
-const Color kWhite = Color(0xFFFFFFFF);

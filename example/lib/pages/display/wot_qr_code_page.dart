@@ -20,6 +20,21 @@ class WotQrCodePage extends StatelessWidget {
         demoSection('新增（D 类 P1）：dotType / margin / gapless'),
         demoBlock('dotType=circle 圆点码', WotQrCode(value: 'https://example.com', size: 120, dotType: WotQrCodeDotType.circle)),
         demoBlock('margin 内边距', WotQrCode(value: 'https://example.com', size: 120, margin: const EdgeInsets.all(12), border: 1)),
+        demoSection('容错级别（errorLevel，默认 h）'),
+        demoBlock(
+            'l / m / q / h 四级平铺：级别越高，破损可容错面积越大（默认 h，对齐 wot correct-level=H）',
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                for (final lv in WotQrCodeErrorLevel.values)
+                  Column(children: [
+                    WotQrCode(value: 'https://example.com', size: 100, errorLevel: lv),
+                    const SizedBox(height: 4),
+                    Text(lv.name, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ]),
+              ],
+            )),
       ],
     );
   }

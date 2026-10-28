@@ -4,6 +4,81 @@
 
 ---
 
+## Unreleased — 2026-10-27
+
+全量审查（见 `AUDIT_REPORT_2026-10-27.md`）后的完善批次：示例层补齐为主 + 4 项组件修复。
+
+### Added
+
+- **drop_menu 蒙层落地**：`closeOnClickOverlay`（原为死参数）现在真正生效——展开时经
+  `OverlayEntry` 挂全屏蒙层（主题令牌 `opacMainCover`），组件矩形挖孔放行（命中测试时
+  实时读取，滚动/展开动画期间不错位），点击区域外关闭；`false` 时不挂蒙层。
+- **`WotPicker.show` 透传 `optionBuilder`**：命令式入口此前漏传该插槽（内联 widget 可用、
+  命令式不可用），现已补齐。
+- **`WotDialog.alert` 补 `beforeConfirm`**：与 `confirm` 的拦截 API 对称，返回 false 时不弹窗。
+- **示例页新增 2 个**：`calendar_view`（月历视图：受控/翻月/范围/主题色/自定义星期表头）、
+  `config_provider`（组件级默认级联合并 / wotTheme 暗色下发 / themeMode 现场切换 /
+  locale 切换英文文案）。
+- **themeVars 落地**：新增 `WotScheme.applyVars(Map<String, Color>)`——54 个语义色令牌
+  全量支持 `--wot-*` kebab-case key（如 `--wot-danger-main`、`--wot-opac-main-cover`），
+  未识别 key 静默忽略；`WotConfigProvider.themeVars` 在当前明暗模式解析结果之上叠加并父子级联。
+  原「声明未消费」的死参数转正，示例页补「自定义语义令牌」演示。
+- 新增 `test/theme_vars_test.dart`：锁定 applyVars 四条不变式（覆盖生效 / 未识别 key 忽略 /
+  空 map identical / 多 key 同时覆盖）+ ConfigProvider 父子级联（子级优先、未覆盖沿用父级）。
+- **slider 尺寸参数化（E 类最后一个魔数组）**：新增 `height`（默认 56）/ `thumbSize`
+  （默认 28）/ `trackHeight`（默认 3）三个可选参数，布局随参数推导；默认值下与历史渲染
+  逐像素一致（golden 三态矩阵不受影响），示例页补自定义尺寸演示。
+- **示例页演示补齐**（`input` 编程控制 controller/focusNode/inputFormatters/autofocus/
+  onSubmitted——此前审计声称已补但页面缺失，本次实际落盘；`cascader`/`picker`/`picker_view`
+  optionBuilder 插槽；`calendar` switchMode=none + firstDayOfWeek=0/1 + confirmText/cancelText/
+  allowSameDay；`qr_code` errorLevel 四级；`badge` showZero/showDot/danger；`notify` position=top +
+  safeHeight + onClosed；`fab` type 五色 + customPosition 定位；`curtain` position=bottom +
+  closePosition=outside；`tour` placement 五方位 + closeOnClickMask/clickMaskNext/四按钮文案/
+  onChange/onNext/onPrev/onLeave/maskPadding/autoScroll；`img_cropper` outputType/quality +
+  内置操作栏 showButtons/cancelText/confirmText/onCancelled/onCrop + aspectRatio/cropSize/
+  minScale/maxScale + imageProvider；`table` showHead/headerRowHeight/emptyText/onSort/
+  selectedRows 受控行选/rowSelectionWidth；`drop_menu` closeOnClickOverlay 现场切换；
+  `dialog` alert 拦截对照）。
+
+### Changed
+
+- **BREAKING**：`WotCropType` 由 String 常量类改为枚举（`WotImgCropper.outputType` /
+  `WotCropResult.outputType` 类型随之变化）。**传参写法不变**（`WotCropType.png` /
+  `WotCropType.jpg` 拼写一致），仅当调用方以 String 字面量 `'png'` 传参或显式标注类型时需迁移。
+- **`WotLoadmore` 参数废弃标记**：`onLoadmore`（改用 `onLoadMore`）与 `failedText`
+  （改用 `loadingFailedText`）加 `@Deprecated`，仍保留兼容调用，后续版本移除。
+
+### Fixed
+
+- **segmented 非 block 定宽溢出（E 类典型单点）**：原按 `options.length × 88` 固定总宽，
+  长文案被截断、超多选项窄屏必溢出。现改为每项最小 88、长文案自然撑开（Text 单行省略兜底），
+  整体超宽时水平滚动；block 模式行为不变。示例页补长文案 / 八选项边界演示。
+- **navbar 胶囊窄屏溢出（E 类）**：胶囊宽度 180 写死 → 按屏宽自适应（预留约 160px 给
+  返回箭头与标题，钳制 120~180）。
+- **select_picker 弹层小屏溢出（E 类）**：弹层高度 430 写死 → 上限 430、小屏收敛为
+  可用高度的 80%。
+- **calendar 补位日字号（E 类）**：topInfo/bottomInfo 字号 8 过小 → 10。
+- **pagination 清理**：文件尾全局常量 `kWhite` 删除，直接用 `Colors.white`。
+- **example 拖拽重排示例修正**：`WotTable` 示例页的 `_DragSortDemo` 仍保留 3.47.7 语义变更前的
+  `newIndex -= 1` 自减修正（组件侧 10-21 已改为「最终落位索引」），按新语义会差一位——已删除修正。
+- **img_cropper `outputType: jpg` 真正生效**：引擎支持 JPEG 编码（`ImageByteFormat.jpeg`，
+  Flutter ≥ 3.22）时按 JPEG 输出且 `quality` 生效；老引擎自动回退 PNG。实际格式以
+  `WotCropResult.outputType` 如实上报（探测写法与 `WotSignature.fileType` 一致）。
+- ~~已知未消费参数登记~~ → **已解决**：`config_provider.themeVars` 经 `WotScheme.applyVars`
+  落地（见 Added），示例页 TODO 已替换为「自定义语义令牌」演示。
+
+### Note
+
+- **验证收口（2026-10-27）**：全量测试在本环境跑通——根目录 **79/79 全绿**（含 golden 三态矩阵、
+  新增 theme_vars / cascader_sheet 测试），example **82/82 全绿**（render smoke 逐页渲染全部示例页）。
+  环境方法：`flutter.bat` 会话内挂起，直调
+  `{fvm}/bin/cache/dart-sdk/bin/dart.exe {fvm}/bin/cache/flutter_tools.snapshot test` 可行。
+- 本批示例层修复印证审查经验「写不出演示的参数，往往就是不生效的参数」：
+  `config_provider.themeVars`（无示例页 → 死参数现形）、`WotPicker.show.optionBuilder`
+  （写演示时发现漏传）均为补示例过程中暴露。
+
+---
+
 ## Unreleased — 2026-10-21
 
 开发基线从 Flutter 3.41.4 升级到 **3.47.7**（Dart 3.13.5），同步清理新版 SDK 的弃用 API。

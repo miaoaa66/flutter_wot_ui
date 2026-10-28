@@ -38,7 +38,12 @@ class WotConfigProvider extends StatelessWidget {
   /// 可选自定义语言包。
   final Map<String, String>? localeMessages;
 
-  /// 自定义主题变量（覆盖语义令牌，如 `{'--wot-text-main': Color(...)}`）。
+  /// 自定义主题变量（覆盖语义令牌）。
+  ///
+  /// key 规则：`--wot-` + 语义令牌小写 kebab-case（如 `--wot-text-main`、
+  /// `--wot-danger-main`），在当前明暗模式解析结果之上叠加；父子级联合并。
+  /// 全部支持 key 见 [WotScheme.applyVars]；主色梯度不适用单色覆盖，
+  /// 一键换肤请改用 [wotTheme] 传入 `copyWithPrimary` 后的主题。
   final Map<String, Color>? themeVars;
 
   /// Button 组件全局默认，支持 size/variant/type/round，可与父级级联合并。
@@ -59,7 +64,10 @@ class WotConfigProvider extends StatelessWidget {
     final mergedButton =
         (defaults.button ?? const WotButtonDefaults()).merge(button);
     final mergedTag = (defaults.tag ?? const WotTagDefaults()).merge(tag);
+    // themeVars 在当前明暗模式的解析结果之上叠加语义令牌覆盖。
+    final mergedVars = mergeVarMap(parent.themeVars, themeVars);
     final mergedTheme = resolved.copyWith(
+      scheme: resolved.scheme.applyVars(mergedVars),
       componentDefaults:
           WotComponentDefaults(button: mergedButton, tag: mergedTag),
     );

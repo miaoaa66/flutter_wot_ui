@@ -149,7 +149,7 @@ class WotNavbar extends StatelessWidget implements PreferredSizeWidget {
           Expanded(
             child: Center(
               child: capsule
-                  ? _capsule(scheme, fg)
+                  ? _capsule(context, scheme, fg)
                   : (titleWidget ??
                       Text(
                         title ?? '',
@@ -186,8 +186,10 @@ class WotNavbar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   /// 渲染顶部胶囊（navbar-capsule）：左半图标、右半文字，各自可点。需要传入 [WotScheme]。
-  Widget _capsule(WotScheme scheme, Color fg) {
-    const capW = 180.0;
+  Widget _capsule(BuildContext context, WotScheme scheme, Color fg) {
+    // 窄屏自适应：预留返回箭头 + 标题的约 160px，上限保持 180，下限 120。
+    final capW =
+        (MediaQuery.sizeOf(context).width - 160).clamp(120.0, 180.0).toDouble();
     const capH = 34.0;
     final cb = capsuleBackground ?? scheme.opacLightCover;
     return Container(

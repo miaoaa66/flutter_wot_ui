@@ -956,27 +956,15 @@ class _CalendarSheetState extends State<_CalendarSheet> {
     final scheme = context.wotScheme;
     final primary = widget.color ?? scheme.primaryOf(6);
 
-    final list = <Widget>[];
-    list.add(_buildHeader(scheme, primary));
+    final head = <Widget>[];
+    head.add(_buildHeader(scheme, primary));
     final typeSwitch = _buildTypeSwitch(scheme, primary);
-    if (typeSwitch != null) list.add(typeSwitch);
+    if (typeSwitch != null) head.add(typeSwitch);
     final shortcuts = _buildShortcuts(scheme, primary);
-    if (shortcuts != null) list.add(shortcuts);
+    if (shortcuts != null) head.add(shortcuts);
     final rangeBar = _buildRangeBar(scheme);
-    if (rangeBar != null) list.add(rangeBar);
-    list.add(
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: _isMonthType ? _buildMonthBody(primary) : _buildDayBody(scheme, primary),
-      ),
-    );
-    list.add(_buildConfirmArea(scheme, primary));
-
-    final content = Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: list,
-    );
+    if (rangeBar != null) head.add(rangeBar);
+    final confirm = _buildConfirmArea(scheme, primary);
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -984,7 +972,25 @@ class _CalendarSheetState extends State<_CalendarSheet> {
       child: LayoutBuilder(
         builder: (context, cons) {
           final availH = cons.maxHeight;
-          if (availH.isFinite && availH > 0) {
+          final bounded = availH.isFinite && availH > 0;
+          // 平铺（none）的日期面板内容较长：有界高度时中部月份列表自身滚动、确认区固定底部。
+          final flat = !_isMonthType && widget.switchMode == WotCalendarSwitchMode.none;
+          final body = Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: _isMonthType ? _buildMonthBody(primary) : _buildDayBody(scheme, primary, flexFlatGrid: flat && bounded),
+          );
+          if (flat && bounded) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [...head, Expanded(child: body), confirm],
+            );
+          }
+          final content = Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [...head, body, confirm],
+          );
+          if (bounded) {
             return SingleChildScrollView(child: content);
           }
           return content;
@@ -993,23 +999,25 @@ class _CalendarSheetState extends State<_CalendarSheet> {
     );
   }
 
-  Widget _buildDayBody(WotScheme scheme, Color primary) {
+  Widget _buildDayBody(WotScheme scheme, Color primary, {bool flexFlatGrid = false}) {
     final h = _highlight();
+    final grid = _MonthGrid(
+      full: h.full,
+      light: h.light,
+      color: primary,
+      minDate: widget.minDate,
+      maxDate: widget.maxDate,
+      firstDayOfWeek: widget.firstDayOfWeek,
+      formatter: widget.formatter,
+      switchMode: widget.switchMode,
+      onDay: _onDayClick,
+    );
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _MonthGrid(
-          full: h.full,
-          light: h.light,
-          color: primary,
-          minDate: widget.minDate,
-          maxDate: widget.maxDate,
-          firstDayOfWeek: widget.firstDayOfWeek,
-          formatter: widget.formatter,
-          switchMode: widget.switchMode,
-          onDay: _onDayClick,
-        ),
+        // 平铺且外层给了有界高度时，月份列表占满剩余空间并在内部滚动。
+        if (flexFlatGrid) Expanded(child: grid) else grid,
         if (_isTime) ...[
           const SizedBox(height: 8),
           _TimeRow(label: '开始时间', value: _time1, hideSecond: widget.hideSecond, color: primary, onChanged: (t) => setState(() => _time1 = t)),
@@ -1067,12 +1075,29 @@ class _MonthGridState extends State<_MonthGrid> {
   late int _year;
   late int _month;
 
+  /// 平铺模式下用于首帧定位当前月的锚点。
+  final GlobalKey _currentMonthKey = GlobalKey();
+
+  /// 平铺模式内部滚动容器（有界高度时创建）。
+  final ScrollController _flatScroll = ScrollController();
+  final GlobalKey _flatScrollKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
     final seed = widget.full.isEmpty ? DateTime.now() : widget.full.first;
     _year = seed.year;
     _month = seed.month;
+    // 平铺模式：首帧后在自身滚动容器内定位到当前月（对齐 wot 打开日历落在当前月的行为）。
+    if (widget.switchMode == WotCalendarSwitchMode.none) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToCurrentMonth());
+    }
+  }
+
+  @override
+  void dispose() {
+    _flatScroll.dispose();
+    super.dispose();
   }
 
   /// 按 firstDayOfWeek 计算某个日期在周内的偏移（firstDayOfWeek: 0=周日 … 6=周六）。
@@ -1165,17 +1190,21 @@ class _MonthGridState extends State<_MonthGrid> {
 
   @override
   Widget build(BuildContext context) {
+    // 平铺模式：渲染 minDate~maxDate 之间所有月份，整体可滚动（对齐 wot switch-mode=none）。
+    if (widget.switchMode == WotCalendarSwitchMode.none) {
+      return _buildFlat(context);
+    }
     final scheme = context.wotScheme;
     final firstDay = DateTime(_year, _month, 1);
-    final leading = _weekdayIndex(firstDay);
-    const totalCells = 42;
 
     // 头部左侧：month 模式显示上个月 ‹；year-month 模式下可显示上一年 ‹‹ + 上个月 ‹。
     final left = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (widget.switchMode == WotCalendarSwitchMode.yearMonth)
+        if (widget.switchMode == WotCalendarSwitchMode.yearMonth) ...[
           InkWell(onTap: () => _shiftYear(-1), child: const Text('‹‹', style: TextStyle(fontSize: 16))),
+          const SizedBox(width: 12),
+        ],
         if (widget.switchMode != WotCalendarSwitchMode.none)
           InkWell(onTap: () => _shift(-1), child: const Text('‹', style: TextStyle(fontSize: 20))),
       ],
@@ -1183,8 +1212,10 @@ class _MonthGridState extends State<_MonthGrid> {
     final right = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (widget.switchMode != WotCalendarSwitchMode.none)
+        if (widget.switchMode != WotCalendarSwitchMode.none) ...[
           InkWell(onTap: () => _shift(1), child: const Text('›', style: TextStyle(fontSize: 20))),
+          const SizedBox(width: 12),
+        ],
         if (widget.switchMode == WotCalendarSwitchMode.yearMonth)
           InkWell(onTap: () => _shiftYear(1), child: const Text('››', style: TextStyle(fontSize: 16))),
       ],
@@ -1211,21 +1242,116 @@ class _MonthGridState extends State<_MonthGrid> {
           ],
         ),
         const SizedBox(height: 4),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7, childAspectRatio: 1.2),
-          itemCount: totalCells,
-          itemBuilder: (context, index) {
-            // 跨月连续：用 DateTime 归一化生成前一月/后一个月的补位日。
-            final date = DateTime(_year, _month, index - leading + 1);
-            final inMonth = date.year == _year && date.month == _month;
-            final disabled = _isDisabled(date);
-            return _cell(context, scheme, date, disabled, inMonth);
-          },
-        ),
+        _gridFor(scheme, firstDay),
       ],
     );
+  }
+
+  /// 单月网格（42 格含跨月补位），单月模式与平铺模式复用。
+  Widget _gridFor(WotScheme scheme, DateTime firstDay) {
+    final leading = _weekdayIndex(firstDay);
+    const totalCells = 42;
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7, childAspectRatio: 1.2),
+      itemCount: totalCells,
+      itemBuilder: (context, index) {
+        // 跨月连续：用 DateTime 归一化生成前一月/后一个月的补位日。
+        final date = DateTime(firstDay.year, firstDay.month, index - leading + 1);
+        final inMonth = date.year == firstDay.year && date.month == firstDay.month;
+        final disabled = _isDisabled(date);
+        return _cell(context, scheme, date, disabled, inMonth);
+      },
+    );
+  }
+
+  /// 平铺模式：纵向渲染范围内所有月份；周表头固定顶部，月份列表在剩余空间内滚动
+  /// （内嵌无界高度时退化为直接平铺，交给外层滚动）。
+  Widget _buildFlat(BuildContext context) {
+    final scheme = context.wotScheme;
+    final minDate = widget.minDate ?? _defaultMinDate();
+    final maxDate = widget.maxDate ?? _defaultMaxDate();
+    final now = DateTime.now();
+
+    final blocks = <Widget>[];
+    var month = DateTime(minDate.year, minDate.month, 1);
+    final end = DateTime(maxDate.year, maxDate.month, 1);
+    while (!month.isAfter(end)) {
+      final isCurrent = month.year == now.year && month.month == now.month;
+      blocks.add(_flatMonthBlock(scheme, month, isCurrent: isCurrent));
+      month = DateTime(month.year, month.month + 1, 1);
+    }
+    // 范围异常（minDate 晚于 maxDate）时兜底渲染当前月。
+    if (blocks.isEmpty) {
+      blocks.add(_flatMonthBlock(scheme, DateTime(now.year, now.month, 1), isCurrent: true));
+    }
+    final months = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: blocks,
+    );
+
+    return LayoutBuilder(
+      builder: (context, cons) {
+        final bounded = cons.maxHeight.isFinite && cons.maxHeight > 0;
+        final weekday = Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(
+            children: [
+              for (final w in _weekLabels) Expanded(child: Center(child: Text(w, style: TextStyle(fontSize: 12, color: scheme.textAuxiliary)))),
+            ],
+          ),
+        );
+        if (!bounded) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [weekday, months],
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [weekday, Expanded(child: SingleChildScrollView(key: _flatScrollKey, controller: _flatScroll, child: months))],
+        );
+      },
+    );
+  }
+
+  /// 平铺模式下的单月块：月份标题 + 月网格。
+  Widget _flatMonthBlock(WotScheme scheme, DateTime firstDay, {required bool isCurrent}) {
+    return Column(
+      key: isCurrent ? _currentMonthKey : null,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 8),
+        Center(
+          child: Text(
+            '${firstDay.year} 年 ${firstDay.month} 月',
+            style: TextStyle(fontSize: 16, color: scheme.textMain, fontWeight: FontWeight.w600),
+          ),
+        ),
+        const SizedBox(height: 4),
+        _gridFor(scheme, firstDay),
+      ],
+    );
+  }
+
+  /// 平铺模式首帧后定位到当前月。
+  ///
+  /// 仅在内部滚动容器存在时（弹层/受限高度）用自己的 controller 跳转，
+  /// 内嵌无界高度（交给外层滚动）时不做任何定位，避免劫持外层页面滚动。
+  void _scrollToCurrentMonth() {
+    if (!mounted || !_flatScroll.hasClients) return;
+    final monthCtx = _currentMonthKey.currentContext;
+    final scrollCtx = _flatScrollKey.currentContext;
+    if (monthCtx == null || scrollCtx == null) return;
+    final monthBox = monthCtx.findRenderObject();
+    final scrollBox = scrollCtx.findRenderObject();
+    if (monthBox is! RenderBox || scrollBox is! RenderBox || !monthBox.attached || !scrollBox.attached) return;
+    final dy = monthBox.localToGlobal(Offset.zero, ancestor: scrollBox).dy;
+    _flatScroll.jumpTo(dy.clamp(0.0, _flatScroll.position.maxScrollExtent));
   }
 
   Widget _cell(BuildContext context, WotScheme scheme, DateTime date, bool disabled, bool inMonth) {
@@ -1263,7 +1389,7 @@ class _MonthGridState extends State<_MonthGrid> {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (fmt?.topInfo != null)
-          Text(fmt!.topInfo!, style: TextStyle(fontSize: 8, color: isFull ? Colors.white : scheme.textAuxiliary)),
+          Text(fmt!.topInfo!, style: TextStyle(fontSize: 10, color: isFull ? Colors.white : scheme.textAuxiliary)),
         Text(
           dayText,
           style: TextStyle(
@@ -1271,7 +1397,7 @@ class _MonthGridState extends State<_MonthGrid> {
             color: isFull ? Colors.white : (dim ? scheme.textDisabled : scheme.textMain),
           ),
         ),
-        if (fmt?.bottomInfo != null) Text(fmt!.bottomInfo!, style: TextStyle(fontSize: 8, color: isFull ? Colors.white : scheme.textAuxiliary)),
+        if (fmt?.bottomInfo != null) Text(fmt!.bottomInfo!, style: TextStyle(fontSize: 10, color: isFull ? Colors.white : scheme.textAuxiliary)),
       ],
     );
   }

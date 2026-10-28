@@ -240,7 +240,58 @@ class _WotCalendarPageState extends State<WotCalendarPage> {
                     onConfirm: (v) => demoToast(context, '年+月切换确认'),
                   )),
                 ),
+                WotButton(
+                  text: 'none（平铺全部月份，默认值）',
+                  size: WotButtonSize.small,
+                  onClick: () => _openAdvanced(WotCalendar(
+                    type: WotCalendarType.single,
+                    title: '平铺（none）',
+                    switchMode: WotCalendarSwitchMode.none,
+                    onConfirm: (v) => demoToast(context, '平铺确认'),
+                  )),
+                ),
               ],
+            )),
+        demoBlock(
+            'firstDayOfWeek：0 = 周日起始（默认，对齐 wot），1 = 周一起始',
+            Wrap(
+              spacing: 8,
+              children: [
+                WotButton(
+                  text: 'firstDayOfWeek: 0（周日）',
+                  size: WotButtonSize.small,
+                  onClick: () => _openAdvanced(WotCalendar(
+                    type: WotCalendarType.single,
+                    title: '周日起始',
+                    firstDayOfWeek: 0,
+                    onConfirm: (v) => demoToast(context, '确认'),
+                  )),
+                ),
+                WotButton(
+                  text: 'firstDayOfWeek: 1（周一）',
+                  size: WotButtonSize.small,
+                  onClick: () => _openAdvanced(WotCalendar(
+                    type: WotCalendarType.single,
+                    title: '周一起始',
+                    firstDayOfWeek: 1,
+                    onConfirm: (v) => demoToast(context, '确认'),
+                  )),
+                ),
+              ],
+            )),
+        demoBlock(
+            'confirmText / cancelText 自定义弹层按钮文案 + allowSameDay（区间起止允许同一天）',
+            WotButton(
+              text: '自定义文案 + 同日起止',
+              size: WotButtonSize.small,
+              onClick: () => _openAdvanced(WotCalendar(
+                type: WotCalendarType.range,
+                title: '同日起止',
+                confirmText: '就这天',
+                cancelText: '再想想',
+                allowSameDay: true,
+                onConfirm: (v) => demoToast(context, '确认：$v'),
+              )),
             )),
         demoBlock(
             '日周月切换 show-type-switch',

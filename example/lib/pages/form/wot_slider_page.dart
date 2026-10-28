@@ -16,6 +16,7 @@ class _WotSliderPageState extends State<WotSliderPage> {
   num _v2 = 30;
   num _v3 = 60;
   num _v4 = 50;
+  num _v5 = 70;
   num _low = 20;
   num _high = 80;
   bool _disabled = false;
@@ -76,6 +77,18 @@ class _WotSliderPageState extends State<WotSliderPage> {
         demoSection('颜色（activeColor / inactiveColor）'),
         demoBlock('自定义颜色滑块',
             WotSlider(modelValue: _v2, activeColor: const Color(0xFF12B886), inactiveColor: const Color(0xFFD0D0D0), onChange: (v) => setState(() => _v2 = v))),
+        demoSection('尺寸（height / thumbSize / trackHeight）'),
+        demoBlock(
+            'height: 44 + thumbSize: 20 + trackHeight: 6（默认 56/28/3）——'
+            '三项联动推导布局，粗轨道配小圆点',
+            WotSlider(
+              modelValue: _v5,
+              height: 44,
+              thumbSize: 20,
+              trackHeight: 6,
+              showMinMax: true,
+              onChange: (v) => setState(() => _v5 = v),
+            )),
       ],
     );
   }

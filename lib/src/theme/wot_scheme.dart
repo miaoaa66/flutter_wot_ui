@@ -136,6 +136,239 @@ class WotScheme {
   /// 便捷取主色之一（level 1-10）。
   Color primaryOf(int level) => primary[level - 1];
 
+  /// 应用 `--wot-*` 主题变量覆盖（供 `WotConfigProvider.themeVars` 使用）。
+  ///
+  /// key 规则：`--wot-` + 语义令牌小写 kebab-case，例如：
+  /// `--wot-text-main`、`--wot-danger-main`、`--wot-border-light`、
+  /// `--wot-filled-strong`、`--wot-opac-main-cover`、`--wot-picker-view-mask-start`。
+  /// 未识别的 key 静默忽略；主色梯度 [primary] 是 10 级 `List<Color>`，
+  /// 不适用单色覆盖——一键换肤请用 [copyWithPrimary] 或 `copyWith(primary: …)`。
+  WotScheme applyVars(Map<String, Color> vars) {
+    if (vars.isEmpty) return this;
+    Color? dangerMain,
+        dangerHover,
+        dangerClicked,
+        dangerDisabled,
+        dangerParticular,
+        dangerSurface,
+        successMain,
+        successHover,
+        successClicked,
+        successDisabled,
+        successParticular,
+        successSurface,
+        warningMain,
+        warningHover,
+        warningClicked,
+        warningDisabled,
+        warningParticular,
+        warningSurface,
+        textMain,
+        textSecondary,
+        textAuxiliary,
+        textDisabled,
+        textPlaceholder,
+        textWhite,
+        iconMain,
+        iconSecondary,
+        iconAuxiliary,
+        iconDisabled,
+        iconPlaceholder,
+        iconWhite,
+        borderExtraStrong,
+        borderStrong,
+        borderMain,
+        borderLight,
+        borderWhite,
+        borderZero,
+        filledExtraStrong,
+        filledStrong,
+        filledContent,
+        filledBottom,
+        filledOppo,
+        filledZero,
+        dividerMain,
+        dividerLight,
+        dividerStrong,
+        dividerWhite,
+        feedbackHover,
+        feedbackActive,
+        feedbackAccent,
+        opacTooltipToastCover,
+        opacMainCover,
+        opacLightCover,
+        pickerViewMaskStart,
+        pickerViewMaskEnd;
+    for (final e in vars.entries) {
+      switch (e.key) {
+        case '--wot-danger-main':
+          dangerMain = e.value;
+        case '--wot-danger-hover':
+          dangerHover = e.value;
+        case '--wot-danger-clicked':
+          dangerClicked = e.value;
+        case '--wot-danger-disabled':
+          dangerDisabled = e.value;
+        case '--wot-danger-particular':
+          dangerParticular = e.value;
+        case '--wot-danger-surface':
+          dangerSurface = e.value;
+        case '--wot-success-main':
+          successMain = e.value;
+        case '--wot-success-hover':
+          successHover = e.value;
+        case '--wot-success-clicked':
+          successClicked = e.value;
+        case '--wot-success-disabled':
+          successDisabled = e.value;
+        case '--wot-success-particular':
+          successParticular = e.value;
+        case '--wot-success-surface':
+          successSurface = e.value;
+        case '--wot-warning-main':
+          warningMain = e.value;
+        case '--wot-warning-hover':
+          warningHover = e.value;
+        case '--wot-warning-clicked':
+          warningClicked = e.value;
+        case '--wot-warning-disabled':
+          warningDisabled = e.value;
+        case '--wot-warning-particular':
+          warningParticular = e.value;
+        case '--wot-warning-surface':
+          warningSurface = e.value;
+        case '--wot-text-main':
+          textMain = e.value;
+        case '--wot-text-secondary':
+          textSecondary = e.value;
+        case '--wot-text-auxiliary':
+          textAuxiliary = e.value;
+        case '--wot-text-disabled':
+          textDisabled = e.value;
+        case '--wot-text-placeholder':
+          textPlaceholder = e.value;
+        case '--wot-text-white':
+          textWhite = e.value;
+        case '--wot-icon-main':
+          iconMain = e.value;
+        case '--wot-icon-secondary':
+          iconSecondary = e.value;
+        case '--wot-icon-auxiliary':
+          iconAuxiliary = e.value;
+        case '--wot-icon-disabled':
+          iconDisabled = e.value;
+        case '--wot-icon-placeholder':
+          iconPlaceholder = e.value;
+        case '--wot-icon-white':
+          iconWhite = e.value;
+        case '--wot-border-extra-strong':
+          borderExtraStrong = e.value;
+        case '--wot-border-strong':
+          borderStrong = e.value;
+        case '--wot-border-main':
+          borderMain = e.value;
+        case '--wot-border-light':
+          borderLight = e.value;
+        case '--wot-border-white':
+          borderWhite = e.value;
+        case '--wot-border-zero':
+          borderZero = e.value;
+        case '--wot-filled-extra-strong':
+          filledExtraStrong = e.value;
+        case '--wot-filled-strong':
+          filledStrong = e.value;
+        case '--wot-filled-content':
+          filledContent = e.value;
+        case '--wot-filled-bottom':
+          filledBottom = e.value;
+        case '--wot-filled-oppo':
+          filledOppo = e.value;
+        case '--wot-filled-zero':
+          filledZero = e.value;
+        case '--wot-divider-main':
+          dividerMain = e.value;
+        case '--wot-divider-light':
+          dividerLight = e.value;
+        case '--wot-divider-strong':
+          dividerStrong = e.value;
+        case '--wot-divider-white':
+          dividerWhite = e.value;
+        case '--wot-feedback-hover':
+          feedbackHover = e.value;
+        case '--wot-feedback-active':
+          feedbackActive = e.value;
+        case '--wot-feedback-accent':
+          feedbackAccent = e.value;
+        case '--wot-opac-tooltip-toast-cover':
+          opacTooltipToastCover = e.value;
+        case '--wot-opac-main-cover':
+          opacMainCover = e.value;
+        case '--wot-opac-light-cover':
+          opacLightCover = e.value;
+        case '--wot-picker-view-mask-start':
+          pickerViewMaskStart = e.value;
+        case '--wot-picker-view-mask-end':
+          pickerViewMaskEnd = e.value;
+      }
+    }
+    return copyWith(
+      dangerMain: dangerMain,
+      dangerHover: dangerHover,
+      dangerClicked: dangerClicked,
+      dangerDisabled: dangerDisabled,
+      dangerParticular: dangerParticular,
+      dangerSurface: dangerSurface,
+      successMain: successMain,
+      successHover: successHover,
+      successClicked: successClicked,
+      successDisabled: successDisabled,
+      successParticular: successParticular,
+      successSurface: successSurface,
+      warningMain: warningMain,
+      warningHover: warningHover,
+      warningClicked: warningClicked,
+      warningDisabled: warningDisabled,
+      warningParticular: warningParticular,
+      warningSurface: warningSurface,
+      textMain: textMain,
+      textSecondary: textSecondary,
+      textAuxiliary: textAuxiliary,
+      textDisabled: textDisabled,
+      textPlaceholder: textPlaceholder,
+      textWhite: textWhite,
+      iconMain: iconMain,
+      iconSecondary: iconSecondary,
+      iconAuxiliary: iconAuxiliary,
+      iconDisabled: iconDisabled,
+      iconPlaceholder: iconPlaceholder,
+      iconWhite: iconWhite,
+      borderExtraStrong: borderExtraStrong,
+      borderStrong: borderStrong,
+      borderMain: borderMain,
+      borderLight: borderLight,
+      borderWhite: borderWhite,
+      borderZero: borderZero,
+      filledExtraStrong: filledExtraStrong,
+      filledStrong: filledStrong,
+      filledContent: filledContent,
+      filledBottom: filledBottom,
+      filledOppo: filledOppo,
+      filledZero: filledZero,
+      dividerMain: dividerMain,
+      dividerLight: dividerLight,
+      dividerStrong: dividerStrong,
+      dividerWhite: dividerWhite,
+      feedbackHover: feedbackHover,
+      feedbackActive: feedbackActive,
+      feedbackAccent: feedbackAccent,
+      opacTooltipToastCover: opacTooltipToastCover,
+      opacMainCover: opacMainCover,
+      opacLightCover: opacLightCover,
+      pickerViewMaskStart: pickerViewMaskStart,
+      pickerViewMaskEnd: pickerViewMaskEnd,
+    );
+  }
+
   /// 仅替换主色区梯度（1-10），并可选替换 feedback-accent。
   ///
   /// 适合"主题色一键换肤"；如需精调其他色值请用 [copyWith]。

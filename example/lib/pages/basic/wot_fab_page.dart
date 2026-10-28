@@ -48,8 +48,28 @@ class _WotFabPageState extends State<WotFabPage> {
                 ),
               ),
             )),
-        demoSection('类型（type）'),
-        demoBlock('success 类型', WotFab(icon: 'heart', type: WotFabType.success, onClick: () => demoToast(context, 'success FAB'))),
+        demoSection('类型（type）预设色平铺'),
+        demoBlock(
+            '默认 primary / success / info / warning / danger',
+            Wrap(spacing: 12, runSpacing: 12, children: [
+              WotFab(icon: 'add', onClick: () => demoToast(context, 'primary FAB')),
+              WotFab(icon: 'heart', type: WotFabType.success, onClick: () => demoToast(context, 'success FAB')),
+              WotFab(icon: 'chat', type: WotFabType.info, onClick: () => demoToast(context, 'info FAB')),
+              WotFab(icon: 'message', type: WotFabType.warning, onClick: () => demoToast(context, 'warning FAB')),
+              WotFab(icon: 'close', type: WotFabType.danger, onClick: () => demoToast(context, 'danger FAB')),
+            ])),
+        demoSection('定位（position / customPosition，需外层 Stack 承载）'),
+        demoBlock(
+            'position: custom + customPosition（左上角）与 bottom + right（右下角）'
+            '——WotFab 生成 Positioned，必须放在 Stack 内',
+            SizedBox(
+              height: 140,
+              child: Stack(children: [
+                const Positioned.fill(child: ColoredBox(color: Color(0x08000000))),
+                WotFab(icon: 'add', position: WotFabPosition.custom, customPosition: const Offset(16, 16)),
+                WotFab(icon: 'heart', type: WotFabType.success, bottom: 16, right: 16),
+              ]),
+            )),
         demoSection('新增（D 类 P1）：disabled 禁用'),
         demoBlock('disabled：主按钮与动作列表均不可点，整体半透明',
             WotFab(disabled: true, icon: 'add')),

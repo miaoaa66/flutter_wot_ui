@@ -14,6 +14,7 @@ class WotCurtainPage extends StatefulWidget {
 class _WotCurtainPageState extends State<WotCurtainPage> {
   bool _show = false;
   bool _showSrc = false;
+  bool _showOutside = false;
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +59,32 @@ class _WotCurtainPageState extends State<WotCurtainPage> {
           maskClose: true,
           closePosition: WotCurtainClosePosition.inside,
           onModelUpdate: (v) => setState(() => _showSrc = v),
+        ),
+        demoSection('位置（position）与关闭按钮在外（closePosition: outside）'),
+        demoBlock(
+            'position: bottom（幕布贴底展示）+ closePosition: outside'
+            '（关闭按钮在幕布外 18px，命中区有预留；默认 inside 在幕布内）',
+            FilledButton(
+                onPressed: () => setState(() => _showOutside = true),
+                child: const Text('打开底部幕布'))),
+        WotCurtain(
+          modelValue: _showOutside,
+          position: WotCurtainPosition.bottom,
+          closePosition: WotCurtainClosePosition.outside,
+          onModelUpdate: (v) => setState(() => _showOutside = v),
+          child: Container(
+            width: 260,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+            child: const Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                WotText('贴底幕布', bold: true, size: 16),
+                SizedBox(height: 12),
+                WotText('关闭按钮显示在幕布外侧。', type: WotTextType.wotDefault),
+              ],
+            ),
+          ),
         ),
       ],
     );

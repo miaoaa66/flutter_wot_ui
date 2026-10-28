@@ -38,6 +38,35 @@ class _WotCascaderPageState extends State<WotCascaderPage> {
         demoSection('基础（options 树 / modelValue 回显）'),
         demoBlock('两级级联 + 受控回显',
             WotCascader(options: _options, modelValue: _region, onChange: (v) => setState(() => _region = v))),
+        demoSection('选项自定义渲染插槽（optionBuilder）'),
+        demoBlock(
+            'optionBuilder：每行自定义为「图标 + 文案 + 下级数」；'
+            '选中态入参 selected 与下钻箭头仍由组件统一处理',
+            WotCascader(
+              options: _options,
+              modelValue: _region,
+              onChange: (v) => setState(() => _region = v),
+              optionBuilder: (context, node, selected) => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    selected ? Icons.check_circle : Icons.place,
+                    size: 14,
+                    color: selected
+                        ? Theme.of(context).colorScheme.primary
+                        : Colors.grey,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(node.text),
+                  if (node.children.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: Text('${node.children.length} 个下级',
+                          style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                    ),
+                ],
+              ),
+            )),
         demoSection('占位与默认展开'),
         demoBlock(
             'placeholder 占位（未选择）',

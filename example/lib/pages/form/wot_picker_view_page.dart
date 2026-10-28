@@ -15,6 +15,7 @@ class _WotPickerViewPageState extends State<WotPickerViewPage> {
   List<Object?> _single = ['选项2'];
   List<Object?> _multi = ['中南大学', '软件工程'];
   List<Object?> _withDisabled = ['选项1'];
+  List<Object?> _built = ['步行'];
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +59,32 @@ class _WotPickerViewPageState extends State<WotPickerViewPage> {
               ),
             )),
         demoSection('多列'),
+        demoBlock('optionBuilder：选项自定义为「图标 + 文案」（选中药丸/放大/透明度仍由组件统一处理）',
+            SizedBox(
+              height: 180,
+              child: WotPickerView(
+                columns: [
+                  wotOptions(['步行', '骑行', '驾车', '公交', '地铁']),
+                ],
+                values: _built,
+                height: 180,
+                onChange: (v) => setState(() => _built = v),
+                optionBuilder: (context, option, selected) => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                      size: 14,
+                      color: selected
+                          ? Theme.of(context).colorScheme.primary
+                          : Colors.grey,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(option.text),
+                  ],
+                ),
+              ),
+            )),
         demoBlock('两列联动（columns 二维数组）',
             SizedBox(
               height: 180,

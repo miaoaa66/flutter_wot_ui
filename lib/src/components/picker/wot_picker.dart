@@ -84,6 +84,8 @@ class WotPicker extends StatefulWidget {
     bool readonly = false,
     ValueChanged<List<Object?>>? onConfirm,
     VoidCallback? onCancel,
+    Widget? Function(BuildContext context, WotColumnOption option, bool selected)?
+        optionBuilder,
   }) {
     return showModalBottomSheet<List<Object?>>(
       context: context,
@@ -100,6 +102,7 @@ class WotPicker extends StatefulWidget {
         readonly: readonly,
         onConfirm: onConfirm,
         onCancel: onCancel,
+        optionBuilder: optionBuilder,
       ),
     );
   }

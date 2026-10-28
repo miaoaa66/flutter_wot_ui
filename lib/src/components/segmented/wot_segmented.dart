@@ -86,39 +86,49 @@ class WotSegmented extends StatelessWidget {
       WotSegmentedSize.medium => 14.0,
     };
 
-    final row = Row(
-      children: [
-        for (final opt in options)
-          Expanded(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: opt.disabled
-                  ? null
-                  : () {
-                      if (modelValue != opt.value) onChange?.call(opt.value);
-                    },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                constraints: const BoxConstraints(minHeight: 32),
-                alignment: Alignment.center,
-                padding: EdgeInsets.symmetric(vertical: vPadding, horizontal: 12),
-                decoration: BoxDecoration(
-                  color: modelValue == opt.value ? active : Colors.transparent,
-                  borderRadius: radius,
-                ),
-                child: Text(
-                  opt.label,
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: modelValue == opt.value ? FontWeight.w600 : FontWeight.w400,
-                    color: modelValue == opt.value
-                        ? Colors.white
-                        : (opt.disabled ? scheme.textDisabled : scheme.textMain),
-                  ),
-                ),
+    Widget optionCell(WotSegmentedOption opt) => GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: opt.disabled
+              ? null
+              : () {
+                  if (modelValue != opt.value) onChange?.call(opt.value);
+                },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            constraints: const BoxConstraints(minHeight: 32),
+            alignment: Alignment.center,
+            padding: EdgeInsets.symmetric(vertical: vPadding, horizontal: 12),
+            decoration: BoxDecoration(
+              color: modelValue == opt.value ? active : Colors.transparent,
+              borderRadius: radius,
+            ),
+            child: Text(
+              opt.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: fontSize,
+                fontWeight: modelValue == opt.value ? FontWeight.w600 : FontWeight.w400,
+                color: modelValue == opt.value
+                    ? Colors.white
+                    : (opt.disabled ? scheme.textDisabled : scheme.textMain),
               ),
             ),
           ),
+        );
+
+    final row = Row(
+      mainAxisSize: block ? MainAxisSize.max : MainAxisSize.min,
+      children: [
+        for (final opt in options)
+          block
+              ? Expanded(child: optionCell(opt))
+              // 非 block：每项最小 88（与旧版定宽观感一致），长文案自然撑开，
+              // 整体超出可用宽度时水平滚动而不是溢出崩溃。
+              : ConstrainedBox(
+                  constraints: const BoxConstraints(minWidth: 88),
+                  child: optionCell(opt),
+                ),
       ],
     );
 
@@ -138,7 +148,10 @@ class WotSegmented extends StatelessWidget {
       value: selectedLabel.isEmpty ? null : '当前选中：$selectedLabel',
       child: block
           ? Container(child: container)
-          : SizedBox(width: options.length * 88.0, child: container),
+          : SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: container,
+            ),
     );
   }
 }

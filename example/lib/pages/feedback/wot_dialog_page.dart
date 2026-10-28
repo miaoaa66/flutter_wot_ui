@@ -116,6 +116,25 @@ class WotDialogPage extends StatelessWidget {
                 },
                 child: const Text('beforeConfirm 拦截'))),
         demoBlock(
+            'alert 同样支持 beforeConfirm：返回 false 时本次弹窗不出现（API 与 confirm 对称）',
+            Row(children: [
+              Flexible(
+                  child: FilledButton.tonal(
+                      onPressed: () => WotDialog.alert(context,
+                          title: '拦截',
+                          message: '你不应看到这个弹窗',
+                          beforeConfirm: () async => false),
+                      child: const Text('拦截（应无弹窗）'))),
+              const SizedBox(width: 8),
+              Flexible(
+                  child: FilledButton.tonal(
+                      onPressed: () => WotDialog.alert(context,
+                          title: '放行',
+                          message: '拦截通过，正常展示',
+                          beforeConfirm: () async => true),
+                      child: const Text('放行'))),
+            ])),
+        demoBlock(
             'actions 自定义按钮组 + vertical 纵排',
             FilledButton.tonal(
                 onPressed: () => WotDialog.show(

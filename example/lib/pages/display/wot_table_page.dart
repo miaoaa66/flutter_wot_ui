@@ -112,8 +112,108 @@ class WotTablePage extends StatelessWidget {
                 WotTableColumn(prop: 'age', label: '年龄'),
               ],
             )),
+        demoSection('表头 / 空态 / 排序回调（showHead / headerRowHeight / emptyText / onSort）'),
+        demoBlock('showHead: false（隐藏表头行）',
+            WotTable(
+              border: true,
+              showHead: false,
+              data: const [
+                {'name': '张三', 'age': 28},
+                {'name': '李四', 'age': 25},
+              ],
+              columns: const [
+                WotTableColumn(prop: 'name', label: '姓名', width: 100),
+                WotTableColumn(prop: 'age', label: '年龄'),
+              ],
+            )),
+        demoBlock('headerRowHeight: 56（表头行高，默认 40）',
+            WotTable(
+              border: true,
+              headerRowHeight: 56,
+              data: const [
+                {'name': '张三', 'age': 28},
+                {'name': '李四', 'age': 25},
+              ],
+              columns: const [
+                WotTableColumn(prop: 'name', label: '姓名', width: 100),
+                WotTableColumn(prop: 'age', label: '年龄'),
+              ],
+            )),
+        demoBlock('emptyText 自定义空数据文案',
+            WotTable(
+              border: true,
+              emptyText: '暂无订单数据',
+              data: const [],
+              columns: const [
+                WotTableColumn(prop: 'name', label: '姓名', width: 100),
+                WotTableColumn(prop: 'age', label: '年龄'),
+              ],
+            )),
+        demoBlock('onSort 排序回调（组件内部已按方向排序，回调可同步外部数据）',
+            WotTable(
+              border: true,
+              data: const [
+                {'name': '张三', 'age': 28},
+                {'name': '李四', 'age': 25},
+                {'name': '王五', 'age': 30},
+              ],
+              columns: const [
+                WotTableColumn(prop: 'name', label: '姓名', width: 100),
+                WotTableColumn(prop: 'age', label: '年龄', sortable: true),
+              ],
+              onSort: (col, dir) =>
+                  demoToast(context, '排序：${col.label} ${dir.name}'),
+            )),
+        demoSection('受控行选择（selectedRows / rowSelectionWidth）'),
+        demoBlock('selectedRows 受控选中 + rowSelectionWidth: 60 选择列宽 + rowSelection: single',
+            const _SelectionDemo()),
       ],
     );
+  }
+}
+
+/// 受控行选择示例：selectedRows 由外部持有，onSelectionChange 回写。
+class _SelectionDemo extends StatefulWidget {
+  const _SelectionDemo();
+
+  @override
+  State<_SelectionDemo> createState() => _SelectionDemoState();
+}
+
+class _SelectionDemoState extends State<_SelectionDemo> {
+  Set<int> _selected = {1};
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Wrap(spacing: 8, children: [
+        FilledButton.tonal(
+            onPressed: () => setState(() => _selected = {0, 1, 2}),
+            child: const Text('外部全选')),
+        FilledButton.tonal(
+            onPressed: () => setState(() => _selected = {}),
+            child: const Text('外部清空')),
+        Text('当前选中：$_selected',
+            style: const TextStyle(fontSize: 12, height: 2.4)),
+      ]),
+      const SizedBox(height: 8),
+      WotTable(
+        border: true,
+        rowSelection: WotTableRowSelection.single,
+        selectedRows: _selected,
+        rowSelectionWidth: 60,
+        data: const [
+          {'name': '张三', 'age': 28},
+          {'name': '李四', 'age': 25},
+          {'name': '王五', 'age': 30},
+        ],
+        columns: const [
+          WotTableColumn(prop: 'name', label: '姓名', width: 100),
+          WotTableColumn(prop: 'age', label: '年龄'),
+        ],
+        onSelectionChange: (sel) => setState(() => _selected = sel),
+      ),
+    ]);
   }
 }
 
@@ -148,7 +248,7 @@ class _DragSortDemoState extends State<_DragSortDemo> {
       ],
       onReorder: (oldIndex, newIndex) {
         setState(() {
-          if (newIndex > oldIndex) newIndex -= 1;
+          // 3.47.7 起 newIndex 即最终落位索引，无需再做 old/new 修正。
           final item = _data.removeAt(oldIndex);
           _data.insert(newIndex, item);
         });

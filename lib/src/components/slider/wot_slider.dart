@@ -26,6 +26,9 @@ class WotSlider extends StatefulWidget {
     this.tipFormatter,
     this.showMinMax = false,
     this.showValueInThumb = false,
+    this.height = 56,
+    this.thumbSize = 28,
+    this.trackHeight = 3,
     this.name,
   });
 
@@ -82,6 +85,15 @@ class WotSlider extends StatefulWidget {
 
   /// 是否在当前值圆点内显示当前数值，默认 false。
   final bool showValueInThumb;
+
+  /// 整体高度（含提示气泡与 min/max 刻度的空间），默认 56。
+  final double height;
+
+  /// 滑块圆点直径，默认 28。
+  final double thumbSize;
+
+  /// 轨道高度，默认 3。
+  final double trackHeight;
 
   /// 表单字段名（用于原生表单提交示例）。
   final String? name;
@@ -193,17 +205,21 @@ class _WotSliderState extends State<WotSlider> {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
 
+        // 布局随 height/thumbSize/trackHeight 推导；默认值下与历史渲染逐像素一致
+        //（trackTop=27、thumbTop=14.5，+0.5 为历史中心化取整，保持不变以稳住 golden）。
+        final trackTop = widget.height / 2 - widget.trackHeight / 2 + 0.5;
+        final thumbTop = trackTop + widget.trackHeight / 2 - widget.thumbSize / 2;
+
         Widget thumb(double frac, {bool isLow = false, num? value}) {
           return Positioned(
-            // 轨道线中心 y ≈ 27 + 1.5 = 28.5；圆点高 28，故 top=14.5 使其竖直居中于轨道。
-            left: frac * width - 14,
-            top: 14.5,
+            left: frac * width - widget.thumbSize / 2,
+            top: thumbTop,
             child: SizedBox(
-              width: 28,
-              height: 28,
+              width: widget.thumbSize,
+              height: widget.thumbSize,
               child: Container(
-                width: 28,
-                height: 28,
+                width: widget.thumbSize,
+                height: widget.thumbSize,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
@@ -270,26 +286,26 @@ class _WotSliderState extends State<WotSlider> {
           onHorizontalDragEnd: locked ? null : (_) => _dragEnd(),
           onHorizontalDragCancel: locked ? null : _dragEnd,
           child: SizedBox(
-            height: 56,
+            height: widget.height,
             width: double.infinity,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
                 Positioned(
-                  top: 27,
+                  top: trackTop,
                   left: 0,
                   right: 0,
                   child: Container(
-                    height: 3,
+                    height: widget.trackHeight,
                     decoration: BoxDecoration(color: inactive, borderRadius: BorderRadius.circular(2)),
                   ),
                 ),
                 if (widget.range) ...[
                   Positioned(
-                    top: 27,
+                    top: trackTop,
                     left: width * lowFrac,
                     width: width * (highFrac - lowFrac),
-                    height: 3,
+                    height: widget.trackHeight,
                     child: Container(
                       decoration: BoxDecoration(color: active, borderRadius: BorderRadius.circular(2)),
                     ),
@@ -302,10 +318,10 @@ class _WotSliderState extends State<WotSlider> {
                     tip(_high, highFrac),
                 ] else ...[
                   Positioned(
-                    top: 27,
+                    top: trackTop,
                     left: 0,
                     width: width * highFrac,
-                    height: 3,
+                    height: widget.trackHeight,
                     child: Container(
                       decoration: BoxDecoration(color: active, borderRadius: BorderRadius.circular(2)),
                     ),

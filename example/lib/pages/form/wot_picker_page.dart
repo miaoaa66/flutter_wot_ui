@@ -52,6 +52,31 @@ class _WotPickerPageState extends State<WotPickerPage> {
     if (res != null) setState(() => _region = res);
   }
 
+  /// optionBuilder 插槽：命令式入口同样支持自定义选项渲染。
+  Future<void> _pickWithBuilder() async {
+    final res = await WotPicker.show(
+      context,
+      columns: [wotOptions(['北京', '广州', '上海', '深圳'])],
+      values: _city,
+      title: '自定义渲染',
+      optionBuilder: (context, option, selected) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            selected ? Icons.check_circle : Icons.radio_button_unchecked,
+            size: 14,
+            color: selected
+                ? Theme.of(context).colorScheme.primary
+                : Colors.grey,
+          ),
+          const SizedBox(width: 6),
+          Text(option.text),
+        ],
+      ),
+    );
+    if (res != null) setState(() => _city = res);
+  }
+
   @override
   Widget build(BuildContext context) {
     return WotDemoScaffold(
@@ -75,6 +100,18 @@ class _WotPickerPageState extends State<WotPickerPage> {
                 FilledButton.tonal(onPressed: _pickRegion, child: const Text('选择地区')),
                 const SizedBox(height: 8),
                 Text('选中：$_region', style: const TextStyle(fontSize: 12)),
+              ],
+            )),
+        demoSection('选项自定义渲染插槽（optionBuilder）'),
+        demoBlock(
+            'optionBuilder：选项自定义为「图标 + 文案」；命令式入口 WotPicker.show 与'
+            '内联 widget 均可传入，选中药丸/滚轮手感仍由组件统一处理',
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                FilledButton.tonal(onPressed: _pickWithBuilder, child: const Text('自定义渲染选择')),
+                const SizedBox(height: 8),
+                Text('选中：$_city', style: const TextStyle(fontSize: 12)),
               ],
             )),
         demoSection('顶部操作栏'),

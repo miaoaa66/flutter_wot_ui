@@ -10,9 +10,9 @@ enum WotLoadmoreState { loading, loadingFailed, noMore, finished }
 ///
 /// 参数对齐 wot：`state`（当前状态，`loading`/`finished`/`loadingFailed`）、
 /// `loadingText`/`loadMoreText`（加载文案）、`loadingSpinner`（加载中转圈）、
-/// `loadingFailedText`/`failedText`（加载失败状态文案与提示）、
+/// `loadingFailedText`（加载失败状态文案）、
 /// `finishedText`（完成文案）、`noMoreText`（没有更多文案）、`line`（是否显示分割线）、
-/// `loadMore`/`onLoadMore`/`onLoadmore`（加载失败点击重试回调）。
+/// `onLoadMore`（加载失败点击重试回调）。旧名 `onLoadmore`/`failedText` 已标记废弃。
 class WotLoadmore extends StatelessWidget {
   const WotLoadmore({
     super.key,
@@ -24,9 +24,9 @@ class WotLoadmore extends StatelessWidget {
     this.noMoreText,
     this.finishedText,
     this.line = false,
-    this.onLoadmore,
+    @Deprecated('使用 onLoadMore（Dart 驼峰命名规范），本参数保留兼容并将移除') this.onLoadmore,
     this.loadMoreText,
-    this.failedText,
+    @Deprecated('使用 loadingFailedText（对齐 wot loading-failed-text），本参数保留兼容并将移除') this.failedText,
     this.onLoadMore,
   });
 
@@ -54,13 +54,15 @@ class WotLoadmore extends StatelessWidget {
   /// 是否显示上下分割线。
   final bool line;
 
-  /// 加载失败点击重试回调（旧名，保留兼容）。
+  /// 加载失败点击重试回调。
+  @Deprecated('使用 onLoadMore（Dart 驼峰命名规范），本参数保留兼容并将移除')
   final VoidCallback? onLoadmore;
 
   /// 加载中展示的文案覆盖；为空时使用 [loadingText]。
   final String? loadMoreText;
 
-  /// 加载失败展示的文案覆盖；为空时使用 [loadingFailedText]。
+  /// 加载失败展示的文案覆盖。
+  @Deprecated('使用 loadingFailedText（对齐 wot loading-failed-text），本参数保留兼容并将移除')
   final String? failedText;
 
   /// 加载失败点击重试回调（对齐 wot `loadMore`/`reload`）。

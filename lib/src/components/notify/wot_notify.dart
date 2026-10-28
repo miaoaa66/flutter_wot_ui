@@ -71,7 +71,7 @@ class WotNotify {
         closable: closable,
         safeHeight: safeHeight,
         onClick: onClick,
-        onDismiss: dismiss,
+        onClosed: dismiss,
       ),
     );
     _entry = entry;
@@ -121,7 +121,7 @@ class _NotifyBar extends StatelessWidget {
     required this.closable,
     required this.safeHeight,
     this.onClick,
-    required this.onDismiss,
+    required this.onClosed,
   });
   final String message;
   final WotNotifyType type;
@@ -131,7 +131,7 @@ class _NotifyBar extends StatelessWidget {
   final bool closable;
   final double safeHeight;
   final VoidCallback? onClick;
-  final VoidCallback onDismiss;
+  final VoidCallback onClosed;
 
   @override
   Widget build(BuildContext context) {
@@ -173,7 +173,7 @@ class _NotifyBar extends StatelessWidget {
                 if (closable) ...[
                   const SizedBox(width: 8),
                   GestureDetector(
-                    onTap: onDismiss,
+                    onTap: onClosed,
                     behavior: HitTestBehavior.opaque,
                     child: Padding(
                       padding: const EdgeInsets.all(4),

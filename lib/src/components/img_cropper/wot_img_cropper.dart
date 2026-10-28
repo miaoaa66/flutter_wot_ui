@@ -30,8 +30,8 @@ class WotCropResult {
   /// 导出图片像素高。
   final int height;
 
-  /// 导出格式：`png` / `jpg`。
-  final String outputType;
+  /// 实际编码格式（引擎不支持 JPEG 时可能与请求的 [WotImgCropper.outputType] 不同）。
+  final WotCropType outputType;
 }
 
 /// 裁剪完成回调。
@@ -98,10 +98,12 @@ class WotImgCropper extends StatefulWidget {
   /// `aspect-ratio`（如 `3:2` → 1.5、`16:9` → 16/9）。
   final double? aspectRatio;
 
-  /// 导出格式：`jpg` / `png`，对应 wot `file-type`。
+  /// 导出格式，对应 wot `file-type`，默认 [WotCropType.png]。
   ///
-  /// 默认 `png`。请使用预置常量 [WotCropType.jpg]/[WotCropType.png]。
-  final String outputType;
+  /// 注意：当前 Flutter 引擎的 `ui.Image.toByteData` 若不支持 JPEG 编码
+  /// （老引擎仅内置 png），选 [WotCropType.jpg] 会回退为 PNG 字节，
+  /// 实际格式以 [WotCropResult.outputType] 如实上报为准。
+  final WotCropType outputType;
 
   /// 导出图片质量（0~1），对应 wot `quality`，默认 `1`。
   ///
@@ -134,15 +136,16 @@ class WotImgCropper extends StatefulWidget {
   State<WotImgCropper> createState() => WotImgCropperState();
 }
 
-/// 导出格式常量，供 [outputType] 使用。
-class WotCropType {
-  WotCropType._();
+/// 导出格式，供 [WotImgCropper.outputType] / [WotCropResult.outputType] 使用。
+///
+/// BREAKING（原为 `class WotCropType` 的 String 常量，值拼写不变，
+/// 传参处 `WotCropType.png` / `WotCropType.jpg` 无需改动）。
+enum WotCropType {
+  /// JPEG 格式（有损，受 [WotImgCropper.quality] 影响）。
+  jpg,
 
-  /// JPEG 格式。
-  static const String jpg = 'jpg';
-
-  /// PNG 格式。
-  static const String png = 'png';
+  /// PNG 格式（无损，默认）。
+  png,
 }
 
 /// 图片裁剪组件的状态，暴露 `crop()` 导出裁剪框区域位图。
@@ -333,13 +336,17 @@ class WotImgCropperState extends State<WotImgCropper> {
     source.dispose();
     picture.dispose();
 
-    // 编码导出。说明：Flutter 的 `ui.Image.toByteData` 仅支持 PNG（无损），
-    // 原生不支持 JPEG 编码，故无论 [outputType] 为 jpg 或 png 均输出 PNG 字节；
-    // JPEG 输出需自行借助图像编码包（本项目约束不引入三方库），
-    // 因此 [quality]（仅对 JPEG 有意义）当前不参与编码。
-    final ByteData? data = await cropped.toByteData(
-      format: ui.ImageByteFormat.png,
-    );
+    // 编码导出。引擎支持 jpeg（ImageByteFormat.jpeg，Flutter ≥ 3.22）时按所选
+    // 格式编码；老引擎仅内置 png，选 jpg 时回退 PNG，实际格式在结果中如实上报
+    // （探测写法与 WotSignature 的 fileType 处理一致，避免对引擎版本硬编码）。
+    var format = ui.ImageByteFormat.png;
+    if (widget.outputType == WotCropType.jpg) {
+      format = ui.ImageByteFormat.values.firstWhere(
+        (e) => e.name == 'jpeg',
+        orElse: () => ui.ImageByteFormat.png,
+      );
+    }
+    final ByteData? data = await cropped.toByteData(format: format);
     cropped.dispose();
     if (data == null) return null;
 
@@ -347,7 +354,7 @@ class WotImgCropperState extends State<WotImgCropper> {
       bytes: data.buffer.asUint8List(),
       width: outW,
       height: outH,
-      outputType: WotCropType.png,
+      outputType: format.name == 'jpeg' ? WotCropType.jpg : WotCropType.png,
     );
   }
 }

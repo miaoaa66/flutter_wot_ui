@@ -518,8 +518,11 @@ class _WotSelectPickerSheetState extends State<_WotSelectPickerSheet> {
     final primary = widget.color ?? scheme.primaryOf(6);
     final options = _filtered;
 
+    // 弹层高度自适应：上限 430，小屏时收敛为可用高度的 80%，避免溢出。
+    final maxH = MediaQuery.sizeOf(context).height * 0.8;
+
     return SizedBox(
-      height: 430,
+      height: maxH < 430 ? maxH : 430,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,

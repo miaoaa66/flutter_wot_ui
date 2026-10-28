@@ -15,6 +15,8 @@ class _WotSegmentedPageState extends State<WotSegmentedPage> {
   Object? _v1 = 1;
   Object? _v2 = 'a';
   Object? _v3 = 'x';
+  Object? _v4 = 'a';
+  Object? _v5 = '1';
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +57,35 @@ class _WotSegmentedPageState extends State<WotSegmentedPage> {
                 WotSegmentedOption(label: '可点', value: 'x', icon: 'star'),
                 WotSegmentedOption(label: '禁用', value: 'y', disabled: true, icon: 'close'),
                 WotSegmentedOption(label: '三', value: 'z', icon: 'user'),
+              ],
+            )),
+        demoSection('边界（长文案 / 超多选项，非 block 自适应）'),
+        demoBlock(
+            '非 block 长文案：每项最小 88、超长自然撑开不再截断；'
+            '整体超宽时水平滚动（此前 options.length×88 定宽必溢出）',
+            WotSegmented(
+              modelValue: _v4,
+              onChange: (v) => setState(() => _v4 = v),
+              options: const [
+                WotSegmentedOption(label: '超长的选项文案一', value: 'a'),
+                WotSegmentedOption(label: '更长的选项文案二号', value: 'b'),
+                WotSegmentedOption(label: '短', value: 'c'),
+              ],
+            )),
+        demoBlock(
+            '非 block 八个选项：窄屏整体超宽 → 水平滑动查看（不溢出崩溃）',
+            WotSegmented(
+              modelValue: _v5,
+              onChange: (v) => setState(() => _v5 = v),
+              options: const [
+                WotSegmentedOption(label: '一', value: '1'),
+                WotSegmentedOption(label: '二', value: '2'),
+                WotSegmentedOption(label: '三', value: '3'),
+                WotSegmentedOption(label: '四', value: '4'),
+                WotSegmentedOption(label: '五', value: '5'),
+                WotSegmentedOption(label: '六', value: '6'),
+                WotSegmentedOption(label: '七', value: '7'),
+                WotSegmentedOption(label: '八', value: '8'),
               ],
             )),
       ],

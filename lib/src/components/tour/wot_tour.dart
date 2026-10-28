@@ -672,11 +672,14 @@ class _TourBubble extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              _textButton(
-                  skipButtonText ?? tr(context, 'wot.tour.skip'),
-                  scheme.textSecondary,
-                  onSkip),
-              const Spacer(),
+              // Expanded 吸收剩余空间：文案过长时省略，避免 Row 溢出。
+              // 上一项/完成保持固定宽度（若也用 Flexible 会平分空间截断默认文案）。
+              Expanded(
+                child: _textButton(
+                    skipButtonText ?? tr(context, 'wot.tour.skip'),
+                    scheme.textSecondary,
+                    onSkip),
+              ),
               if (showPrev) ...[
                 _textButton(
                     prevButtonText ?? tr(context, 'wot.tour.prev'),
@@ -701,7 +704,12 @@ class _TourBubble extends StatelessWidget {
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
-        child: Text(label, style: TextStyle(fontSize: 13, color: color)),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 13, color: color),
+        ),
       ),
     );
   }

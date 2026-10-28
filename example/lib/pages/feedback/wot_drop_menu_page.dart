@@ -15,6 +15,8 @@ class _WotDropMenuPageState extends State<WotDropMenuPage> {
   String _sort = '综合';
   String _price = '不限';
   String _filter = '全部';
+  bool _mask = true;
+  String _delivery = '不限';
 
   @override
   Widget build(BuildContext context) {
@@ -87,6 +89,34 @@ class _WotDropMenuPageState extends State<WotDropMenuPage> {
               ),
             ],
           )),
+        demoSection('蒙层（closeOnClickOverlay，默认 true）'),
+        demoBlock(
+          'closeOnClickOverlay 现场切换：true 时展开后出现全屏蒙层，'
+          '点击菜单栏/面板以外的区域关闭；false 时无蒙层，仅可再次点标题栏收起。'
+          '（蒙层用主题令牌 opacMainCover，菜单栏与面板浮于蒙层之上，滚动实时跟随）',
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            FilledButton.tonal(
+              onPressed: () => setState(() => _mask = !_mask),
+              child: Text('closeOnClickOverlay: $_mask'),
+            ),
+            const SizedBox(height: 8),
+            WotDropMenu(
+              closeOnClickOverlay: _mask,
+              menus: [
+                WotDropMenuItem(
+                  title: '配送',
+                  modelValue: _delivery,
+                  onChange: (v) => setState(() => _delivery = v as String),
+                  options: const [
+                    WotDropMenuOption(label: '不限配送', value: '不限'),
+                    WotDropMenuOption(label: '蜂鸟配送', value: '蜂鸟'),
+                    WotDropMenuOption(label: '美团配送', value: '美团'),
+                  ],
+                ),
+              ],
+            ),
+          ])),
+          SizedBox(height: 160),
       ],
     );
   }

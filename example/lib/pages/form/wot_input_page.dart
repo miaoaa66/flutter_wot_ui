@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_wot_ui/flutter_wot_ui.dart';
 
 import '../../common/demo_scaffold.dart';
@@ -17,6 +18,32 @@ class _WotInputPageState extends State<WotInputPage> {
   bool _disabled = false;
   bool _readonly = false;
   String? _taText;
+
+  // controller / focusNode 由页面（调用方）持有与销毁。
+  final TextEditingController _ctrl = TextEditingController(text: '可编程的初始值');
+  final FocusNode _focus = FocusNode();
+  final TextEditingController _taCtrl = TextEditingController();
+  String _ctrlText = '';
+
+  // autofocus 按需挂载：key 变化强制重新挂载以触发 autofocus。
+  bool _showAuto = false;
+  int _autoKey = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl.addListener(() {
+      if (mounted) setState(() => _ctrlText = _ctrl.text);
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    _focus.dispose();
+    _taCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -102,6 +129,70 @@ class _WotInputPageState extends State<WotInputPage> {
         demoSection('事件回调（onFocus / onBlur）'),
         demoBlock('聚焦 / 失焦',
             WotInput(placeholder: '点击聚焦', onFocus: () => demoToast(context, '聚焦'), onBlur: () => demoToast(context, '失焦'))),
+        demoSection('编程控制（controller / focusNode，由调用方持有与销毁）'),
+        demoBlock(
+            'controller 外部持有：写入 / 追加 / 清空 / 读取。传入 controller 后 value 只作初始值，'
+            'controller.text 是唯一数据源（清除图标与字数统计跟随监听器同步）',
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              WotInput(controller: _ctrl, focusNode: _focus, placeholder: '受控输入'),
+              const SizedBox(height: 8),
+              Text('controller.text = "$_ctrlText"',
+                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
+              const SizedBox(height: 8),
+              Wrap(spacing: 8, runSpacing: 8, children: [
+                FilledButton.tonal(
+                    onPressed: () => _ctrl.text = '程序写入 ${DateTime.now().second}s',
+                    child: const Text('写入')),
+                FilledButton.tonal(
+                    onPressed: () => _ctrl.text += '·追加',
+                    child: const Text('追加')),
+                FilledButton.tonal(
+                    onPressed: () => _ctrl.clear(), child: const Text('清空')),
+                FilledButton.tonal(
+                    onPressed: () => demoToast(context, '读取：${_ctrl.text}'),
+                    child: const Text('读取')),
+              ]),
+            ])),
+        demoBlock('focusNode：程序化聚焦 / 取消聚焦（与上例同一输入框）',
+            Wrap(spacing: 8, children: [
+              FilledButton.tonal(
+                  onPressed: () => _focus.requestFocus(), child: const Text('聚焦')),
+              FilledButton.tonal(
+                  onPressed: () => _focus.unfocus(), child: const Text('取消聚焦')),
+            ])),
+        demoSection('输入过滤（inputFormatters，需 import services.dart）'),
+        demoBlock('digitsOnly：只允许数字',
+            WotInput(placeholder: '仅数字', inputFormatters: [FilteringTextInputFormatter.digitsOnly])),
+        demoBlock('allow(RegExp)：仅允许字母与空格',
+            WotInput(placeholder: '仅字母', inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
+            ])),
+        demoBlock('withFunction：输入实时转大写',
+            WotInput(placeholder: '输入会转大写', inputFormatters: [
+              TextInputFormatter.withFunction(
+                  (oldValue, newValue) => newValue.copyWith(text: newValue.text.toUpperCase())),
+            ])),
+        demoSection('autofocus / onSubmitted / textInputAction'),
+        demoBlock(
+            'autofocus 按需挂载：点击按钮以新 key 重新挂载，输入框挂载即自动聚焦',
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              FilledButton.tonal(
+                  onPressed: () => setState(() {
+                        _autoKey++;
+                        _showAuto = !_showAuto;
+                      }),
+                  child: Text(_showAuto ? '卸载（当前已挂载）' : '挂载并自动聚焦')),
+              const SizedBox(height: 8),
+              if (_showAuto)
+                WotInput(key: ValueKey(_autoKey), placeholder: '挂载即聚焦', autofocus: true),
+            ])),
+        demoBlock(
+            'onSubmitted + textInputAction：键盘动作键改为「搜索」，按下触发回调',
+            WotInput(
+              placeholder: '输入后按键盘搜索键',
+              textInputAction: TextInputAction.search,
+              onSubmitted: (v) => demoToast(context, '提交：$v'),
+            )),
         demoSection('WotTextarea 多行文本域'),
         demoBlock(
             '基础（rows / placeholder）',
@@ -113,6 +204,13 @@ class _WotInputPageState extends State<WotInputPage> {
             )),
         demoBlock('autosize 随内容增高 + 字数限制',
             WotTextarea(placeholder: '自动增高', autosize: true, maxlength: 100, showWordLimit: true)),
+        demoBlock('controller + onSubmitted（与 WotInput 同一套编程控制协议）',
+            WotTextarea(
+              controller: _taCtrl,
+              placeholder: '多行受控',
+              rows: 2,
+              onSubmitted: (v) => demoToast(context, '提交：$v'),
+            )),
         demoBlock('disabled 禁用（浅灰底 + 灰字）',
             const WotTextarea(value: '禁用文本域', disabled: true)),
         demoBlock('readonly 只读（白底、正常字色，区别于 disabled）',
