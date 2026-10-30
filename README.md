@@ -17,7 +17,7 @@ A Flutter re-implementation of the **Wot UI** component library (uni-app version
 
 ## Notes
 
-This library has only been tested and built for Web and Android; other platforms are untested.   
+This library has only been tested and built for Web, Android, and Windows; other platforms are untested.   
 Not all properties of all components have been fully covered by tests.   
 For integrating the library into a new Flutter project, see: <https://gitee.com/miaoaa66/flutter_wot_ui_demo>   
 For integrating the library into a new Flutter project, see: <https://github.com/miaoaa66/flutter_wot_ui_demo>   
@@ -151,12 +151,14 @@ flutter run
 
 
 # Build for web
+# Build output: example/build/web
 flutter build web --release
 # If deploying under a sub-path, e.g. https://xxx.com/myapp/:
 flutter build web --release --base-href /myapp/
 
 
 # Build for Android
+# Build output: example/build/app/outputs/flutter-apk
 flutter build apk --debug
 flutter build apk --release
 # Split per ABI, outputs 3 smaller APKs (recommended)
@@ -165,6 +167,14 @@ flutter build apk --release --split-per-abi
 flutter build apk --release --target-platform android-arm64
 
 
+# Build for Windows
+# Build output: example/build/windows/x64/runner/Release
+# Release build (no debug banner, AOT compiled, best performance, for distribution)
+fvm flutter build windows
+# Profile build (keeps the performance overlay, not for distribution)
+fvm flutter build windows --profile
+# Debug build (shows the debug banner, larger size, local testing only)
+fvm flutter build windows --debug
 
 
 ```

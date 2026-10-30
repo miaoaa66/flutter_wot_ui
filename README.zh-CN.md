@@ -17,7 +17,7 @@
 
 ## 须知
 
-此组件库仅测试和构建了web端和android端，其他平台未测试。   
+此组件库仅测试和构建了web端、android端、windows端，其他平台未测试。   
 组件库也没有进行所有组件所有属性的完整测试。   
 flutter新项目引入组件库参考：<https://gitee.com/miaoaa66/flutter_wot_ui_demo>   
 flutter新项目引入组件库参考：<https://github.com/miaoaa66/flutter_wot_ui_demo>   
@@ -151,12 +151,14 @@ flutter run
 
 
 # 打包web
+# 打包产物：example/build/web
 flutter build web --release
 # 如果部署在子路径，例如 https://xxx.com/myapp/：
 flutter build web --release --base-href /myapp/
 
 
 # 打包android
+# 打包产物：example/build/app/outputs/flutter-apk
 flutter build apk --debug
 flutter build apk --release
 # 分架构，输出3个小包（推荐）
@@ -165,6 +167,14 @@ flutter build apk --release --split-per-abi
 flutter build apk --release --target-platform android-arm64
 
 
+# 打包windows
+# 打包产物：example/build/windows/x64/runner/Release
+# release 正式包（无debug横幅、AOT编译、性能最优，对外分发用）
+fvm flutter build windows
+# profile 性能分析包（保留性能面板，不对外发）
+fvm flutter build windows --profile
+# debug调试包（带debug标、体积大，只本地测试）
+fvm flutter build windows --debug
 
 
 ```
