@@ -127,7 +127,9 @@ class WotDatetimePickerView extends StatelessWidget {
   }
 
   bool _dayDisabled(int d) {
-    final sel = DateTime.utc(modelValue.year, modelValue.month, d);
+    // 统一使用本地时间构造：原 DateTime.utc 与本地时区的 minDate/maxDate 比较时，
+    // 在非 UTC 时区下边界日会被多算/漏算一天。
+    final sel = DateTime(modelValue.year, modelValue.month, d);
     if (minDate != null && minDate!.isAfter(sel)) return true;
     if (maxDate != null && maxDate!.isBefore(sel)) return true;
     return false;
@@ -235,6 +237,10 @@ class WotDatetimePickerView extends StatelessWidget {
     if (type == WotDatetimePickerType.monthDay) {
       maybe(0, (s) => mo = int.parse(s));
       maybe(1, (s) => d = int.parse(s));
+      // 与默认分支一致：目标月天数不足时钳制到月末，避免 DateTime 静默进位
+      //（如基准 3-31 切到 2 月会变 3-3）。
+      final maxDay = DateTime(y, mo + 1, 0).day;
+      if (d > maxDay) d = maxDay;
       return DateTime(y, mo, d);
     }
     if (type == WotDatetimePickerType.year) {

@@ -66,49 +66,66 @@ class WotGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = _resolveItems(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final totalWidth = constraints.maxWidth;
-        final cellWidth = _cellWidth(totalWidth, items.length);
+    return _GridBorderScope(
+      border: border,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final totalWidth = constraints.maxWidth;
+          final cellWidth = _cellWidth(totalWidth, items.length);
 
-        // 分组：按列数分成行。[reverse] 为 true 时先整体倒序，再按列切分。
-        final ordered = reverse ? items.reversed.toList() : items;
-        final rows = <List<Widget>>[];
-        for (var i = 0; i < ordered.length; i += columnNum) {
-          rows.add(ordered.sublist(i, (i + columnNum).clamp(0, ordered.length)));
-        }
+          // 分组：按列数分成行。[reverse] 为 true 时先整体倒序，再按列切分。
+          final ordered = reverse ? items.reversed.toList() : items;
+          final rows = <List<Widget>>[];
+          for (var i = 0; i < ordered.length; i += columnNum) {
+            rows.add(ordered.sublist(i, (i + columnNum).clamp(0, ordered.length)));
+          }
 
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const ClampingScrollPhysics(),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (var r = 0; r < rows.length; r++)
-                Padding(
-                  padding: EdgeInsets.only(bottom: r == rows.length - 1 ? 0 : gap, right: 0),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      for (var c = 0; c < rows[r].length; c++)
-                        Padding(
-                          padding: EdgeInsets.only(right: c == rows[r].length - 1 ? 0 : gap),
-                          child: SizedBox(
-                            width: cellWidth,
-                            // 开启 square 时格子的高与宽相等（正方形）。
-                            height: square ? cellWidth : null,
-                            child: rows[r][c],
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const ClampingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var r = 0; r < rows.length; r++)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: r == rows.length - 1 ? 0 : gap, right: 0),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (var c = 0; c < rows[r].length; c++)
+                          Padding(
+                            padding: EdgeInsets.only(right: c == rows[r].length - 1 ? 0 : gap),
+                            child: SizedBox(
+                              width: cellWidth,
+                              // 开启 square 时格子的高与宽相等（正方形）。
+                              height: square ? cellWidth : null,
+                              child: rows[r][c],
+                            ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-            ],
-          ),
-        );
-      },
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
+}
+
+/// [WotGrid.border] 的默认值下发：子项 [WotGridItem] 未显式传 [WotGridItem.border]
+/// 时继承所在宫格的边框开关。
+class _GridBorderScope extends InheritedWidget {
+  const _GridBorderScope({required this.border, required super.child});
+
+  final bool border;
+
+  static bool? maybeBorderOf(BuildContext context) =>
+      context.getInheritedWidgetOfExactType<_GridBorderScope>()?.border;
+
+  @override
+  bool updateShouldNotify(_GridBorderScope oldWidget) => border != oldWidget.border;
 }
 
 /// 宫格子项，对应 wot `wd-grid-item`。
@@ -237,7 +254,9 @@ class WotGridItem extends StatelessWidget {
     return Container(
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        border: (border ?? true) ? Border(bottom: BorderSide(color: scheme.borderLight), right: BorderSide(color: scheme.borderLight)) : null,
+        border: (border ?? _GridBorderScope.maybeBorderOf(context) ?? true)
+            ? Border(bottom: BorderSide(color: scheme.borderLight), right: BorderSide(color: scheme.borderLight))
+            : null,
       ),
       child: cell,
     );

@@ -196,11 +196,15 @@ class _WotSignatureState extends State<WotSignature> {
       return empty;
     }
     final image = await boundary.toImage(pixelRatio: widget.exportScale);
-    final data = await image.toByteData(format: _exportFormat());
-    final bytes = data?.buffer.asUint8List();
-    final result = WotSignatureResult(success: bytes != null, bytes: bytes);
-    widget.onConfirm?.call(result);
-    return result;
+    try {
+      final data = await image.toByteData(format: _exportFormat());
+      final bytes = data?.buffer.asUint8List();
+      final result = WotSignatureResult(success: bytes != null, bytes: bytes);
+      widget.onConfirm?.call(result);
+      return result;
+    } finally {
+      image.dispose(); // 及时释放原生位图，连续导出不再泄漏。
+    }
   }
 
   @override

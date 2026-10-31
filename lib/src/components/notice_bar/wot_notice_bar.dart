@@ -325,7 +325,11 @@ class _WotNoticeBarState extends State<WotNoticeBar>
     } else {
       content = _buildHorizontalContent(fg, fontSize);
     }
-    final cur = widget.text ?? (widget.texts?.isNotEmpty == true ? widget.texts!.first : '');
+    // 点击回调取「当前正在展示」的文本：垂直轮播时须跟随 _vIndex，
+    // 原实现恒取 texts.first，与索引 idx 错配。
+    final textList = widget.texts ?? const <String>[];
+    final cur = widget.text ??
+        (textList.isEmpty ? '' : textList[_vIndex % textList.length]);
     final idx = _currentIndex();
     // 无障碍：公告栏本体可点，补 button 角色 + 点按动作（公告文本读屏可读）。
     return Semantics(

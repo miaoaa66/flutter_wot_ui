@@ -78,7 +78,9 @@ class _WotSlideVerifyState extends State<WotSlideVerify> {
 
   void _end() {
     if (_width <= 0 || _success || widget.disabled) return;
-    final threshold = _width - 44;
+    // 滑块宽即 widget.height，阈值应是「轨道宽 - 滑块宽」；
+    // 原硬编码 44 在 height ≠ 44 时永远无法达标。
+    final threshold = _width - widget.height;
     if (_offset >= threshold) {
       setState(() {
         _offset = threshold;

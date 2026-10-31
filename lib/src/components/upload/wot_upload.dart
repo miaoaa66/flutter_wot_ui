@@ -443,7 +443,7 @@ class _WotUploadState extends State<WotUpload> {
     );
   }
 
-  List<WotUploadFile> get _display => _controlled ? _files : _files;
+  List<WotUploadFile> get _display => _files;
 
   @override
   Widget build(BuildContext context) {

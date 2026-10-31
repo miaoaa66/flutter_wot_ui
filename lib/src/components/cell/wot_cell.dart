@@ -172,7 +172,7 @@ class WotCell extends StatelessWidget {
     // 纵向布局由标题行包裹。文本样式与三态默认色按字段合并（传入字段优先）。
     final leftContent = Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: titleAlign,
       children: [
         if (titleBuilder != null)
           titleBuilder!(context)
@@ -199,7 +199,7 @@ class WotCell extends StatelessWidget {
     // 右侧「值组」内容：value（上，对齐 title）+ desc（下，对齐 label）。
     final rightContent = Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: valueAlign,
       children: [
         if (valueBuilder != null)
           valueBuilder!(context)
@@ -211,9 +211,13 @@ class WotCell extends StatelessWidget {
           ),
         if (desc != null) ...[
           const SizedBox(height: 4),
-          _text(
-            desc!,
-            style: TextStyle(fontSize: 13, color: subColor).merge(descStyle),
+          Align(
+            alignment: _crossToAlign(descAlign),
+            widthFactor: 1,
+            child: _text(
+              desc!,
+              style: TextStyle(fontSize: 13, color: subColor).merge(descStyle),
+            ),
           ),
         ],
       ],
@@ -346,3 +350,11 @@ class WotCell extends StatelessWidget {
     return width == null ? text : SizedBox(width: width, child: text);
   }
 }
+
+/// 把 [CrossAxisAlignment] 映射为文本级 [Alignment]（供 desc 单独对齐用）。
+Alignment _crossToAlign(CrossAxisAlignment c) => switch (c) {
+      CrossAxisAlignment.start => Alignment.centerLeft,
+      CrossAxisAlignment.end => Alignment.centerRight,
+      CrossAxisAlignment.center || CrossAxisAlignment.stretch => Alignment.center,
+      CrossAxisAlignment.baseline => Alignment.topLeft,
+    };

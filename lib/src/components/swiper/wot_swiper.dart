@@ -112,11 +112,14 @@ class _WotSwiperState extends State<WotSwiper> with SingleTickerProviderStateMix
   int get _realIndex => _canLoop ? _raw % _count : _raw;
 
   void _initController() {
+    // 起始页必须能被 count 整除，否则首屏 _realIndex 偏移错位
+    //（如 10000 % 3 == 1，一上来显示第 2 页、指示点高亮第 2 个）。
+    final loopStart = _canLoop ? _loopBase - _loopBase % _count : 0;
     _controller = PageController(
       viewportFraction: 1,
-      initialPage: _canLoop ? _loopBase : 0,
+      initialPage: loopStart,
     );
-    _raw = _canLoop ? _loopBase : 0;
+    _raw = loopStart;
   }
 
   @override

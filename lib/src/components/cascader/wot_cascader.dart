@@ -234,6 +234,9 @@ class _CascaderSheetState extends State<_CascaderSheet> {
         _active = d;
       } else {
         final nxt = d + 1;
+        // 与叶分支一致：重选上层分支时截断残存的更深层级，
+        // 否则顶部 tab 数量不变且旧 tab 显示过期选项。
+        if (_levels.length > nxt + 1) _levels = _levels.sublist(0, nxt + 1);
         while (_levels.length <= nxt) {
           _levels.add(<WotCascadeOption>[]);
         }

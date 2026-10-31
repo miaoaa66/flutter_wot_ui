@@ -229,17 +229,20 @@ class WotImgCropperState extends State<WotImgCropper> {
     if (ratio > 0) {
       cw = base;
       ch = base / ratio;
+      // 保证裁剪框不超出视口。
+      final maxW = math.min(cw, viewportW);
+      final maxH = math.min(ch, viewportH);
+      cw = math.min(maxW, maxH * ratio); // 受高度限定
+      ch = math.min(maxH, maxW / ratio); // 受宽度限定
+      cw = math.min(cw, maxW);
+      ch = math.min(ch, maxH);
     } else {
-      cw = base;
-      ch = base;
+      // ratio 非正时回退 1:1，且不再参与重算——原实现仍用 ratio 参与
+      // 数目相乘，ratio=0 时裁剪框宽被算成 0、负值时算出负尺寸。
+      final side = math.min(base, math.min(viewportW, viewportH));
+      cw = side;
+      ch = side;
     }
-    // 保证裁剪框不超出视口。
-    final maxW = math.min(cw, viewportW);
-    final maxH = math.min(ch, viewportH);
-    cw = math.min(maxW, maxH * ratio); // 受高度限定
-    ch = math.min(maxH, maxW / ratio); // 受宽度限定
-    cw = math.min(cw, maxW);
-    ch = math.min(ch, maxH);
     final center = Offset(viewportW / 2, viewportH / 2);
     return Rect.fromCenter(center: center, width: cw, height: ch);
   }

@@ -63,9 +63,9 @@ class _WotSortButtonState extends State<WotSortButton> {
     final next = switch (_dir) {
       // 首次点击方向由 descFirst 决定（D 类 P1）。
       WotSortDirection.none => descFirst ? WotSortDirection.descending : WotSortDirection.ascending,
-      WotSortDirection.ascending => descFirst && widget.allowReset
-          ? WotSortDirection.none
-          : WotSortDirection.descending,
+      // ascending → 降序：原实现里 descFirst && allowReset 的 none 分支不可达
+      // （能进入 ascending 必定 descFirst=false 或 allowReset=false），属死代码。
+      WotSortDirection.ascending => WotSortDirection.descending,
       WotSortDirection.descending =>
         widget.allowReset ? WotSortDirection.none : WotSortDirection.ascending,
     };

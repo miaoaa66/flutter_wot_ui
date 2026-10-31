@@ -220,12 +220,15 @@ class _WotTableState extends State<WotTable> {
   /// `if (newIndex > oldIndex) newIndex -= 1` 修正；`onReorderItem` 已完成该修正，
   /// 传入的 `newIndex` 即最终落位索引，因此这里不再做自减。
   void _handleReorderItem(int oldIndex, int newIndex) {
-    if (oldIndex < 0 || oldIndex >= _rows.length) return;
-    if (newIndex < 0 || newIndex >= _rows.length) return;
-    setState(() {
-      final item = _rows.removeAt(oldIndex);
-      _rows.insert(newIndex, item);
-    });
+    final display = _displayData;
+    if (oldIndex < 0 || oldIndex >= display.length) return;
+    if (newIndex < 0 || newIndex >= display.length) return;
+    // 以展示序（含排序）重排：先按展示序快照，再执行移动，最后整体替换 _rows。
+    // 直接拿展示层索引操作 _rows，会在排序激活时删插错行。
+    final reordered = [...display];
+    final item = reordered.removeAt(oldIndex);
+    reordered.insert(newIndex, item);
+    setState(() => _rows = reordered);
     widget.onReorder?.call(oldIndex, newIndex);
   }
 

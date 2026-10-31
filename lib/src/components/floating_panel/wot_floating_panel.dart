@@ -105,19 +105,37 @@ class _WotFloatingPanelState extends State<WotFloatingPanel>
     _setHeight(_animFrom + (_animTo - _animFrom) * _anim.value, notify: true);
   }
 
+  /// 有效钳制下限：可用高度不足 [WotFloatingPanel.minHeight] 时（如小屏/小容器）
+  /// 回退到可用高度，避免 clamp(min > max) 抛 ArgumentError。
+  double _minBound() {
+    final avail = _availH;
+    final mh = widget.minHeight;
+    return mh < avail ? mh : avail;
+  }
+
+  double _clampHeight(double v) => v.clamp(_minBound(), _availH);
+
   /// 把锚点解析为当前可用高度下的像素高度。
   double _resolveAnchor(WotFloatingPanelAnchor a) {
     final raw = a.isFraction ? a.value * _availH : a.value;
-    return raw.clamp(widget.minHeight, _availH);
+    return _clampHeight(raw);
   }
 
   double _initialHeight() {
-    final a = widget.initialAnchor ?? widget.anchors[widget.anchors.length ~/ 2];
+    final WotFloatingPanelAnchor a;
+    if (widget.initialAnchor != null) {
+      a = widget.initialAnchor!;
+    } else if (widget.anchors.isEmpty) {
+      // 空锚点列表兜底：中位高度。
+      a = const WotFloatingPanelAnchor.fraction(0.5);
+    } else {
+      a = widget.anchors[widget.anchors.length ~/ 2];
+    }
     return _resolveAnchor(a);
   }
 
   void _setHeight(double h, {required bool notify}) {
-    final clamped = h.clamp(widget.minHeight, _availH);
+    final clamped = _clampHeight(h);
     if (clamped == _height) return;
     _height = clamped;
     if (notify) widget.onHeightChange?.call(_height);
@@ -132,6 +150,7 @@ class _WotFloatingPanelState extends State<WotFloatingPanel>
   }
 
   void _onDragEnd(DragEndDetails _) {
+    if (widget.anchors.isEmpty) return; // 无吸附点可回弹，保持当前高度。
     // 找最近吸附点并回弹。
     var best = _resolveAnchor(widget.anchors.first);
     var bestDist = double.infinity;
@@ -160,9 +179,9 @@ class _WotFloatingPanelState extends State<WotFloatingPanel>
           // 首帧再确定初始高度（需要可用高度）。
           _height = widget.height ?? _initialHeight();
         } else if (widget.height != null) {
-          _height = widget.height!.clamp(widget.minHeight, avail);
+          _height = _clampHeight(widget.height!);
         }
-        final h = _height.clamp(widget.minHeight, avail);
+        final h = _clampHeight(_height);
         return Align(
           alignment: Alignment.bottomCenter,
           child: SizedBox(

@@ -69,7 +69,9 @@ class WotProgress extends StatelessWidget {
         // 内部文字宽度（含左右内边距），保证填充段不窄于文字，
         // 使文字始终落在底色上而非浅色轨道（避免白字看不见）
         final labelW = inside ? _measureTextWidth(label, 11) + 16 : 0.0;
-        final filledW = inside ? (frac * maxW).clamp(labelW, maxW) : frac * maxW;
+        // 容器过窄时文字宽可能超过条宽，clamp(min>max) 会抛异常，先把下限压平到条宽。
+        final lowerW = labelW > maxW ? maxW : labelW;
+        final filledW = inside ? (frac * maxW).clamp(lowerW, maxW) : frac * maxW;
 
         return SizedBox(
           height: boxH,

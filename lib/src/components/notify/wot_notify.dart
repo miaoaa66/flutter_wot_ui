@@ -49,7 +49,13 @@ class WotNotify {
     final overlay = Overlay.of(context, rootOverlay: true);
     _timer?.cancel();
     final e = _entry;
-    if (e != null && e.mounted) e.remove();
+    if (e != null && e.mounted) {
+      // 顶替上一通知时先触发其关闭回调，避免旧回调被静默丢弃。
+      final prev = _onClosed;
+      _onClosed = null;
+      prev?.call();
+      e.remove();
+    }
 
     _onClosed = onClosed;
     void dismiss() {
@@ -153,8 +159,9 @@ class _NotifyBar extends StatelessWidget {
     final bar = Material(
       color: bgColor,
       child: SafeArea(
-        bottom: position == WotNotifyPosition.top,
-        top: position == WotNotifyPosition.bottom,
+        // top 通知避让顶部状态栏，bottom 通知避让底部手势条（原实现写反了）。
+        bottom: position == WotNotifyPosition.bottom,
+        top: position == WotNotifyPosition.top,
         child: GestureDetector(
           onTap: onClick,
           behavior: HitTestBehavior.opaque,

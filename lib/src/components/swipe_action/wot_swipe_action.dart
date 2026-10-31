@@ -155,6 +155,8 @@ class _WotSwipeActionState extends State<WotSwipeAction> {
                   ? null
                   : (d) {
                       if (!_dragging) return;
+                      // 无可视操作时防除零（aw == 0 会产生 Infinity/NaN 位移）。
+                      if (aw <= 0) return;
                       // 右侧操作滑动方向为左负；左侧操作为右正。
                       final sign = right ? -1.0 : 1.0;
                       final delta = sign * d.delta.dx / aw;

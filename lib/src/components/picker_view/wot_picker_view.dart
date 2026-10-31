@@ -121,7 +121,10 @@ class _WotPickerColumnState extends State<WotPickerColumn> {
   @override
   void initState() {
     super.initState();
-    _current = widget.selectedIndex.clamp(0, widget.options.length - 1);
+    // 空列（如 picker 某项为空、级联数据缺失）时退化为 0，避免 clamp(0, -1) 崩溃。
+    _current = widget.options.isEmpty
+        ? 0
+        : widget.selectedIndex.clamp(0, widget.options.length - 1);
     _dragStartIndex = _current;
     _controller = FixedExtentScrollController(initialItem: _current);
     // 初值对应的首次布局回调在 build 阶段触发，延后到帧末再解除抑制。
@@ -137,7 +140,9 @@ class _WotPickerColumnState extends State<WotPickerColumn> {
       _current = widget.selectedIndex;
       if (_controller.hasClients) {
         _syncing = true;
-        _controller.jumpToItem(_current.clamp(0, widget.options.length - 1));
+        _controller.jumpToItem(widget.options.isEmpty
+            ? 0
+            : _current.clamp(0, widget.options.length - 1));
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) setState(() => _syncing = false);
         });
@@ -324,7 +329,8 @@ class WotPickerViewColumn extends StatelessWidget {
               optionBuilder: optionBuilder,
               disabled: disabled || loading,
               onChange: (i) {
-                if (i >= 0 && i < options.length) onChange(options[i].value!);
+                // value 可为 null（如纯文本列），不允许 ! 断言崩溃。
+                if (i >= 0 && i < options.length) onChange(options[i].value);
               },
             ),
             if (loading)

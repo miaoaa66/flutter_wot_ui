@@ -130,6 +130,7 @@ class _WotCountDownState extends State<WotCountDown> {
       final next = _remaining - _tickInterval;
       if (next <= Duration.zero) {
         _timer?.cancel();
+        _timer = null; // 归零后置空，允许 controller.start() 重新启动。
         setState(() => _remaining = Duration.zero);
         widget.onFinish?.call();
       } else {

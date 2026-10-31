@@ -24,7 +24,7 @@ class WotInputNumber extends StatefulWidget {
     this.buttonSize = 28,
     this.longPress = false,
     this.name,
-  });
+  }) : assert(min <= max, 'min 不能大于 max');
 
   /// 当前值（受控，v-model:value），会自动夹在 [min]、[max] 之间。
   final num modelValue;
@@ -96,7 +96,7 @@ class _WotInputNumberState extends State<WotInputNumber> {
   @override
   void initState() {
     super.initState();
-    _value = _round((widget.modelValue).clamp(widget.min, widget.max));
+    _value = _round(_clamp(widget.modelValue));
     _c = TextEditingController(text: _fmt(_value));
   }
 
@@ -104,7 +104,7 @@ class _WotInputNumberState extends State<WotInputNumber> {
   void didUpdateWidget(WotInputNumber old) {
     super.didUpdateWidget(old);
     if (old.modelValue != widget.modelValue) {
-      _value = _round((widget.modelValue).clamp(widget.min, widget.max).toDouble());
+      _value = _round(_clamp(widget.modelValue).toDouble());
       _syncText();
     }
   }
@@ -117,17 +117,26 @@ class _WotInputNumberState extends State<WotInputNumber> {
   }
 
   /// 按 [WotInputNumber.precision] 对数值做四舍五入约束；未设置时原样返回。
+  /// precision 为负按 0（整数）处理，避免 pow 小数位与 toStringAsFixed 负数异常。
   num _round(num v) {
     final p = widget.precision;
     if (p == null) return v;
-    final factor = math.pow(10, p).toDouble();
+    final p0 = p < 0 ? 0 : p;
+    final factor = math.pow(10, p0).toDouble();
     return (v * factor).round() / factor;
   }
 
   String _fmt(num v) {
     final p = widget.precision;
-    if (p != null) return v.toStringAsFixed(p);
+    if (p != null) return v.toStringAsFixed(p < 0 ? 0 : p);
     return v.toInt() == v ? v.toInt().toString() : v.toString();
+  }
+
+  /// 夹取到 [min, max]；min > max 时自动交换边界，避免 clamp(min > max) 抛异常。
+  num _clamp(num v) {
+    final lo = math.min<num>(widget.min, widget.max);
+    final hi = math.max<num>(widget.min, widget.max);
+    return v.clamp(lo, hi);
   }
 
   void _syncText() {
@@ -151,7 +160,7 @@ class _WotInputNumberState extends State<WotInputNumber> {
   /// 步进一次；返回数值是否真的发生变化（到边界时为 false）。
   bool _step(num delta) {
     if (_isLocked) return false;
-    final next = _round((_value + delta * widget.step).clamp(widget.min, widget.max).toDouble());
+    final next = _round(_clamp(_value + delta * widget.step).toDouble());
     if (next == _value) return false;
     setState(() {
       _value = next;
@@ -168,7 +177,7 @@ class _WotInputNumberState extends State<WotInputNumber> {
       _syncText();
       return;
     }
-    final clamped = _round(v.clamp(widget.min, widget.max).toDouble());
+    final clamped = _round(_clamp(v).toDouble());
     setState(() {
       _value = clamped;
       _syncText();

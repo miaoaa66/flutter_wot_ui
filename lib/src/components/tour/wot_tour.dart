@@ -271,6 +271,12 @@ class _WotTourViewState extends State<_WotTourView> {
   @override
   void initState() {
     super.initState();
+    // 空步骤列表守卫：避免 clamp(0, -1) 与后续 steps[] 越界。
+    if (widget.steps.isEmpty) {
+      _stepIndex = 0;
+      widget.controller._attach(this);
+      return;
+    }
     _stepIndex = widget.initialIndex.clamp(0, widget.steps.length - 1);
     widget.controller._attach(this);
     // 首帧后触发首步的进入回调与自动滚动，确保目标已布局。
@@ -279,6 +285,7 @@ class _WotTourViewState extends State<_WotTourView> {
 
   /// 触发当前步的 [WotTourStep.onEnter] 并自动滚动到目标。
   void _enterStep() {
+    if (widget.steps.isEmpty) return;
     final step = widget.steps[_stepIndex.clamp(0, widget.steps.length - 1)];
     step.onEnter?.call();
     if (mounted && step.autoScroll) _scrollToTarget(step);
@@ -287,6 +294,7 @@ class _WotTourViewState extends State<_WotTourView> {
 
   /// 离开当前步（触发 [WotTourStep.onLeave]）。
   void _leaveStep() {
+    if (widget.steps.isEmpty) return;
     widget.steps[_stepIndex.clamp(0, widget.steps.length - 1)].onLeave?.call();
   }
 
@@ -408,6 +416,9 @@ class _WotTourViewState extends State<_WotTourView> {
 
   @override
   Widget build(BuildContext context) {
+    // 空步骤列表：不渲染任何引导内容（step getter 会越界）。
+    if (widget.steps.isEmpty) return const SizedBox.shrink();
+
     final scheme = context.wotScheme;
     final media = MediaQuery.of(context);
     final size = media.size;

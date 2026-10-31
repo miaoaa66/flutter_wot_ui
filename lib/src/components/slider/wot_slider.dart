@@ -138,6 +138,10 @@ class _WotSliderState extends State<WotSlider> {
   double _fracToValue(double fraction) {
     if (_range <= 0) return widget.min.toDouble();
     final v = widget.min.toDouble() + fraction * _range;
+    if (widget.step <= 0) {
+      // step 非法时不做吸附，避免除零 / round(Infinity) 崩溃。
+      return v.clamp(widget.min.toDouble(), widget.max.toDouble()).toDouble();
+    }
     final stepped = (v / widget.step.toDouble()).round() * widget.step.toDouble();
     return stepped.clamp(widget.min.toDouble(), widget.max.toDouble()).toDouble();
   }
@@ -355,6 +359,7 @@ class _WotSliderState extends State<WotSlider> {
     // 无障碍：裸 GestureDetector 不产生语义节点，屏幕阅读器读不出当前值 / 可增减。
     // 增减复用内部拖动路径（_dragMove + _dragEnd），与手动拖动一样走对齐吸附和 onChange。
     void semanticStep(int dir) {
+      if (widget.step <= 0 || _range <= 0) return; // 非法 step / 区间时无步进语义。
       final cur = widget.range ? _high : _value;
       num next = cur + dir * widget.step;
       final steps = ((next - widget.min) / widget.step).round();

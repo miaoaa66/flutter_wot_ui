@@ -198,7 +198,7 @@ class WotFormControl extends ChangeNotifier {
   /// 未传时回退中文拼接（保持无 context 场景可用，如纯 controller 校验）。
   Map<String, String> validateFields([String? prop, BuildContext? context]) {
     if (prop != null) {
-      final m = validateField(prop);
+      final m = validateField(prop, context);
       return m == null ? <String, String>{} : <String, String>{prop: m};
     }
     final out = <String, String>{};
